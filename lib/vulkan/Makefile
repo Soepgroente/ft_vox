@@ -10,7 +10,8 @@ INCLUDE			:=	-I . \
 					-I ../../include \
 					-I /usr/local/include \
 
-SOURCES			:=	stb_image.cpp \
+SOURCES			:=	Camera.cpp \
+					stb_image.cpp \
 					VulkanBuffer.cpp \
 					VulkanDescriptors.cpp \
 					VulkanDevice.cpp \

@@ -2,7 +2,7 @@
 
 #include "Vectors.hpp"
 
-namespace vox {
+namespace ve {
 
 class Camera
 {

@@ -1,4 +1,4 @@
-TARGET			:=	Vox
+TARGET			:=	ft_vox
 CC				:=	c++
 BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
@@ -20,8 +20,7 @@ VULKANDIR	:= $(LIB_DIR)/vulkan
 
 LIBS		:= $(VECTORDIR)/vectors.a $(VULKANDIR)/vulkan.a
 
-SOURCES		:=	Camera.cpp \
-				Vox.cpp \
+SOURCES		:=	Vox.cpp \
 				InputHandler.cpp \
 				main.cpp \
 				utils.cpp \
@@ -30,13 +29,11 @@ OBJECTS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))
 UNAME_S		:=	$(shell uname -s)
 
 SHADERS_DIR	:=	shaders
-SHADERS_SRC	:=	shaders/basic.vert \
-				shaders/basic.frag \
-				shaders/grid.frag \
-				shaders/grid.vert \
+SHADERS_SRC	:=	basic.vert \
+				basic.frag \
 
 GLSLC				:= $(shell which glslc)
-SHADERS_COMPILED	:= $(addprefix $(BUILD_DIR)/,$(notdir $(SHADERS_SRC:%.=%.spv)))
+SHADERS_COMPILED	:= $(addprefix $(BUILD_DIR)/,$(addsuffix .spv,$(SHADERS_SRC)))
 
 RPATH_DIR	:=	/usr/local/lib
 LFLAGS		:=	-L/opt/homebrew/lib -lglfw -framework Cocoa -framework IOKit -framework OpenGL
@@ -85,7 +82,7 @@ $(TARGET): $(SHADERS_COMPILED) $(BUILD_DIR) $(OBJECTS)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CPPFLAGS) $(INCLUDE) -c $< -o $@
 
-$(SHADERS_COMPILED): $(SHADERS_SRC)/%.spv: $(SHADERS_SRC)/%
+$(BUILD_DIR)/%.spv: $(SHADERS_DIR)/%
 	$(GLSLC) $< -o $@
 
 clean:

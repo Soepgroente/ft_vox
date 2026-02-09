@@ -12,6 +12,7 @@ namespace vox {
 
 class Vox
 {
+	
 };
 
 }	// namespace vox
