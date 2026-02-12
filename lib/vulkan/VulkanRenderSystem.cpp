@@ -64,8 +64,8 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 
 	vulkanPipeline = std::make_unique<VulkanPipeline>(
 		vulkanDevice,
-		"src/shaders/basic.vert.spv",
-		"src/shaders/basic.frag.spv",
+		"build/basic.vert.spv",	// NB store files inside env file?
+		"build/basic.frag.spv",
 		pipelineConfig
 	);
 }

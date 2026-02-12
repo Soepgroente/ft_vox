@@ -18,12 +18,9 @@ LIB_DIR		:= lib
 VECTORDIR	:= $(LIB_DIR)/vectors
 VULKANDIR	:= $(LIB_DIR)/vulkan
 
-LIBS		:= $(VECTORDIR)/vectors.a $(VULKANDIR)/vulkan.a
+LIBS		:= -L$(VULKANDIR) -lvk -L$(VECTORDIR) -lvectors
 
-SOURCES		:=	Vox.cpp \
-				InputHandler.cpp \
-				main.cpp \
-				utils.cpp \
+SOURCES		:=	$(shell find $(SRC_DIR) -type f -name '*.cpp')
 
 OBJECTS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))
 UNAME_S		:=	$(shell uname -s)
@@ -39,15 +36,18 @@ RPATH_DIR	:=	/usr/local/lib
 LFLAGS		:=	-L/opt/homebrew/lib -lglfw -framework Cocoa -framework IOKit -framework OpenGL
 LDFLAGS		:=	-lvulkan -lm -Wl,-rpath,$(RPATH_DIR)
 
+# source /opt/vulkan/current/setup-env.sh
 ifeq ($(UNAME_S), Linux)
 	INCLUDES += -isystem $(USER)/.capt/root/usr/include
-	LFLAGS = -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl `pkg-config --static --libs glfw3`
-	BASE_CPPFLAGS += `pkg-config --cflags glfw3`
+	LFLAGS = -lGL -lX11 -lpthread -lXrandr -lXi $(shell pkg-config --static --libs glfw3)
+	BASE_CPPFLAGS += $(shell pkg-config --cflags glfw3)
 endif
 
-# source /opt/vulkan/current/setup-env.sh
-
-CPPFLAGS = $(BASE_CPPFLAGS) $(RELEASE_FLAGS)
+CPPFLAGS = $(BASE_CPPFLAGS)
+RELEASE_VERSION := 0
+ifeq ($(RELEASE_VERSION), 1)
+	CPPFLAGS += $(RELEASE_FLAGS)
+endif
 
 all: libs $(TARGET)
 
@@ -63,7 +63,7 @@ debug: CPPFLAGS = $(BASE_CPPFLAGS) $(DEBUG_FLAGS)
 debug: libs-debug $(SHADERS_COMPILED) $(TARGET)
 
 run: all
-	./$(TARGET)
+	./$(TARGET) models/cube.obj
 
 rundebug: debug
 	./$(TARGET)
@@ -76,7 +76,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(OBJ_DIR)
 
-$(TARGET): $(SHADERS_COMPILED) $(BUILD_DIR) $(OBJECTS)
+$(TARGET): $(BUILD_DIR) $(SHADERS_COMPILED) $(OBJECTS)
 	$(CC) $(CPPFLAGS) $(OBJECTS) $(INCLUDE) -o $(TARGET) $(LIBS) $(LDFLAGS) $(LFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
@@ -92,8 +92,8 @@ clean:
 
 fclean: clean
 	rm -f $(TARGET)
-	rm -f $(VECTORDIR)/vectors.a
-	rm -f $(VULKANDIR)/vulkan.a
+	rm -f $(VECTORDIR)/libvectors.a
+	rm -f $(VULKANDIR)/libvk.a
 
 re: fclean all
 

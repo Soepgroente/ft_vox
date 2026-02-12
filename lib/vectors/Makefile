@@ -1,4 +1,4 @@
-NAME		:= vectors.a
+NAME		:= libvectors.a
 CC			:= c++
 
 BASE_CPPFLAGS	:=	-Wall -Wextra -Werror -std=c++20 -fPIC
@@ -8,24 +8,12 @@ DEBUG_FLAGS		:=	-g -fsanitize=address
 INCLUDES	:=	-I/opt/homebrew/include \
 				-I./vulkan \
 
-SRCS		:=	Mat3.cpp \
-				Mat4.cpp \
-				Quat.cpp \
-				Vec2.cpp \
-				Vec3.cpp \
-				Vec4.cpp \
-				Vectors.cpp \
-
+SRCS		:=	$(shell find . -maxdepth 1 -type f -name '*.cpp')
 
 TEST_EXEC	:=	testmath
 
-TEST_SRCS	:=	matrixTests.cpp \
-				quaternionTests.cpp \
-				testmain.cpp \
-				vectorTests.cpp \
-				utils.cpp \
-
 TEST_DIR	:=	./tests
+TEST_SRCS	:=	$(shell find $(TEST_DIR) -type f -name '*.cpp')
 OBJDIR		:=	obj
 OBJS		:=	$(addprefix $(OBJDIR)/,$(notdir $(SRCS:%.cpp=%.o)))
 TEST_OBJS	:=	$(addprefix $(OBJDIR)/,$(notdir $(TEST_SRCS:%.cpp=%.o)))

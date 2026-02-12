@@ -1,4 +1,4 @@
-NAME			:=	vulkan.a
+NAME			:=	libvk.a
 CC				:=	c++
 BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
@@ -10,21 +10,7 @@ INCLUDE			:=	-I . \
 					-I ../../include \
 					-I /usr/local/include \
 
-SOURCES			:=	Camera.cpp \
-					stb_image.cpp \
-					VulkanBuffer.cpp \
-					VulkanDescriptors.cpp \
-					VulkanDevice.cpp \
-					VulkanFrameInfo.cpp \
-					VulkanModel.cpp \
-					VulkanObject.cpp \
-					VulkanObjFileParser.cpp \
-					VulkanPipeline.cpp \
-					VulkanRenderer.cpp \
-					VulkanRenderSystem.cpp \
-					VulkanSwapChain.cpp \
-					VulkanTexture.cpp \
-					VulkanWindow.cpp \
+SOURCES			:=	$(shell find . -type f -name '*.cpp')
 
 OBJ_DIR			:=	obj
 OBJECTS			:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))

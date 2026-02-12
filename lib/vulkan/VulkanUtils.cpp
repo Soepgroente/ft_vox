@@ -8,6 +8,8 @@ static float	randomFloat()
 	return distribution(engine);
 }
 
+namespace ve {
+
 vec3	generateRandomColor()
 {
 	return vec3(randomFloat(), randomFloat(), randomFloat());
@@ -27,4 +29,6 @@ vec3	generateSoftGreyscale()
 	float	grey = distribution(engine);
 
 	return vec3(grey, grey, grey);
+}
+
 }
