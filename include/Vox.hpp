@@ -12,7 +12,10 @@ namespace vox {
 
 class Vox
 {
-	
+	public:
+        bool initialize( void );
+        void run( void );
+        void shutdown( void );
 };
 
 }	// namespace vox

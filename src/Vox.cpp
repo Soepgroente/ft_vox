@@ -8,4 +8,16 @@
 
 namespace vox {
 
+bool Vox::initialize( void ) {
+    return true;
+}
+
+void Vox::run( void ) {
+
+}
+
+void Vox::shutdown( void ) {
+
+}
+
 }	// namespace vox
