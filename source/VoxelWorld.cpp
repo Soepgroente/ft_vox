@@ -205,6 +205,55 @@ VoxelGrid VoxelGrid::voxelGenerator6( vec3ui const& worldLimit ) {
 	return grid;
 }
 
+// empty box
+VoxelGrid VoxelGrid::voxelGenerator7( vec3ui const& worldLimit ) {
+	VoxelGrid	grid(worldLimit);
+	vec3ui		index(0U);
+
+	// set floor
+	for(index.y=0; index.y<worldLimit.y; index.y++) {
+		for(index.x=0; index.x<worldLimit.x; index.x++) {
+			if (index.y % 2 and index.x % 2)
+				continue;
+			grid[index] = true;
+		}
+	}
+	// set ceiling
+	index.z = worldLimit.z - 1;
+	for(index.y=0; index.y<worldLimit.y; index.y++) {
+		for(index.x=0; index.x<worldLimit.x; index.x++) {
+			if (index.y % 2 or index.x % 2)
+				continue;
+			grid[index] = true;
+		}
+	}
+	// set left face
+	index.x = 0;
+	for(index.z=0; index.z<worldLimit.z; index.z++) {
+		for(index.y=0; index.y<worldLimit.y; index.y++)
+		grid[index] = true;
+	}
+	// set right face
+	index.x = worldLimit.x - 1;
+	for(index.z=0; index.z<worldLimit.z; index.z++) {
+		for(index.y=0; index.y<worldLimit.y; index.y++)
+		grid[index] = true;
+	}
+	return grid;
+}
+
+// floor on the ground
+VoxelGrid VoxelGrid::voxelGenerator8( vec3ui const& worldLimit ) {
+	VoxelGrid	grid(worldLimit);
+	vec3ui		index{0U, 0U, 0U};
+	// set floor
+	for(index.y=0; index.y<worldLimit.y; index.y++) {
+		for(index.x=0; index.x<worldLimit.x; index.x++)
+			grid[index] = true;
+	}
+	return grid;
+}
+
 VoxelGrid::VoxelGrid( vec3ui const& size ) {
 	this->_size = size;
 	this->_grid = std::vector<bool>(this->_size.x * this->_size.y * this->_size.z, false);

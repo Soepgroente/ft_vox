@@ -57,6 +57,10 @@ const mat4&	Camera::getViewMatrix( bool recalculate ) noexcept {
 	return this->viewMatrix;
 }
 
+vec3 const& Camera::getCameraPos( void ) noexcept {
+	return this->_position;
+}
+
 void Camera::moveForward( float delta ) noexcept {
 	this->_position += this->_cameraForward * delta;
 }
