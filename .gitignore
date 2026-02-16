@@ -6,6 +6,7 @@
 *.lo
 *.o
 *.obj
+*.svp
 
 # Precompiled Headers
 *.gch
@@ -39,3 +40,5 @@
 
 # debug information files
 *.dwo
+
+ft_vox

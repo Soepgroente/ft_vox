@@ -22,7 +22,9 @@ LIBS		:= $(VECTORDIR)/vectors.a $(VULKANDIR)/vulkan.a
 
 SOURCES		:=	Vox.cpp \
 				InputHandler.cpp \
+				KeyboardInput.cpp \
 				main.cpp \
+				MouseInput.cpp \
 				utils.cpp \
 
 OBJECTS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))
