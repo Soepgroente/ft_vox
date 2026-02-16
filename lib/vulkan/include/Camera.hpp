@@ -15,10 +15,12 @@ struct CameraSettings {
 class Camera
 {
 	public:
-		Camera( vec3 const& pos ) : 
+		Camera( vec3 const& pos, vec3 const& forward ) : 
 			_position(pos),
-			_forward(pos * -1),
-			__up(vec3({0.0f, 1.0f, 0.0f})) {};
+			_forward(forward),
+			// NB the up depends on what axis the camera is watching (i.e depends on forward): 
+			// camera looks at x/z -> up is non-null on y, camra looks at y -> up is non-null in z
+			__up(vec3({0.0f, 0.0f, 1.0f})) {};
 
 		void	setOrthographicProjection(float left, float right, float top, float bottom, float near, float far);
 		void	setPerspectiveProjection(float fovy, float aspect, float near, float far);
@@ -26,6 +28,8 @@ class Camera
 
 		const mat4&	getProjectionMatrix( bool recalculate = false ) noexcept;
 		const mat4&	getViewMatrix( bool recalculate = true) noexcept;
+
+		vec3 const&	getCameraPos( void ) noexcept;
 
 		void	moveForward( float ) noexcept;
 		void	moveBackward( float ) noexcept;
