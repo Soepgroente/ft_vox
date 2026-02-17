@@ -8,7 +8,9 @@
 
 namespace vox {
 
-bool Vox::initialize( void ) {
+bool	Vox::initialize( void )
+{
+	inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
     return true;
 }
 

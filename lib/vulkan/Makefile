@@ -1,10 +1,12 @@
+# Makefile for Vulkan library
+
 NAME			:=	vulkan.a
 CC				:=	c++
 BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
 DEBUG_FLAGS		:=	-g -fsanitize=address
 
-INCLUDE			:=	-I . \
+INCLUDE			:=	-I ./include \
 					-I /opt/homebrew/include \
 					-I ../vectors \
 					-I ../../include \
