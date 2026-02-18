@@ -5,15 +5,9 @@
 #include <stdexcept>
 
 
-int	main(int argc, char** argv)
+int	main( void )
 {
-	if (argc != 2)		// NB implement argParser
-	{
-		std::cerr << "Usage: " << argv[0] << " <path_to_obj_file>" << std::endl;
-		return 1;
-	}
-
-	vox::Vox app(argv[1]);
+	vox::Vox app;
 	if (app.initialize() == false)
 	{
 		std::cerr << "Failed to initialize application" << std::endl;
