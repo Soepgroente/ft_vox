@@ -16,14 +16,14 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-Vox::Vox( std::string const& objPath ) : objModelPath(objPath)
+Vox::Vox( void ) : objModelPath("models/cube.obj"), world(generatorVoxTest3)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain:: MAX_FRAMES_IN_FLIGHT)
 		.build();
-	loadObjects();
+	createObjects();
 	if (objects.size() > 1)
 	{
 		std::cerr << "More than one object is out of... Scop... for this project. Get it? Scop. 🥁" << std::endl;
@@ -152,18 +152,16 @@ void Vox::run( void )
 	vkDeviceWaitIdle(vulkanDevice.device());
 }
 
-void Vox::loadObjects( void )
+void Vox::createObjects( void )
 {
-	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModelFromFile(vulkanDevice, objModelPath);
+	world.createModel();
+	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModelFromData(vulkanDevice, world.getVertexes(), world.getIndexes());
 	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
 	object.model = std::move(model);
 	object.color = {1.0f, 0.4f, 0.2f};
 	object.transform.translation = object.model->getBoundingCenter().inverted();
-	world = VoxelWorld::createVoxelWorld(generatorVoxTest3);
-	// for every position a model is drawn
-	object.positions = world.generatePositions();
-	
+
 	objects.emplace(object.getID(), std::move(object));
 	textures.reserve(5);
 	for (size_t i = 0; i < 5; i++)

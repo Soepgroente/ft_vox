@@ -15,6 +15,14 @@ VulkanModel::VulkanModel(VulkanDevice& device, const VulkanModel::Builder& build
 	indexCount = static_cast<uint32_t>(builder.indices.size());
 }
 
+VulkanModel::VulkanModel(VulkanDevice& device, std::vector<Vertex> const& vertices, std::vector<uint32_t> const& indices) : vulkanDevice{device}
+{
+	createVertexBuffers(vertices);
+	createIndexBuffers(indices);
+	vertexCount = static_cast<uint32_t>(vertices.size());
+	indexCount = static_cast<uint32_t>(indices.size());
+}
+
 VulkanModel::~VulkanModel()
 {
 }
@@ -189,6 +197,15 @@ std::unique_ptr<VulkanModel>	VulkanModel::createModelFromFile(VulkanDevice& devi
 
 	model->vertexCenter = model->calculateVertexCenter(builder.vertices);
 	model->setBoundingBox(builder.vertices);
+	model->setObjectCenter();
+	return model;
+}
+
+std::unique_ptr<VulkanModel> VulkanModel::createModelFromData(VulkanDevice& device, std::vector<Vertex>& vertices, std::vector<uint32_t> const& indices) {
+	std::unique_ptr<VulkanModel> model = std::make_unique<VulkanModel>(device, vertices, indices);
+
+	model->vertexCenter = model->calculateVertexCenter(vertices);
+	model->setBoundingBox(vertices);
 	model->setObjectCenter();
 	return model;
 }
