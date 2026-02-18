@@ -1,11 +1,11 @@
 #pragma once
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 #include <vector>
 #include <functional>
 #include <array>
-#include <GLFW/glfw3.h>
-
-#include "Vulkan.hpp"
 
 namespace vox {
 

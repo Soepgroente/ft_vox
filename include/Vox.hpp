@@ -3,6 +3,7 @@
 #include "Vectors.hpp"
 #include "Vulkan.hpp"
 #include "Config.hpp"
+#include "InputHandler.hpp"
 
 #include <array>
 #include <memory>

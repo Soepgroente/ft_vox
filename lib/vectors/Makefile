@@ -1,3 +1,5 @@
+# Makefile for the vectors library
+
 NAME		:= vectors.a
 CC			:= c++
 
