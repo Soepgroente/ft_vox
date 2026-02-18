@@ -67,6 +67,7 @@ class VulkanModel
 
 	VulkanModel() = delete;
 	VulkanModel(VulkanDevice& vulkanDevice,	const VulkanModel::Builder& builder);
+	VulkanModel(VulkanDevice& vulkanDevice,	std::vector<Vertex> const&, std::vector<uint32_t> const&);
 	~VulkanModel();
 
 	VulkanModel(const VulkanModel&) = delete;
@@ -81,7 +82,8 @@ class VulkanModel
 	const vec3&	getBoundingCenter() const noexcept { return boundingCenter; }
 	const BoundingBox&	getBoundingBox() const noexcept { return boundingBox; }
 	static std::unique_ptr<VulkanModel>	createModelFromFile(VulkanDevice& device, const std::string& filepath);
-	
+	static std::unique_ptr<VulkanModel>	createModelFromData(VulkanDevice&, std::vector<Vertex>&, std::vector<uint32_t> const&);
+
 	private:
 	
 	std::string			name;
