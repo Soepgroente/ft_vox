@@ -6,7 +6,7 @@ DEBUG_FLAGS		:=	-g -fsanitize=address
 
 INCLUDE 		:=	-I ./include \
 					-I /opt/homebrew/include \
-					-I ./lib/vulkan \
+					-I ./lib/vulkan/include \
 					-I ./lib/vectors \
 					-I /usr/local/include \
 
@@ -22,7 +22,9 @@ LIBS		:= $(VECTORDIR)/vectors.a $(VULKANDIR)/vulkan.a
 
 SOURCES		:=	Vox.cpp \
 				InputHandler.cpp \
+				KeyboardInput.cpp \
 				main.cpp \
+				MouseInput.cpp \
 				utils.cpp \
 
 OBJECTS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))

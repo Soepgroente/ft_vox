@@ -1,14 +1,13 @@
 #include "Vox.hpp"
-#include "Camera.hpp"
-#include "InputHandler.hpp"
-#include "Vulkan.hpp"
 
 #include <chrono>
 #include <random>
 
 namespace vox {
 
-bool Vox::initialize( void ) {
+bool	Vox::initialize( void )
+{
+	inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
     return true;
 }
 
