@@ -15,6 +15,7 @@ SRCS		:=	Mat3.cpp \
 				Quat.cpp \
 				Vec2.cpp \
 				Vec3.cpp \
+				Vec3i.cpp \
 				Vec4.cpp \
 				Vectors.cpp \
 
