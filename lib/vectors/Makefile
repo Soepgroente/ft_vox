@@ -1,12 +1,13 @@
-NAME		:= libvectors.a
+TARGET		:= libvectors.a
 CC			:= c++
 
-BASE_CPPFLAGS	:=	-Wall -Wextra -Werror -std=c++20 -fPIC
+BASE_CPPFLAGS	:=	-Wall -Wextra -Werror -std=c++20
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
 DEBUG_FLAGS		:=	-g -fsanitize=address
+CPPFLAGS		:=	$(BASE_CPPFLAGS)
 
 INCLUDES	:=	-I/opt/homebrew/include \
-				-I./vulkan \
+				-I./vulkan
 
 SRCS		:=	$(shell find . -maxdepth 1 -type f -name '*.cpp')
 
@@ -14,44 +15,52 @@ TEST_EXEC	:=	testmath
 
 TEST_DIR	:=	./tests
 TEST_SRCS	:=	$(shell find $(TEST_DIR) -type f -name '*.cpp')
-OBJDIR		:=	obj
-OBJS		:=	$(addprefix $(OBJDIR)/,$(notdir $(SRCS:%.cpp=%.o)))
-TEST_OBJS	:=	$(addprefix $(OBJDIR)/,$(notdir $(TEST_SRCS:%.cpp=%.o)))
 
-CPPFLAGS	=	$(BASE_CPPFLAGS) $(RELEASE_FLAGS)
+BUILD_DIR	:=  build
+OBJ_DIR		:=	$(BUILD_DIR)/obj
+DEPS_DIR	:=  $(BUILD_DIR)/deps
+OBJS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SRCS:%.cpp=%.o)))
+TEST_OBJS	:=	$(addprefix $(OBJ_DIR)/,$(notdir $(TEST_SRCS:%.cpp=%.o)))
+DEPS		:=	$(addprefix $(DEPS_DIR)/,$(notdir $(SOURCES:.cpp=.d)))
 
-all: $(NAME)
+all: $(TARGET)
 
 test: $(TEST_EXEC)
 
 runtest: $(TEST_EXEC)
 	./$(TEST_EXEC)
 
+release: CPPFLAGS = $(BASE_CPPFLAGS) $(RELEASE_FLAGS)
+release: all
+
 debug: CPPFLAGS = $(BASE_CPPFLAGS) $(DEBUG_FLAGS)
 debug: all
 
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
+$(OBJ_DIR) $(DEPS_DIR):
+	mkdir -p $@
 
-$(TEST_EXEC): $(NAME) $(OBJDIR) $(TEST_OBJS) $(OBJS)
-	$(CC) $(CPPFLAGS) $(INCLUDES) -I$(TEST_DIR) -o $(TEST_EXEC) $(TEST_OBJS) $(OBJS) $(NAME)
+$(TEST_EXEC): $(TARGET) $(TEST_OBJS) $(OBJS)
+	$(CC) $(CPPFLAGS) $(INCLUDES) -I$(TEST_DIR) -o $(TEST_EXEC) $(TEST_OBJS) $(OBJS) $(TARGET)
 
-$(NAME): $(OBJDIR) $(OBJS)
-	ar -rcs $(NAME) $(OBJS)
+$(TARGET): $(OBJ_DIR) $(DEPS_DIR) $(OBJS)
+	ar -rcs $(BUILD_DIR)/$(TARGET) $(OBJS)
 
-$(OBJDIR)/%.o: %.cpp
-	$(CC) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
+$(OBJ_DIR)/%.o: %.cpp
+	$(CC) $(CPPFLAGS) $(INCLUDES) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@
 
-$(OBJDIR)/%.o: $(TEST_DIR)/%.cpp
-	$(CC) $(CPPFLAGS) $(INCLUDES) -I$(TEST_DIR) -c $< -o $@
+$(OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp
+	$(CC) $(CPPFLAGS) $(INCLUDES) -I$(TEST_DIR) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@
+
+-include $(DEPS)
 
 clean:
-	rm -rf $(OBJDIR)
+	rm -rf $(OBJ_DIR)
+	rm -rf $(DEPS_DIR)
 
-fclean: clean
-	rm -f $(NAME)
+fclean:
+	rm -rf $(BUILD_DIR)
 	rm -f $(TEST_EXEC)
 
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all test runtest release debug clean fclean re
