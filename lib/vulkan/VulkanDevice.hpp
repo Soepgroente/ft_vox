@@ -28,11 +28,11 @@ class VulkanDevice
 {
 	public:
 
-	#ifdef NDEBUG
+	// #ifdef NDEBUG	NB enableValidationLayers = true  breaks my code, why?
 	const bool enableValidationLayers = false;
-	#else
-	const bool enableValidationLayers = true;
-	#endif
+	// #else
+	// const bool enableValidationLayers = true;
+	// #endif
 
 	VulkanDevice(VulkanWindow &window);
 	~VulkanDevice();

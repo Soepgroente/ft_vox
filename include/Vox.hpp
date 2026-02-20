@@ -2,7 +2,7 @@
 
 #include "Vectors.hpp"
 #include "Vulkan.hpp"
-#include "Config.hpp"
+#include "VoxelWorld.hpp"
 
 #include <array>
 #include <memory>
@@ -28,7 +28,7 @@ class Vox
 		static constexpr int	DEFAULT_HEIGHT = 1080;
 
 	private:
-		void	loadObjects();
+		void	loadObjects( void );
 
 		ve::VulkanWindow	vulkanWindow{DEFAULT_HEIGHT, DEFAULT_WIDTH, "Vox"};
 		ve::VulkanDevice	vulkanDevice{vulkanWindow};
@@ -38,6 +38,7 @@ class Vox
 		std::string					objModelPath;
 		ve::VulkanObject::Map			objects;
 		std::vector<ve::VulkanTexture>	textures;
+		VoxelWorld					world;
 };
 
 std::vector<ve::ObjInfo>	parseOBJFile( std::string const& objFilePath ); 

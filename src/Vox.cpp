@@ -152,14 +152,18 @@ void Vox::run( void )
 	vkDeviceWaitIdle(vulkanDevice.device());
 }
 
-void Vox::loadObjects()
+void Vox::loadObjects( void )
 {
 	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModelFromFile(vulkanDevice, objModelPath);
-	ve::VulkanObject					object = ve::VulkanObject::createVulkanObject();
+	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
 	object.model = std::move(model);
 	object.color = {1.0f, 0.4f, 0.2f};
 	object.transform.translation = object.model->getBoundingCenter().inverted();
+	world = VoxelWorld::createVoxelWorld(generatorVoxTest3);
+	// for every position a model is drawn
+	object.positions = world.generatePositions();
+	
 	objects.emplace(object.getID(), std::move(object));
 	textures.reserve(5);
 	for (size_t i = 0; i < 5; i++)
