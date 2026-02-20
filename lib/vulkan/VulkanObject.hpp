@@ -84,6 +84,8 @@ class VulkanObject
 	TransformComponent				transform{};
 	
 	id_t	getID() const noexcept { return id; }
+
+	std::vector<vec3> positions{ 0.0f, 0.0f, 0.0f };
 	
 	private:
 

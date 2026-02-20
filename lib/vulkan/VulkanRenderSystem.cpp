@@ -94,21 +94,24 @@ void	VulkanRenderSystem::renderObjects(FrameInfo& frameInfo)
 			obj.transform.rotation.y = std::fmod(obj.transform.rotation.y + 0.015f, two_pi());
 		}
 		SimplePushConstantData	push{};
-
-		push.modelMatrix = obj.transform.matrix4(obj.model->getBoundingCenter());
-		push.normalMatrix = obj.transform.normalMatrix();
-		push.useTexture = frameInfo.useTexture;
-
-		vkCmdPushConstants(
-			frameInfo.commandBuffer,
-			pipelineLayout,
-			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-			0,
-			sizeof(SimplePushConstantData),
-			&push
-		);
-		obj.model->bind(frameInfo.commandBuffer);
-		obj.model->draw(frameInfo.commandBuffer);
+		// draw a mesh for every position
+		for (vec3 const& pos : obj.positions) {
+			obj.transform.translation = pos;
+			push.modelMatrix = obj.transform.matrix4(obj.model->getBoundingCenter());
+			push.normalMatrix = obj.transform.normalMatrix();
+			push.useTexture = frameInfo.useTexture;
+	
+			vkCmdPushConstants(
+				frameInfo.commandBuffer,
+				pipelineLayout,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+				0,
+				sizeof(SimplePushConstantData),
+				&push
+			);
+			obj.model->bind(frameInfo.commandBuffer);
+			obj.model->draw(frameInfo.commandBuffer);
+		}
 	}
 }
 
