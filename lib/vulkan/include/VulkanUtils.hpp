@@ -15,6 +15,7 @@ void	hashCombine(std::size_t& seed, const T& v, const Rest&... rest)
 	(hashCombine(seed, rest), ...);
 };
 
+float	randomFloat();
 vec3	generateRandomColor();
 vec3	generateRandomGreyscale();
 vec3	generateSoftGreyscale();
