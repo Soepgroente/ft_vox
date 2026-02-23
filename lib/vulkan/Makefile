@@ -5,7 +5,7 @@ RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
 DEBUG_FLAGS		:=	-g -fsanitize=address
 CPPFLAGS		:=	$(BASE_CPPFLAGS)
 
-INCLUDE			:=	-I. \
+INCLUDE			:=	-Iinclude \
 					-I/opt/homebrew/include \
 					-I../vectors \
 					-I../../include \

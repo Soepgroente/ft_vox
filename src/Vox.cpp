@@ -1,12 +1,93 @@
 #include "Vox.hpp"
-#include "Camera.hpp"
-#include "InputHandler.hpp"
-#include "Vulkan.hpp"
 
 #include <chrono>
 #include <random>
 
 namespace vox {
+
+void	InputHandler::setCallbacks(GLFWwindow* window, Vox& voxInstance)
+{
+	glfwSetWindowUserPointer(window, (void*)&voxInstance);
+	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+		(void)scancode;
+		(void)mods;
+		Vox* vox = static_cast<Vox*>(glfwGetWindowUserPointer(window));
+		InputHandler& handler = vox->getHandler();
+		switch(action)
+		{
+			case GLFW_PRESS:
+				handler.keyboard.keysReleased[key] = false;
+				handler.keyboard.keysPressed[key] = true;
+				break;
+			case GLFW_RELEASE:
+				handler.keyboard.keysPressed[key] = false;
+				handler.keyboard.keysReleased[key] = true;
+				break;
+			case GLFW_REPEAT:
+				handler.keyboard.keysRepeated[key] = true;
+				break;
+			default:
+				break;
+		}
+	});
+	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods)
+	{
+		(void)mods;
+		Vox* vox = static_cast<Vox*>(glfwGetWindowUserPointer(window));
+		InputHandler& handler = vox->getHandler();
+
+		switch(action)
+		{
+			case GLFW_PRESS:
+				handler.mouse.buttonsReleased[button] = false;
+				handler.mouse.buttonsPressed[button] = true;
+				break;
+			case GLFW_RELEASE:
+				handler.mouse.buttonsPressed[button] = false;
+				handler.mouse.buttonsReleased[button] = true;
+				break;
+			default:
+				break;
+		}
+	});
+	glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset)
+	{
+		Vox* vox = static_cast<Vox*>(glfwGetWindowUserPointer(window));
+		(void)xoffset;
+		(void)yoffset;
+		(void)vox;
+		(void)window;
+		// Handle scroll input here if needed
+	});
+	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double posX, double posY) {
+		if (glfwGetWindowAttrib(window, GLFW_FOCUSED) == false)
+			return;
+		Vox* vox = static_cast<Vox*>(glfwGetWindowUserPointer(window));
+		vox->mouseRotation(posX, posY);
+	});
+	glfwSetWindowFocusCallback(window, [](GLFWwindow* window, int32_t focused) {
+		if (focused == GLFW_TRUE)
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		else
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	});
+}
+
+void	InputHandler::reset()
+{
+	keyboard.reset();
+	mouse.reset();
+}
+
+void	InputHandler::setCursorPos( float posX, float posY ) {
+	this->mouse.setCursorPos(posX, posY);
+}
+
+void	InputHandler::getCursorPos( float& posX, float& posY ) {
+	this->mouse.getCursorPos(posX, posY);
+}
+
 
 struct GlobalUBO
 {
@@ -16,30 +97,21 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-Vox::Vox( void ) : objModelPath("models/cube.obj"), world(generatorVoxTest3)
+Vox::Vox( void ) : objModelPath("models/teapot.obj"), camera(vec3{0.0f, 0.0f, Config::cameraDistance}), world(generatorVoxTest3)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain:: MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.build();
+	world.generateBufferData();
+	inputHandler.setCallbacks(vulkanWindow.getGLFWwindow(), *this);
 	createObjects();
-	if (objects.size() > 1)
-	{
-		std::cerr << "More than one object is out of... Scop... for this project. Get it? Scop. 🥁" << std::endl;
-		std::exit(EXIT_FAILURE);
-	}
 }
 
 Vox::~Vox( void )
 {
 	globalDescriptorPool.reset();
-}
-
-
-bool Vox::initialize( void )
-{
-    return true;
 }
 
 void Vox::run( void )
@@ -64,7 +136,6 @@ void Vox::run( void )
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 	ve::VulkanTexture texture{"textures/derpy_cats.jpg", vulkanDevice};
-	// ve::VulkanTexture texture{"textures/viking_room.png", vulkanDevice};
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
@@ -80,23 +151,23 @@ void Vox::run( void )
 			.writeImage(1, &imageInfo)
 			.build(globalDescriptorSets[i]);
 	}
-
 	ve::VulkanRenderSystem	renderSystem{vulkanDevice, vulkanRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
-	ve::Camera camera{};
 
-	camera.setViewTarget(vec3{0.0f}, vec3{0.0f});
-	
+	float aspectRatio = this->vulkanWindow.getAspectRatio();
+	camera.setViewMatrix();
+	camera.setPerspectiveProjection(
+		radians(Config::projectionFov),
+		aspectRatio,
+		Config::projectionNear,
+		Config::projectionFar
+	);
+
 	float	elapsedTime = 0.0f;
-	float	aspectRatio = 1.0f;
 	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
-	VkCommandBuffer	commandBuffer = nullptr;
-	ve::VulkanObject	viewerObject = ve::VulkanObject::createVulkanObject();
-	ve::KeyboardInput	keyboardInput(vulkanWindow.getGLFWwindow());
-	ve::MouseInput		mouseInput(vulkanWindow.getGLFWwindow());
-	size_t			frameCount = 0;
-
+	VkCommandBuffer		commandBuffer = nullptr;
+	size_t				frameCount = 0;
 	currentTime = std::chrono::high_resolution_clock::now();
-	viewerObject.transform.translation = {0.0f, 0.0f, -10.0f};
+
 	ve::FrameInfo	info
 	{
 		0,
@@ -115,12 +186,8 @@ void Vox::run( void )
 		newTime = std::chrono::high_resolution_clock::now();
 		elapsedTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
 		currentTime = newTime;
-		keyboardInput.move(viewerObject, elapsedTime);
-		mouseInput.move(viewerObject, elapsedTime);
+		this->moveCamera(info.camera, elapsedTime);
 
-		camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
-		aspectRatio = vulkanRenderer.getAspectRatio();
-		camera.setPerspectiveProjection(radians(50.0f), aspectRatio, 0.1f, 1000.0f);
 		commandBuffer = vulkanRenderer.beginFrame();
 
 		if (commandBuffer != nullptr)
@@ -131,8 +198,6 @@ void Vox::run( void )
 			info.frameIndex = frameIndex;
 			info.commandBuffer = commandBuffer;
 			info.globalDescriptorSet = globalDescriptorSets[frameIndex];
-			info.useTexture = keyboardInput.shouldShowTextures(frameCount, info.useTexture);
-			info.rotateModel = keyboardInput.shouldRotate(frameCount, info.rotateModel);
 			ubo.projectionView = camera.getProjectionMatrix() * camera.getViewMatrix();
 			uboBuffers[frameIndex]->writeToBuffer(&ubo);
 			uboBuffers[frameIndex]->flush();
@@ -154,8 +219,9 @@ void Vox::run( void )
 
 void Vox::createObjects( void )
 {
-	world.createModel();
-	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModelFromData(vulkanDevice, world.getVertexes(), world.getIndexes());
+	ve::VulkanModel::Builder builder;
+	builder.loadModel(objModelPath);
+	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder); // world.getBuilder()
 	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
 	object.model = std::move(model);
@@ -175,6 +241,66 @@ void Vox::createObjects( void )
 void Vox::shutdown( void )
 {
 
+}
+
+InputHandler const& Vox::getHandler( void ) const noexcept {
+	return this->inputHandler;
+}
+
+InputHandler& Vox::getHandler( void ) noexcept {
+	return this->inputHandler;
+}
+
+void Vox::moveCamera( ve::Camera& cameraObj, float deltaTime ) {
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
+		cameraObj.moveForward(deltaTime * Config::movementSpeed);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_A))
+		cameraObj.moveLeft(deltaTime * Config::movementSpeed);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_S))
+		cameraObj.moveBackward(deltaTime * Config::movementSpeed);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_D))
+		cameraObj.moveRight(deltaTime * Config::movementSpeed);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_E))
+		cameraObj.moveUp(deltaTime * Config::movementSpeed);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q))
+		cameraObj.moveDown(deltaTime * Config::movementSpeed);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP))
+		cameraObj.rotate(deltaTime * Config::lookSpeed, 0.0f, 0.0f);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN))
+		cameraObj.rotate(-deltaTime * Config::lookSpeed, 0.0f, 0.0f);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))
+		cameraObj.rotate(0.0f, -deltaTime * Config::lookSpeed, 0.0f);
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT))
+		cameraObj.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
+}
+
+void Vox::mouseRotation( float newX, float newY ) noexcept {
+	static bool firstRun = true;
+	if (firstRun) {
+		this->inputHandler.setCursorPos(newX, newY);
+		firstRun = false;
+	}
+	float currX, currY;
+	this->inputHandler.getCursorPos(currX, currY);
+	float yaw = (newX - currX) * Config::cameraSensitivity;
+	float pitch = (currY - newY) * Config::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
+
+	if (pitch > 89.0f)
+		pitch =  89.0f;
+	else if(pitch < -89.0f)
+		pitch = -89.0f;
+
+	this->camera.rotate(pitch, yaw, 0.0f);
+	this->inputHandler.setCursorPos(newX, newY);
 }
 
 }	// namespace vox

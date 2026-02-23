@@ -11,6 +11,11 @@ class mat4
 {
 	public:
 
+	static mat4	idMat( void );
+	static mat4	transMat( vec3 const& );
+	static mat4	scaleMat( vec3 const& );
+	static mat4	rotationMat( float, vec3 const& );
+
 	mat4();
 	mat4(float diagonal);
 	mat4(const vec4& col0,
@@ -26,6 +31,8 @@ class mat4
 	mat4	operator*(const mat4& other) const;
 	mat4&	operator*=(const mat4& other);
 
+	mat4&	transpose() noexcept;
+	mat4	transposed() const noexcept;
 	mat4&	translate(const vec3& translation) noexcept;
 	mat4	translated(const vec3& translation) const noexcept;
 	mat4&	rotate(float angleRadians, const vec3& axis) noexcept;

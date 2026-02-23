@@ -45,9 +45,9 @@ mat4	TransformComponent::matrix4() const noexcept
 
 mat4	TransformComponent::matrix4(const vec3& rotationCenter) const noexcept
 {
-	mat4 translateToOrigin = mat4(1.0f).translate(rotationCenter.inverted());
-	mat4 translateBack = mat4(1.0f).translate(rotationCenter);
-	mat4 finalTranslate = mat4(1.0f).translate(translation);
+	mat4 translateToOrigin = mat4(1.0f).translate(rotationCenter.inverted()).transpose();
+	mat4 translateBack = mat4(1.0f).translate(rotationCenter).transpose();
+	mat4 finalTranslate = mat4(1.0f).translate(translation).transpose();
 
 	const float c1 = std::cos(rotation.y);
 	const float s1 = std::sin(rotation.y);

@@ -43,6 +43,7 @@ class quat
 	float&			operator[](int index) noexcept { return data[index]; }
 	const float&	operator[](int index) const noexcept { return data[index]; }
 
+	vec3	vector() const noexcept;
 	quat	clone() const noexcept;
 	quat&	conjugate() noexcept;
 	quat	conjugated() const noexcept;
@@ -53,11 +54,6 @@ class quat
 	quat	fastNormalized() const noexcept;
 
 	static vec3 rotated(const vec3& rotateAround, quat rotation) noexcept;
-	
-	private:
-	
-	void	angleToVec() noexcept;
-
 	static quat product(const quat& a, const quat& b) noexcept;
 };
 

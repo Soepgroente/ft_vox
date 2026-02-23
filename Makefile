@@ -7,7 +7,7 @@ CPPFLAGS		:=	$(BASE_CPPFLAGS)
 
 INCLUDE 		:=	-I./include \
 					-I/opt/homebrew/include \
-					-I./lib/vulkan \
+					-I./lib/vulkan/include \
 					-I./lib/vectors \
 					-I/usr/local/include
 

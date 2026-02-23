@@ -6,6 +6,7 @@
 *.lo
 *.o
 build/**/*.obj
+*.svp
 
 # Precompiled Headers
 *.gch
@@ -39,5 +40,7 @@ build/**/*.obj
 
 # debug information files
 *.dwo
-build/
+
+.vscode
+build
 ft_vox
