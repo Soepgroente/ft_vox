@@ -14,4 +14,14 @@ void	MouseInput::reset()
 	buttonsReleased.fill(false);
 }
 
+void	MouseInput::setCursorPos( float posX, float posY ) {
+	this->posX = posX;
+	this->posY = posY;
+}
+
+void	MouseInput::getCursorPos( float& posX, float& posY) {
+	posX = this->posX;
+	posY = this->posY;
+}
+
 }	// namespace vox

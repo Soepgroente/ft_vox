@@ -594,7 +594,7 @@ VoxelWorld::VoxelWorld( VoxelGrid (&generator)() ) {
 	this->_grid = generator();
 }
 
-void VoxelWorld::createModel( void ) {
+void VoxelWorld::generateBufferData( void ) {
 	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 	uint32_t indexCount = 0U;
 	for (uint32_t z=0; z<W_HEIGHT; z++) {
@@ -604,16 +604,16 @@ void VoxelWorld::createModel( void ) {
 					std::vector<vec3> voxelVertexes = getVoxelVertexes(x, z, y);
 					for (uint32_t index : VOXEL_FACES_INDEX) {
 						if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-							this->_indexes.push_back(uniqueVertexes[voxelVertexes[index]]);
+							this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
 						else {
 							uniqueVertexes[voxelVertexes[index]] = indexCount;
-							this->_vertexes.push_back(ve::VulkanModel::Vertex{
+							this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
 								voxelVertexes[index],
 								ve::generateRandomColor(),  // vec3{1.0f, 1.0f, 1.0f}
 								vec3{0.0f, 0.0f, 0.0f},
 								vec2{0.0f, 0.0f}
 							});
-							this->_indexes.push_back(indexCount++);
+							this->_builder.indices.push_back(indexCount++);
 						}
 					}
 				}
@@ -633,20 +633,12 @@ bool VoxelWorld::isVoxel( uint32_t x, uint32_t y, uint32_t z) const {
 	return this->_grid[index];
 }
 
-std::vector<ve::VulkanModel::Vertex> const& VoxelWorld::getVertexes( void ) const noexcept {
-	return this->_vertexes;
+ve::VulkanModel::Builder const&	VoxelWorld::getBuilder( void ) const noexcept {
+	return this->_builder;
 }
 
-std::vector<uint32_t> const& VoxelWorld::getIndexes( void ) const noexcept {
-	return this->_indexes;
-}
-
-std::vector<ve::VulkanModel::Vertex>& VoxelWorld::getVertexes( void ) noexcept {
-	return this->_vertexes;
-}
-
-std::vector<uint32_t>& VoxelWorld::getIndexes( void ) noexcept {
-	return this->_indexes;
+ve::VulkanModel::Builder&		VoxelWorld::getBuilder( void ) noexcept {
+	return this->_builder;
 }
 
 

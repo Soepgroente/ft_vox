@@ -40,6 +40,7 @@ build/**/*.obj
 
 # debug information files
 *.dwo
+
 .vscode
 build
 ft_vox

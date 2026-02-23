@@ -49,23 +49,17 @@ class VoxelWorld {
 		VoxelWorld& operator=( VoxelWorld const& ) = default;
 		VoxelWorld& operator=( VoxelWorld&& ) = default;
 
-		void	createModel( void );
+		void	generateBufferData( void );
 		// greedy meshing algorithm
 		void	createModelOpt( void ) {};
 		bool	isVoxel( uint32_t, uint32_t, uint32_t) const;
 
-		std::vector<ve::VulkanModel::Vertex> const&	getVertexes( void ) const noexcept;
-		std::vector<uint32_t> const&				getIndexes( void ) const noexcept;
-
-		std::vector<ve::VulkanModel::Vertex>&	getVertexes( void ) noexcept;
-		std::vector<uint32_t>&					getIndexes( void ) noexcept;
+		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept;
+		ve::VulkanModel::Builder&		getBuilder( void ) noexcept;
 
 	private:
-		// unsigned char	checkSurroundings( uint32_t, uint32_t, uint32_t ) const noexcept;
-
 		VoxelGrid								_grid;
-		std::vector<ve::VulkanModel::Vertex>	_vertexes;
-		std::vector<uint32_t>					_indexes;
+		ve::VulkanModel::Builder				_builder;
 };
 
 std::ostream&	operator<<( std::ostream&, VoxelWorld const& );

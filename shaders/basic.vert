@@ -6,8 +6,8 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec2 uv;
 
 layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec3 fragPosWorld;
-layout(location = 2) out vec3 fragNormalWorld;
+// layout(location = 1) out vec3 fragPosWorld;
+// layout(location = 2) out vec3 fragNormalWorld;
 layout(location = 3) out vec2 fragTexCoord;
 
 layout(set = 0, binding = 0) uniform GlobalUbo
@@ -30,8 +30,8 @@ void main()
 	vec4	worldPostion = push.modelMatrix * vec4(position, 1.0);
 	gl_Position = ubo.projectionViewMatrix * worldPostion;
 
-	fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
-	fragPosWorld = worldPostion.xyz;
+//	fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
+//	fragPosWorld = worldPostion.xyz;
 	fragColor = color;
 	fragTexCoord = uv;
 }

@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 namespace ve {
 
@@ -29,44 +30,77 @@ void	Camera::setPerspectiveProjection(float fovy, float aspect, float near, floa
 	};
 }
 
-void	Camera::setViewDirection(const vec3& position, const vec3& direction, const vec3& up)
+void	Camera::setViewMatrix( void ) noexcept
 {
-	const vec3 w = direction.normalized();
-	const vec3 u = vec3::cross(w, up).normalized();
-	const vec3 v = vec3::cross(u, w);
+	vec3 cameraTarget = this->_position + this->_forward;		// position that the camera is watching
+	this->_cameraForward = (cameraTarget - this->_position).normalize();
+	this->_cameraLeft = vec3::cross(this->_cameraForward, this->__up).normalize();
+	this->_cameraUp = vec3::cross(this->_cameraLeft, this->_cameraForward);
 
-	viewMatrix = mat4{
-		{u.x, v.x, w.x, 0.0f},
-		{u.y, v.y, w.y, 0.0f},
-		{u.z, v.z, w.z, 0.0f},
-		{-vec3::dot(u, position), -vec3::dot(v, position), -vec3::dot(w, position), 1.0f}
+	this->viewMatrix = mat4{
+		{this->_cameraLeft.x,  this->_cameraUp.x,  this->_cameraForward.x,  0.0f},
+		{this->_cameraLeft.y,  this->_cameraUp.y,  this->_cameraForward.y,  0.0f},
+		{this->_cameraLeft.z,  this->_cameraUp.z,  this->_cameraForward.z,  0.0f},
+		{-vec3::dot(this->_cameraLeft, this->_position), -vec3::dot(this->_cameraUp, this->_position), -vec3::dot(this->_cameraForward, this->_position), 1.0f}
 	};
 }
 
-void	Camera::setViewTarget(const vec3& position, const vec3& target, const vec3& up)
-{
-	setViewDirection(position, target - position, up);
+const mat4&	Camera::getProjectionMatrix( bool recalculate ) noexcept {
+	if (recalculate)
+		this->setViewMatrix();
+	return this->projectionMatrix;
 }
 
-void	Camera::setViewYXZ(const vec3& position, const vec3& rotation)
-{
-	const float c3 = std::cos(rotation.z);
-	const float s3 = std::sin(rotation.z);
-	const float c2 = std::cos(rotation.x);
-	const float s2 = std::sin(rotation.x);
-	const float c1 = std::cos(rotation.y);
-	const float s1 = std::sin(rotation.y);
-
-	const vec3 u{(c1 * c3 + s1 * s2 * s3), (c2 * s3), (c1 * s2 * s3 - c3 * s1)};
-	const vec3 v{(c3 * s1 * s2 - c1 * s3), (c2 * c3), (c1 * c3 * s2 + s1 * s3)};
-	const vec3 w{(c2 * s1), (-s2), (c1 * c2)};
-
-	viewMatrix = mat4{
-		{u.x, v.x, w.x, 0.0f},
-		{u.y, v.y, w.y, 0.0f},
-		{u.z, v.z, w.z, 0.0f},
-		{-vec3::dot(u, position), -vec3::dot(v, position), -vec3::dot(w, position), 1.0f}
-	};
+const mat4&	Camera::getViewMatrix( bool recalculate ) noexcept {
+	if (recalculate)
+		this->setViewMatrix();
+	return this->viewMatrix;
 }
+
+void Camera::moveForward( float delta ) noexcept {
+	this->_position += this->_cameraForward * delta;
+}
+
+void Camera::moveBackward( float delta ) noexcept {
+	this->_position -= this->_cameraForward * delta;
+}
+
+void Camera::moveRight( float delta ) noexcept {
+	this->_position += this->_cameraLeft * delta;
+}
+
+void Camera::moveLeft( float delta ) noexcept {
+	this->_position -= this->_cameraLeft * delta;
+}
+
+void Camera::moveUp( float delta ) noexcept {
+	this->_position += this->_cameraUp * delta;
+}
+
+void Camera::moveDown( float delta ) noexcept {
+	this->_position -= this->_cameraUp * delta;
+}
+
+void Camera::rotate( float pitch, float yaw, float roll ) noexcept {
+	pitch = radians(pitch / 2.0f);		// vertical rotation: cameraLeft is the axis
+	yaw = radians(yaw / 2.0f);			// horizontal rotation: up is the axis
+	roll = radians(roll / 2.0f);		// frontal rotation: z is the axis
+
+	quat qPitch(pitch, this->_cameraLeft);
+	quat qYaw(-yaw, this->__up);
+	quat qRoll(roll, this->_forward);
+
+	quat q = quat::product(qPitch, quat::product(qYaw, qRoll)).normalize();		// rotation order: roll -> yaw -> pitch
+	quat qForward{0.0f, this->_forward.x, this->_forward.y, this->_forward.z};
+	quat qForwardRotated = quat::product(quat::product(q, qForward), q.conjugated());
+	this->_forward = qForwardRotated.normalized().vector();
+
+	if (roll != 0.0f) {		// with a roll rotation the world up has to be changed
+		quat qUp{0.0f, this->__up.x, this->__up.y, this->__up.z};
+		quat qUpRotated = quat::product(quat::product(q, qUp), q.conjugated());
+		this->__up = qUpRotated.normalized().vector();
+	}
+}
+
 
 }	// namespace ve
