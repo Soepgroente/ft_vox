@@ -8,10 +8,10 @@ CPPFLAGS		:=	$(BASE_CPPFLAGS)
 INCLUDE 		:=	-I./include \
 					-I/opt/homebrew/include \
 					-I./lib/vulkan/include \
-					-I./lib/vectors \
+					-I./lib/vectors/include \
 					-I/usr/local/include
 
-SRC_DIR		:= src
+SRC_DIR		:= source
 BUILD_DIR	:= build
 OBJ_DIR		:= $(BUILD_DIR)/obj
 DEPS_DIR	:= $(BUILD_DIR)/deps
