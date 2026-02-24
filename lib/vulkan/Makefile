@@ -1,19 +1,21 @@
-TARGET			:=	libvk.a
 CC				:=	c++
 BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
 DEBUG_FLAGS		:=	-g -fsanitize=address
 CPPFLAGS		:=	$(BASE_CPPFLAGS)
+SRC_DIR			:=	source
 
 INCLUDE			:=	-Iinclude \
 					-I/opt/homebrew/include \
-					-I../vectors \
+					-I../vectors/include \
 					-I../../include \
 					-I/usr/local/include
 
-SOURCES			:=	$(shell find . -type f -name '*.cpp')
+SOURCES			:=	$(shell find $(SRC_DIR) -type f -name '*.cpp')
 
 BUILD_DIR	:=  build
+TARGET			:=	$(BUILD_DIR)/libvk.a
+
 OBJ_DIR		:=	$(BUILD_DIR)/obj
 DEPS_DIR	:=  $(BUILD_DIR)/deps
 OBJECTS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))
@@ -32,9 +34,9 @@ $(OBJ_DIR) $(DEPS_DIR):
 	mkdir -p $@
 
 $(TARGET): $(OBJ_DIR) $(DEPS_DIR) $(OBJECTS)
-	ar -rcs $(BUILD_DIR)/$(TARGET) $(OBJECTS)
+	ar -rcs $@ $(OBJECTS)
 
-$(OBJ_DIR)/%.o: %.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CC) $(CPPFLAGS) $(INCLUDE) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@
 
 -include $(DEPS)
