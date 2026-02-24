@@ -97,14 +97,14 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-Vox::Vox( void ) : objModelPath("models/teapot.obj"), camera(vec3{0.0f, 0.0f, Config::cameraDistance}), world(generatorVoxTest3)
+Vox::Vox( void ) : objModelPath("models/teapot.obj"), camera(vec3{0.0f, 0.0f, Config::cameraDistance}), world(generatorVoxTest4)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.build();
-	world.generateBufferData();
+	world.generateBufferDataOpt();
 	inputHandler.setCallbacks(vulkanWindow.getGLFWwindow(), *this);
 	createObjects();
 }
@@ -219,9 +219,10 @@ void Vox::run( void )
 
 void Vox::createObjects( void )
 {
-	ve::VulkanModel::Builder builder;
-	builder.loadModel(objModelPath);
-	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder); // world.getBuilder()
+	ve::VulkanModel::Builder b;
+	b.loadModel(objModelPath);
+	// std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, b);
+	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, world.getBuilder());
 	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
 	object.model = std::move(model);
@@ -232,8 +233,7 @@ void Vox::createObjects( void )
 	textures.reserve(5);
 	for (size_t i = 0; i < 5; i++)
 	{
-		ve::VulkanTexture	texture("textures/derp" + std::to_string(i + 1) + ".jpeg", vulkanDevice);
-
+		ve::VulkanTexture texture("textures/derp" + std::to_string(i + 1) + ".jpeg", vulkanDevice);
 		textures.emplace_back(std::move(texture));
 	}
 }

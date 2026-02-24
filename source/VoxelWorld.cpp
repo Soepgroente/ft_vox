@@ -6,47 +6,99 @@
 
 namespace vox {
 
+Boxel::Boxel( vec3 const& pos, vec3 const& size ) {
+	this->center = vec3{
+		pos.x + size.x / 2.0f,
+		pos.y + size.y / 2.0f,
+		pos.z + size.z / 2.0f
+	};
+	// are relative to world coordinates: x: left->right, y: down->up, z: from monitor->user
+	this->lengthX = size.x;
+	this->lengthY = size.y;
+	this->lengthZ = size.z;
+}
+
+vec3 const& Boxel::getCenter( void ) const noexcept {
+	return this->center;
+}
+
+vec3 Boxel::getSize( void ) const noexcept {
+	return vec3{this->lengthX, this->lengthY, this->lengthZ};
+}
+
+std::vector<vec3> Boxel::getVertexes( void ) const noexcept {
+	std::vector<vec3> vertexes(SIZE_VOXEL);
+	for (uint32_t i=0; i<SIZE_VOXEL; i++) {
+		vec3 relativeVertexPos{
+			VOXEL_VERTEXES[i].x * this->lengthX / 2.0f,
+			VOXEL_VERTEXES[i].y * this->lengthY / 2.0f,
+			VOXEL_VERTEXES[i].z * this->lengthZ / 2.0f,
+		};
+		vertexes[i] = this->center + relativeVertexPos;
+	}
+	return vertexes;
+}
+
+
+Voxel::Voxel( vec3 const& pos) {
+	this->center = vec3{
+		pos.x + Voxel::VOXEL_EDGE / 2.0f,
+		pos.y + Voxel::VOXEL_EDGE / 2.0f,
+		pos.z + Voxel::VOXEL_EDGE / 2.0f
+	};
+}
+
+vec3 const& Voxel::getCenter( void ) const noexcept {
+	return this->center;
+}
+
+std::vector<vec3> Voxel::getVertexes( void ) const noexcept {
+	std::vector<vec3> vertexes(SIZE_VOXEL);
+	for (uint32_t i=0; i<SIZE_VOXEL; i++)
+		vertexes[i] = this->center + VOXEL_VERTEXES[i] * Voxel::VOXEL_EDGE / 2.0f;
+	return vertexes;
+}
+
+
 // floor on the ground, two 'towers' of voxels, left and right
-VoxelGrid generatorVoxTest1( void ) {
-	VoxelGrid grid;
-	grid.fill(false);
+std::vector<bool> generatorVoxTest1( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+	std::vector<bool> grid(maxW * maxL * maxH, false);
 	// set floor
-	for( uint32_t j=0; j<W_LENGTH; j++) {
-		for( uint32_t i=0; i<W_WIDTH; i++)
-			grid[i + j * W_WIDTH] = true;
+	for(uint32_t j=0; j<maxL; j++) {
+		for(uint32_t i=0; i<maxW; i++)
+			grid[i + j * maxW] = true;
 	}
 	// left tower, 4 voxel base
-	for( uint32_t i=1; i<W_HEIGHT; i++) {
-		grid[1 + (W_WIDTH - 2) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
-		grid[2 + (W_WIDTH - 2) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
-		grid[1 + (W_WIDTH - 1) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
-		grid[2 + (W_WIDTH - 1) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
+	for(uint32_t i=1; i<maxH; i++) {
+		grid[1 + (maxW - 2) * maxW + i * maxW * maxL] = true;
+		grid[2 + (maxW - 2) * maxW + i * maxW * maxL] = true;
+		grid[1 + (maxW - 1) * maxW + i * maxW * maxL] = true;
+		grid[2 + (maxW - 1) * maxW + i * maxW * maxL] = true;
 	}
 	// right tower, 4 voxel base
-	for( uint32_t i=1; i<W_HEIGHT; i++) {
-		grid[5 + (W_WIDTH - 2) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
-		grid[6 + (W_WIDTH - 2) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
-		grid[5 + (W_WIDTH - 1) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
-		grid[6 + (W_WIDTH - 1) * W_WIDTH + i * W_WIDTH * W_LENGTH] = true;
+	for(uint32_t i=1; i<maxH; i++) {
+		grid[5 + (maxW - 2) * maxW + i * maxW * maxL] = true;
+		grid[6 + (maxW - 2) * maxW + i * maxW * maxL] = true;
+		grid[5 + (maxW - 1) * maxW + i * maxW * maxL] = true;
+		grid[6 + (maxW - 1) * maxW + i * maxW * maxL] = true;
 	}
 
 	return grid;
 }
 
 // floor on the ground, rest is random
-VoxelGrid generatorVoxTest2( void ) {
-	VoxelGrid grid;
-	grid.fill(false);
+std::vector<bool> generatorVoxTest2( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+	std::vector<bool> grid(maxW * maxL * maxH, false);
 	// set floor
-	for( uint32_t j=0; j<W_LENGTH; j++) {
-		for( uint32_t i=0; i<W_WIDTH; i++)
-			grid[i + j * W_WIDTH] = true;
+	for(uint32_t j=0; j<maxL; j++) {
+		for(uint32_t i=0; i<maxW; i++)
+			grid[i + j * maxW] = true;
 	}
-	for( uint32_t k=1; k<W_HEIGHT; k++) {
-		for( uint32_t j=0; j<W_LENGTH; j++) {
-			for( uint32_t i=0; i<W_WIDTH; i++) {
+	for(uint32_t k=1; k<maxH; k++) {
+		for(uint32_t j=0; j<maxL; j++) {
+			for(uint32_t i=0; i<maxW; i++) {
 				bool value = (ve::randomFloat() > 0.85f) ? true : false;
-				grid[i + j * W_WIDTH + k * W_WIDTH * W_LENGTH] = value;
+				grid[i + j * maxW + k * maxW * maxL] = value;
 			}
 		}
 	}
@@ -55,35 +107,34 @@ VoxelGrid generatorVoxTest2( void ) {
 }
 
 // basic random generation
-VoxelGrid generatorVoxTest3( void ) {
-	VoxelGrid grid;
-	grid.fill(false);
+std::vector<bool> generatorVoxTest3( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+	std::vector<bool> grid(maxW * maxL * maxH, false);
 
 	// set floor
-	for( uint32_t j=0; j<W_LENGTH; j++) {
-		for( uint32_t i=0; i<W_WIDTH; i++)
-			grid[i + j * W_WIDTH] = true;
+	for(uint32_t j=0; j<maxL; j++) {
+		for(uint32_t i=0; i<maxW; i++)
+			grid[i + j * maxW] = true;
 	}
 	// set ceiling
-	for( uint32_t j=0; j<W_LENGTH; j++) {
-		for( uint32_t i=0; i<W_WIDTH; i++)
-			grid[i + j * W_WIDTH + (W_HEIGHT - 1) * W_WIDTH * W_LENGTH] = true;
+	for(uint32_t j=0; j<maxL; j++) {
+		for(uint32_t i=0; i<maxW; i++)
+			grid[i + j * maxW + (maxH - 1) * maxW * maxL] = true;
 	}
 	// four columns on corner
-	for( uint32_t i=0; i<W_HEIGHT; i++) {
-		grid[i * W_LENGTH * W_WIDTH] = true;
-		grid[(W_WIDTH - 1) + i * W_LENGTH * W_WIDTH] = true;
-		grid[(W_LENGTH - 1) * W_WIDTH + i * W_LENGTH * W_WIDTH] = true;
-		grid[(W_WIDTH - 1) + (W_LENGTH - 1) * W_WIDTH + i * W_LENGTH * W_WIDTH] = true;
+	for(uint32_t i=0; i<maxH; i++) {
+		grid[i * maxL * maxW] = true;
+		grid[(maxW - 1) + i * maxL * maxW] = true;
+		grid[(maxL - 1) * maxW + i * maxL * maxW] = true;
+		grid[(maxW - 1) + (maxL - 1) * maxW + i * maxL * maxW] = true;
 	}
 	// random cubes, with penality along z (the higher the more difficult the spawn)
-	for( uint32_t k=1; k<W_HEIGHT - 1; k++) {
-		float t = static_cast<float>(k) / W_HEIGHT;
+	for(uint32_t k=1; k<maxH - 1; k++) {
+		float t = static_cast<float>(k) / maxH;
 		float factor = 1.0f - 1.0f * t;
-		for( uint32_t j=1; j<W_LENGTH-1; j++) {
-			for( uint32_t i=1; i<W_WIDTH-1; i++) {
+		for(uint32_t j=1; j<maxL-1; j++) {
+			for(uint32_t i=1; i<maxW-1; i++) {
 				bool value = (ve::randomFloat() * factor) > 0.3f;
-				grid[i + j * W_WIDTH + k * W_WIDTH * W_LENGTH] = value;
+				grid[i + j * maxW + k * maxW * maxL] = value;
 			}
 		}
 	}
@@ -92,81 +143,15 @@ VoxelGrid generatorVoxTest3( void ) {
 }
 
 // four voxel in the middle
-VoxelGrid generatorVoxTest4( void ) {
-	VoxelGrid grid;
-	grid.fill(false);
-	grid[W_WIDTH / 2 + (W_LENGTH / 2) * W_WIDTH + (W_HEIGHT / 2) * W_WIDTH * W_LENGTH] = true;
-	grid[W_WIDTH / 2 + 1 + (W_LENGTH / 2) * W_WIDTH + (W_HEIGHT / 2) * W_WIDTH * W_LENGTH] = true;
-	grid[W_WIDTH / 2 + (W_LENGTH / 2 + 1) * W_WIDTH + (W_HEIGHT / 2) * W_WIDTH * W_LENGTH] = true;
-	grid[W_WIDTH / 2 + 1 + (W_LENGTH / 2 + 1) * W_WIDTH + (W_HEIGHT / 2) * W_WIDTH * W_LENGTH] = true;
+std::vector<bool> generatorVoxTest4( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+	std::vector<bool> grid(maxW * maxL * maxH, false);
+
+	grid[maxW / 2 + (maxL / 2) * maxW + (maxH / 2) * maxW * maxL] = true;
+	grid[maxW / 2 + 1 + (maxL / 2) * maxW + (maxH / 2) * maxW * maxL] = true;
+	grid[maxW / 2 + (maxL / 2 + 1) * maxW + (maxH / 2) * maxW * maxL] = true;
+	grid[maxW / 2 + 1 + (maxL / 2 + 1) * maxW + (maxH / 2) * maxW * maxL] = true;
 	return grid;
 }
-
-std::vector<vec3> getVoxelVertexes( uint32_t x, uint32_t y, uint32_t z ) {
-	float centerX = static_cast<float>(x) + VOXEL_EDGE / 2.0f;
-	float centerY = static_cast<float>(y) + VOXEL_EDGE / 2.0f;
-	float centerZ = static_cast<float>(z) + VOXEL_EDGE / 2.0f;
-
-	return std::vector<vec3>{
-		vec3{		// front top left
-			centerX - VOXEL_EDGE / 2.0f,
-			centerY + VOXEL_EDGE / 2.0f,
-			centerZ - VOXEL_EDGE / 2.0f
-		},
-		vec3{		// front top right
-			centerX + VOXEL_EDGE / 2.0f,
-			centerY + VOXEL_EDGE / 2.0f,
-			centerZ - VOXEL_EDGE / 2.0f
-		},
-		vec3{		// front bottom right
-			centerX + VOXEL_EDGE / 2.0f,
-			centerY - VOXEL_EDGE / 2.0f,
-			centerZ - VOXEL_EDGE / 2.0f
-		},
-		vec3{		// front bottom left
-			centerX - VOXEL_EDGE / 2.0f,
-			centerY - VOXEL_EDGE / 2.0f,
-			centerZ - VOXEL_EDGE / 2.0f
-		},
-		vec3{		// back top left
-			centerX - VOXEL_EDGE / 2.0f,
-			centerY + VOXEL_EDGE / 2.0f,
-			centerZ + VOXEL_EDGE / 2.0f
-		},
-		vec3{		// back top right
-			centerX + VOXEL_EDGE / 2.0f,
-			centerY + VOXEL_EDGE / 2.0f,
-			centerZ + VOXEL_EDGE / 2.0f
-		},
-		vec3{		// back bottom right
-			centerX + VOXEL_EDGE / 2.0f,
-			centerY - VOXEL_EDGE / 2.0f,
-			centerZ + VOXEL_EDGE / 2.0f
-		},
-		vec3{		// back bottom left
-			centerX - VOXEL_EDGE / 2.0f,
-			centerY - VOXEL_EDGE / 2.0f,
-			centerZ + VOXEL_EDGE / 2.0f
-		},
-	};
-}
-
-// std::vector<uint32_t> getVoxelIndices( uint32_t startIndex ) {
-// 	return std::vector<uint32_t>{
-// 		startIndex + 0, startIndex + 1, startIndex + 2,
-// 		startIndex + 0, startIndex + 2, startIndex + 3,
-// 		startIndex + 4, startIndex + 7, startIndex + 6,
-// 		startIndex + 4, startIndex + 6, startIndex + 5,
-// 		startIndex + 0, startIndex + 1, startIndex + 5,
-// 		startIndex + 0, startIndex + 5, startIndex + 4,
-// 		startIndex + 3, startIndex + 7, startIndex + 6,
-// 		startIndex + 3, startIndex + 6, startIndex + 2,
-// 		startIndex + 1, startIndex + 2, startIndex + 6,
-// 		startIndex + 1, startIndex + 6, startIndex + 5,
-// 		startIndex + 0, startIndex + 3, startIndex + 7,
-// 		startIndex + 0, startIndex + 7, startIndex + 4,
-// 	};
-// }
 
 // std::vector<ve::VulkanModel::Vertex> getVoxelVertexes( unsigned char mask, vec3 const& pos ) {
 // 	std::vector<ve::VulkanModel::Vertex> vertexes;
@@ -547,7 +532,6 @@ std::vector<vec3> getVoxelVertexes( uint32_t x, uint32_t y, uint32_t z ) {
 // 	return vertexMask;
 // }
 
-
 // apply textures and normal
 //
 // std::vector<VectUI3> vertexIndex = face.getIndexes();
@@ -590,47 +574,72 @@ std::vector<vec3> getVoxelVertexes( uint32_t x, uint32_t y, uint32_t z ) {
 // 			vertexIndex[i].i3 = normalIndex++;
 // 		}
 
-VoxelWorld::VoxelWorld( VoxelGrid (&generator)() ) {
-	this->_grid = generator();
+
+VoxelWorld::VoxelWorld( std::vector<bool> (&generator)(uint32_t, uint32_t, uint32_t) ) {
+	std::vector<bool> grid = generator(W_WIDTH, W_LENGTH, W_HEIGHT);
+
+	for (uint32_t z=0; z<W_HEIGHT; z++) {
+		for (uint32_t y=0; y<W_LENGTH; y++) {
+			for (uint32_t x=0; x<W_WIDTH; x++) {
+				// order of insetion left->right, bottom->top
+				if (grid[x + y * W_WIDTH + z * W_WIDTH * W_LENGTH] == true) {
+					float xF = static_cast<float>(x);
+					float yF = static_cast<float>(z);		// invert y and z!
+					float zF = static_cast<float>(y);
+					this->_voxels.push_back(Voxel(vec3{xF, yF, zF}));
+				}
+			}
+		}
+	}
+	std::cout << "n voxels: " << this->_voxels.size() << std::endl;
 }
 
 void VoxelWorld::generateBufferData( void ) {
 	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 	uint32_t indexCount = 0U;
-	for (uint32_t z=0; z<W_HEIGHT; z++) {
-		for (uint32_t y=0; y<W_LENGTH; y++) {
-			for (uint32_t x=0; x<W_WIDTH; x++) {
-				if (this->isVoxel(x, y, z)) {
-					std::vector<vec3> voxelVertexes = getVoxelVertexes(x, z, y);
-					for (uint32_t index : VOXEL_FACES_INDEX) {
-						if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-							this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-						else {
-							uniqueVertexes[voxelVertexes[index]] = indexCount;
-							this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
-								voxelVertexes[index],
-								ve::generateRandomColor(),  // vec3{1.0f, 1.0f, 1.0f}
-								vec3{0.0f, 0.0f, 0.0f},
-								vec2{0.0f, 0.0f}
-							});
-							this->_builder.indices.push_back(indexCount++);
-						}
-					}
-				}
+
+	for (Voxel const& voxel : this->_voxels) {
+		std::vector<vec3> voxelVertexes = voxel.getVertexes();
+		for (uint32_t index : VOXEL_FACES) {
+			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+				this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+			else {
+				uniqueVertexes[voxelVertexes[index]] = indexCount;
+				this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+					voxelVertexes[index],
+					ve::generateRandomColor(),
+					vec3{0.0f, 0.0f, 0.0f},
+					vec2{0.0f, 0.0f}
+				});
+				this->_builder.indices.push_back(indexCount++);
 			}
 		}
+
 	}
 }
 
-bool VoxelWorld::isVoxel( uint32_t x, uint32_t y, uint32_t z) const {
-	size_t index = static_cast<size_t>(x) + 
-					static_cast<size_t>(y) * W_WIDTH + 
-					static_cast<size_t>(z) * W_WIDTH * W_LENGTH;
+void VoxelWorld::generateBufferDataOpt( void ) {
+	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+	uint32_t indexCount = 0U;
 
-	if (index >= this->_grid.size())
-		throw std::runtime_error("Voxel index out of bounds");
+	for (Boxel const& voxel : this->_boxels) {
+		std::vector<vec3> voxelVertexes = voxel.getVertexes();
+		for (uint32_t index : VOXEL_FACES) {
+			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+				this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+			else {
+				uniqueVertexes[voxelVertexes[index]] = indexCount;
+				this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+					voxelVertexes[index],
+					ve::generateRandomColor(),
+					vec3{0.0f, 0.0f, 0.0f},
+					vec2{0.0f, 0.0f}
+				});
+				this->_builder.indices.push_back(indexCount++);
+			}
+		}
 
-	return this->_grid[index];
+	}
 }
 
 ve::VulkanModel::Builder const&	VoxelWorld::getBuilder( void ) const noexcept {
@@ -639,23 +648,6 @@ ve::VulkanModel::Builder const&	VoxelWorld::getBuilder( void ) const noexcept {
 
 ve::VulkanModel::Builder&		VoxelWorld::getBuilder( void ) noexcept {
 	return this->_builder;
-}
-
-
-std::ostream& operator<<(std::ostream& os, VoxelWorld const& world) {
-	for (uint32_t z=0; z<W_HEIGHT; z++) {
-		os << "level: " << z << std::endl;
-		for (int32_t y=W_LENGTH-1; y>=0; y--) {
-			os << "|";
-			for (uint32_t x=0; x<W_WIDTH; x++) {
-				char isVox = world.isVoxel(x, y, z) ? 'O' : ' ';
-				os << isVox << "|";
-			}
-			os << std::endl;
-		}
-		os << std::endl;
-	}
-	return os;
 }
 
 }

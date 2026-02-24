@@ -2,6 +2,7 @@
 
 #include "Vec2.hpp"
 #include "Vec3.hpp"
+#include "Vec3i.hpp"
 #include "Vec4.hpp"
 #include "Quat.hpp"
 #include "Mat3.hpp"
