@@ -84,15 +84,15 @@ VoxelGrid voxelGenerator5( uint32_t, uint32_t, uint32_t );
 
 class VoxelWorld {
 	public:
-		VoxelWorld( vec3ui const& );
+		VoxelWorld( vec3ui const& worldSize, bool debugMode = false ) : _worldSize(worldSize), _debugMode(debugMode) {};
 		~VoxelWorld( void ) = default;
 		VoxelWorld( VoxelWorld const& ) = default;
 		VoxelWorld( VoxelWorld&& ) = default;
 		VoxelWorld& operator=( VoxelWorld const& ) = default;
 		VoxelWorld& operator=( VoxelWorld&& ) = default;
 
-		ve::VulkanModel::Builder	generateBufferData( VoxelGrid (&generator)( uint32_t, uint32_t, uint32_t ) );
-		ve::VulkanModel::Builder	generateBufferDataGreedy( VoxelGrid (&generator)( uint32_t, uint32_t, uint32_t ) );
+		ve::VulkanModel::Builder	generateBufferData( VoxelGrid (&generator)( uint32_t, uint32_t, uint32_t ), bool duplicateVertex = false );
+		ve::VulkanModel::Builder	generateBufferDataGreedy( VoxelGrid (&generator)( uint32_t, uint32_t, uint32_t ), bool duplicateVertex = false );
 		
 	private:
 		// spwans boxels, aka clusters of voxels, more optimized
@@ -104,8 +104,10 @@ class VoxelWorld {
 		void	setVoxel( uint32_t, uint32_t, uint32_t, bool );
 		void	setVoxel( vec3ui const&, vec3ui const&, bool );
 		vec3ui	nextVoxel( vec3ui const& ) const;
+		vec3ui	firstVoxel( void ) const;
 
 		vec3ui		_worldSize;
+		bool		_debugMode;
 		VoxelGrid	_grid;
 };
 

@@ -229,87 +229,141 @@ std::vector<bool> voxelGenerator5( uint32_t maxW, uint32_t maxL, uint32_t maxH )
 // 		}
 
 
-VoxelWorld::VoxelWorld( vec3ui const& worldSize ) {
-	this->_worldSize = worldSize;
-}
-
-ve::VulkanModel::Builder VoxelWorld::generateBufferData( std::vector<bool> (&generator)( uint32_t, uint32_t, uint32_t) ) {
+ve::VulkanModel::Builder VoxelWorld::generateBufferData( std::vector<bool> (&generator)( uint32_t, uint32_t, uint32_t), bool duplicateVertex ) {
 	this->_grid = generator(this->_worldSize.x, this->_worldSize.y, this->_worldSize.z);
 
 	ve::VulkanModel::Builder			builder;
 	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 	uint32_t 							indexCount = 0U;
+	vec3ui								current = this->firstVoxel();
+	vec3ui const						endingVoxel(0U);
 
-	for (uint32_t z=0; z<this->_worldSize.x; z++) {
-		for (uint32_t y=0; y<this->_worldSize.y; y++) {
-			for (uint32_t x=0; x<this->_worldSize.z; x++) {
-				if (this->isVoxel(x, y, z) == false)
-					continue;
-				// found a voxel, it has 8 vertexes, add the vertex only if it's unique
-				Voxel				voxel(vec3ui{x, z, y});		// NB: invertion of y and z
-				std::vector<vec3>	voxelVertexes = voxel.getVertexes();
-				for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-					if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-						// there's already such vertex, add only the vertex index
-						builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-					else {
-						uniqueVertexes[voxelVertexes[index]] = indexCount;
-						// new vertex, add it and its vertex index
-						builder.vertices.push_back(ve::VulkanModel::Vertex{
-							voxelVertexes[index],
-							ve::generateRandomColor(),
-							vec3{0.0f, 0.0f, 0.0f},
-							vec2{0.0f, 0.0f}
-						});
-						builder.indices.push_back(indexCount++);
-					}
-				}
+	uint32_t	_debugNvoxels = 0U;
+	uint32_t	_debugNtriangles = 0U;
+
+	do {
+		Voxel				voxel(vec3ui{current.x, current.z, current.y});		// NB: invertion of y and z
+		std::vector<vec3>	voxelVertexes = voxel.getVertexes();
+		// check every vertex of the cube/voxel to avoid duplicates
+		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
+			if (duplicateVertex == true) {
+				builder.vertices.push_back(ve::VulkanModel::Vertex{
+					voxelVertexes[index],
+					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{0.0f, 0.0f, 0.0f},
+					vec2{0.0f, 0.0f}
+				});
+				_debugNtriangles++;			// debug info
+				builder.indices.push_back(indexCount++);
+			}
+			else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+				// there's already such vertex, add only the vertex index
+				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+			else {
+				uniqueVertexes[voxelVertexes[index]] = indexCount;
+				// new vertex, add it and its vertex index
+				builder.vertices.push_back(ve::VulkanModel::Vertex{
+					voxelVertexes[index],
+					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{0.0f, 0.0f, 0.0f},
+					vec2{0.0f, 0.0f}
+				});
+				_debugNtriangles++;			// debug info
+				builder.indices.push_back(indexCount++);
 			}
 		}
+		current = this->nextVoxel(current);
+		_debugNvoxels++;			// debug info
+	} while (current != endingVoxel);
+
+	if (this->_debugMode) {
+		std::cout << "\n------" << std::endl;
+		std::cout << "VoxWorld generation, debug mode:" << std::endl;
+		std::cout << "  voxels generated: " << _debugNvoxels << std::endl;
+		if (duplicateVertex == true)
+			std::cout << "  [duplicated vertexes are inserted in buffer]" << std::endl;
+		else
+			std::cout << "  [duplicated vertexes are skipped]" << std::endl;
+		std::cout << "  vertexes inserted in buffer: " << _debugNtriangles << std::endl;
+		std::cout << "  triangles: " << (indexCount + 1) / 3 << std::endl;
+		std::cout << "------\n" << std::endl;
 	}
 	return builder;
 }
 
-ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( std::vector<bool> (&generator)( uint32_t, uint32_t, uint32_t) ) {
+ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( std::vector<bool> (&generator)( uint32_t, uint32_t, uint32_t), bool duplicateVertex ) {
 	this->_grid = generator(this->_worldSize.x, this->_worldSize.y, this->_worldSize.z);
 	std::vector<Boxel> boxels = this->greedyMeshing();
 
 	ve::VulkanModel::Builder			builder;
 	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 	uint32_t 							indexCount = 0U;
-	builder.vertices.reserve(boxels.size() * INDEX_PER_VOXEL);
-	builder.indices.reserve(boxels.size() * INDEX_PER_VOXEL);
+
+	uint32_t	_debugNboxels = boxels.size();
+	uint32_t	_debugNvoxels = 0U;
+	uint32_t	_debugNtriangles = 0U;
+
+	if (this->_debugMode) {
+		for (Boxel const& box : boxels) {
+			vec3ui size = box.getSize();
+			_debugNvoxels += size.x * size.y * size.z;
+		}
+	}
 
 	for (Boxel const& voxel : boxels) {
 		std::vector<vec3> voxelVertexes = voxel.getVertexes();
+		// check every vertex of the prism/boxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
+			if (duplicateVertex == true) {
 				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
-					ve::generateRandomColor(),
+					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
 				builder.indices.push_back(indexCount++);
+				_debugNtriangles++;			// debug info
+			}
+			else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+				// there's already such vertex, add only the vertex index
+				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+			else {
+				uniqueVertexes[voxelVertexes[index]] = indexCount;
+				// new vertex, add it and its vertex index
+				builder.vertices.push_back(ve::VulkanModel::Vertex{
+					voxelVertexes[index],
+					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{0.0f, 0.0f, 0.0f},
+					vec2{0.0f, 0.0f}
+				});
+				builder.indices.push_back(indexCount++);
+				_debugNtriangles++;			// debug info
 			}
 		}
+	}
+
+	if (this->_debugMode) {
+		std::cout << "\n------" << std::endl;
+		std::cout << "VoxWorld generation, debug mode:" << std::endl;
+		std::cout << "  voxels generated: " << _debugNvoxels << std::endl;
+		std::cout << "  boxels generated: " << _debugNboxels << std::endl;
+		if (duplicateVertex == true)
+			std::cout << "  [duplicated vertexes are inserted in buffer]" << std::endl;
+		else
+			std::cout << "  [duplicated vertexes are skipped]" << std::endl;
+		std::cout << "  vertexes inserted in buffer: " << _debugNtriangles << std::endl;
+		std::cout << "  triangles: " << (indexCount + 1) / 3 << std::endl;
+		std::cout << "------\n" << std::endl;
 	}
 	return builder;
 }
 
 std::vector<Boxel> VoxelWorld::greedyMeshing( void ) {
-	vec3ui start(0U), curr(0U), boxelSize(1U);
-	std::vector<Boxel> boxels;
+	vec3ui				start = this->firstVoxel(), curr(start), boxelSize(1U);
+	vec3ui const		endingVoxel(0U);
+	std::vector<Boxel>	boxels;
 
-	while (true) {
-		while (this->isVoxel(start) == false) {
-			start = this->nextVoxel(start);
-			if (start == vec3ui{0U, 0U, 0U})
-				return boxels; // no voxel remain in the grid, end of algorithm
-		}
+	do {
 		curr = start;
 		boxelSize.x = 1U, boxelSize.y = 1U, boxelSize.z = 1U;
 		// find longest line of consecutive voxels
@@ -342,14 +396,17 @@ std::vector<Boxel> VoxelWorld::greedyMeshing( void ) {
 		boxels.push_back(Boxel(vec3ui{start.x, start.z, start.y}, vec3ui{boxelSize.x, boxelSize.z, boxelSize.y}));
 		// deactivate all the valid past voxels
 		this->setVoxel(start, start + boxelSize, false);
-	}
+		// find next voxel
+		start = this->nextVoxel(start);
+	} while (start != endingVoxel); // start == {0,0,0} -> no voxels remain in the grid
+	return boxels;
 }
 
 bool VoxelWorld::isVoxel( vec3ui const& pos ) const {
 	if ((pos.x >= this->_worldSize.x) or
 		(pos.y >= this->_worldSize.y) or
 		(pos.z >= this->_worldSize.z))
-			throw std::runtime_error("voxel position out of world!");
+			throw std::runtime_error("Voxel position out of world");
 
 	return this->_grid[pos.x + pos.y * this->_worldSize.x + pos.z * this->_worldSize.x * this->_worldSize.y];
 }
@@ -358,7 +415,7 @@ bool VoxelWorld::isVoxel( uint32_t x, uint32_t y, uint32_t z ) const {
 	if ((x >= this->_worldSize.x) or
 		(y >= this->_worldSize.y) or
 		(z >= this->_worldSize.z))
-			throw std::runtime_error("voxel position out of world!");
+			throw std::runtime_error("Voxel position out of world");
 
 	return this->_grid[x + y * this->_worldSize.x + z * this->_worldSize.x * this->_worldSize.y];
 }
@@ -367,7 +424,7 @@ void VoxelWorld::setVoxel( vec3ui const& pos, bool value ) {
 	if ((pos.x >= this->_worldSize.x) or
 		(pos.y >= this->_worldSize.y) or
 		(pos.z >= this->_worldSize.z))
-			throw std::runtime_error("voxel position out of world!");
+			throw std::runtime_error("Voxel position out of world");
 
 	this->_grid[pos.x + pos.y * this->_worldSize.x + pos.z * this->_worldSize.x * this->_worldSize.y] = value;
 }
@@ -379,7 +436,7 @@ void VoxelWorld::setVoxel( vec3ui const& start, vec3ui const& end, bool ) {
 		(end.x > this->_worldSize.x) or
 		(end.y > this->_worldSize.y) or
 		(end.z > this->_worldSize.z))
-			throw std::runtime_error("voxel position(s) out of world!");
+			throw std::runtime_error("Voxel position(s) out of world");
 
 	vec3ui index = start;
 	for (index.z=start.z; index.z < end.z; index.z++) {
@@ -394,7 +451,7 @@ void VoxelWorld::setVoxel( uint32_t x, uint32_t y, uint32_t z, bool value ) {
 	if ((x >= this->_worldSize.x) or
 		(y >= this->_worldSize.y) or
 		(z >= this->_worldSize.z))
-			throw std::runtime_error("voxel position out of world!");
+			throw std::runtime_error("Voxel position out of world");
 
 	this->_grid[x + y * this->_worldSize.x + z * this->_worldSize.x * this->_worldSize.y] = value;
 }
@@ -403,17 +460,46 @@ vec3ui VoxelWorld::nextVoxel( vec3ui const& pos ) const {
 	if ((pos.x >= this->_worldSize.x) or
 		(pos.y >= this->_worldSize.y) or
 		(pos.z >= this->_worldSize.z))
-			throw std::runtime_error("3 voxel position out of world!");
+			throw std::runtime_error("Voxel position out of world");
 
-	if (pos.x < this->_worldSize.x - 1)				// next voxel in line
-		return vec3ui{pos.x + 1, pos.y, pos.z};
-	else if (pos.y < this->_worldSize.y - 1)		// end of line, check y+1
-		return vec3ui{0U, pos.y + 1, pos.z};
-	else if (pos.z < this->_worldSize.z - 1) 	 	// end of surface, check z+1
-		return vec3ui{0U, 0U, pos.z + 1};
-	else											// current voxel is the last one, return {0U, 0U, 0U}
-		return vec3ui{0U, 0U, 0U};
+	vec3ui	next(pos);
+	do {
+		if (next.x < this->_worldSize.x - 1)		// next voxel in line
+			next.x++;
+		else if (next.y < this->_worldSize.y - 1) {	// end of line, check y+1
+			next.x = 0;
+			next.y++;
+		}
+		else if (next.z < this->_worldSize.z - 1) {	 // end of surface, check z+1
+			next.x = 0;
+			next.y = 0;
+			next.z++;
+		}
+		else										// current voxel is the last one, return {0U, 0U, 0U}
+			return vec3ui{0U, 0U, 0U};
+	} while (this->isVoxel(next) == false);
+	return next;
 }
 
+vec3ui VoxelWorld::firstVoxel( void ) const {
+	vec3ui	next(0U);
+	while (this->isVoxel(next) == false) {
+		if (next.x < this->_worldSize.x - 1)		// next voxel in line
+			next.x++;
+		else if (next.y < this->_worldSize.y - 1) {	// end of line, check y+1
+			next.x = 0;
+			next.y++;
+		}
+		else if (next.z < this->_worldSize.z - 1) {	 // end of surface, check z+1
+			next.x = 0;
+			next.y = 0;
+			next.z++;
+		}
+		else
+			throw std::runtime_error("No voxel found in grid");
+		
+	}
+	return next;
+}
 
 }
