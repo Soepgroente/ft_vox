@@ -100,7 +100,7 @@ struct GlobalUBO
 Vox::Vox( void ) : 
 	objModelPath("models/teapot.obj"),
 	camera(vec3{0.0f, 0.0f, Config::cameraDistance}),
-	world(vec3ui{W_WIDTH, W_LENGTH, W_HEIGHT}, true)
+	world(vec3ui{Config::worldSize, Config::worldSize, Config::worldSize}, true)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -222,11 +222,9 @@ void Vox::run( void )
 
 void Vox::createObjects( void )
 {
-	// ve::VulkanModel::Builder builder = world.generateBufferData(voxelGenerator5, false);
-	ve::VulkanModel::Builder builder = world.generateBufferDataGreedy(voxelGenerator5, false);
+	world.createNewWorld(VoxelGrid::voxelGenerator3);
+	ve::VulkanModel::Builder			builder = world.generateBufferDataGreedy(false);
 
-	// b.loadModel(objModelPath);
-	// std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);
 	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);
 	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
