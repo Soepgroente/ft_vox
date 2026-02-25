@@ -6,62 +6,56 @@
 
 namespace vox {
 
-Boxel::Boxel( vec3 const& pos, vec3 const& size ) {
-	this->center = vec3{
-		pos.x + size.x / 2.0f,
-		pos.y + size.y / 2.0f,
-		pos.z + size.z / 2.0f
+
+vec3 Boxel::getCenter( void ) const noexcept {
+	return vec3{
+		static_cast<float>(this->_center.x) + Voxel::VOXEL_EDGE * static_cast<float>(this->_size.x) / 2.0f,
+		static_cast<float>(this->_center.y) + Voxel::VOXEL_EDGE * static_cast<float>(this->_size.y) / 2.0f,
+		static_cast<float>(this->_center.z) + Voxel::VOXEL_EDGE * static_cast<float>(this->_size.z) / 2.0f
 	};
-	// are relative to world coordinates: x: left->right, y: down->up, z: from monitor->user
-	this->lengthX = size.x;
-	this->lengthY = size.y;
-	this->lengthZ = size.z;
 }
 
-vec3 const& Boxel::getCenter( void ) const noexcept {
-	return this->center;
-}
-
-vec3 Boxel::getSize( void ) const noexcept {
-	return vec3{this->lengthX, this->lengthY, this->lengthZ};
+vec3ui const& Boxel::getSize( void ) const noexcept {
+	return this->_size;
 }
 
 std::vector<vec3> Boxel::getVertexes( void ) const noexcept {
-	std::vector<vec3> vertexes(SIZE_VOXEL);
-	for (uint32_t i=0; i<SIZE_VOXEL; i++) {
-		vec3 relativeVertexPos{
-			VOXEL_VERTEXES[i].x * this->lengthX / 2.0f,
-			VOXEL_VERTEXES[i].y * this->lengthY / 2.0f,
-			VOXEL_VERTEXES[i].z * this->lengthZ / 2.0f,
-		};
-		vertexes[i] = this->center + relativeVertexPos;
+	std::vector<vec3>	vertexes(VERTEX_PER_VOXEL);
+	vec3				centerFloat = this->getCenter();
+
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+		vertexes[i].x = centerFloat.x + VOXEL_VERTEXES[i].x * this->_size.x / 2.0f;
+		vertexes[i].y = centerFloat.y + VOXEL_VERTEXES[i].y * this->_size.y / 2.0f;
+		vertexes[i].z = centerFloat.z + VOXEL_VERTEXES[i].z * this->_size.z / 2.0f;
 	}
 	return vertexes;
 }
 
 
-Voxel::Voxel( vec3 const& pos) {
-	this->center = vec3{
-		pos.x + Voxel::VOXEL_EDGE / 2.0f,
-		pos.y + Voxel::VOXEL_EDGE / 2.0f,
-		pos.z + Voxel::VOXEL_EDGE / 2.0f
+vec3 Voxel::getCenter( void ) const noexcept {
+	return vec3{
+		static_cast<float>(this->_center.x) + Voxel::VOXEL_EDGE / 2.0f,
+		static_cast<float>(this->_center.y) + Voxel::VOXEL_EDGE / 2.0f,
+		static_cast<float>(this->_center.z) + Voxel::VOXEL_EDGE / 2.0f
 	};
 }
 
-vec3 const& Voxel::getCenter( void ) const noexcept {
-	return this->center;
+float Voxel::getSize( void ) const noexcept {
+	return Voxel::VOXEL_EDGE;
 }
 
 std::vector<vec3> Voxel::getVertexes( void ) const noexcept {
-	std::vector<vec3> vertexes(SIZE_VOXEL);
-	for (uint32_t i=0; i<SIZE_VOXEL; i++)
-		vertexes[i] = this->center + VOXEL_VERTEXES[i] * Voxel::VOXEL_EDGE / 2.0f;
+	vec3 centerFloat = this->getCenter();
+	std::vector<vec3> vertexes(VERTEX_PER_VOXEL);
+
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++)
+		vertexes[i] = centerFloat + VOXEL_VERTEXES[i] * Voxel::VOXEL_EDGE / 2.0f;
 	return vertexes;
 }
 
 
 // floor on the ground, two 'towers' of voxels, left and right
-std::vector<bool> generatorVoxTest1( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+std::vector<bool> voxelGenerator1( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
 	std::vector<bool> grid(maxW * maxL * maxH, false);
 	// set floor
 	for(uint32_t j=0; j<maxL; j++) {
@@ -87,7 +81,7 @@ std::vector<bool> generatorVoxTest1( uint32_t maxW, uint32_t maxL, uint32_t maxH
 }
 
 // floor on the ground, rest is random
-std::vector<bool> generatorVoxTest2( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+std::vector<bool> voxelGenerator2( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
 	std::vector<bool> grid(maxW * maxL * maxH, false);
 	// set floor
 	for(uint32_t j=0; j<maxL; j++) {
@@ -107,7 +101,7 @@ std::vector<bool> generatorVoxTest2( uint32_t maxW, uint32_t maxL, uint32_t maxH
 }
 
 // basic random generation
-std::vector<bool> generatorVoxTest3( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+std::vector<bool> voxelGenerator3( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
 	std::vector<bool> grid(maxW * maxL * maxH, false);
 
 	// set floor
@@ -143,7 +137,7 @@ std::vector<bool> generatorVoxTest3( uint32_t maxW, uint32_t maxL, uint32_t maxH
 }
 
 // four voxel in the middle
-std::vector<bool> generatorVoxTest4( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+std::vector<bool> voxelGenerator4( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
 	std::vector<bool> grid(maxW * maxL * maxH, false);
 
 	grid[maxW / 2 + (maxL / 2) * maxW + (maxH / 2) * maxW * maxL] = true;
@@ -153,384 +147,44 @@ std::vector<bool> generatorVoxTest4( uint32_t maxW, uint32_t maxL, uint32_t maxH
 	return grid;
 }
 
-// std::vector<ve::VulkanModel::Vertex> getVoxelVertexes( unsigned char mask, vec3 const& pos ) {
-// 	std::vector<ve::VulkanModel::Vertex> vertexes;
-// 	vec3 normal = vec3{0.0f, 0.0f, 0.0f};
-// 	vec2 textureUv = vec2{0.0f, 0.0f};
-//
-// 	if (mask & (1 << 7)) {        // insert front-left-top corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x - VOXEL_EDGE / 2.0f,
-// 				pos.y + VOXEL_EDGE / 2.0f,
-// 				pos.z - VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & (1 << 6)) {        // insert front-right-top corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x + VOXEL_EDGE / 2.0f,
-// 				pos.y + VOXEL_EDGE / 2.0f,
-// 				pos.z - VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & (1 << 5)) {        // insert front-right-bottom corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x + VOXEL_EDGE / 2.0f,
-// 				pos.y - VOXEL_EDGE / 2.0f,
-// 				pos.z - VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & (1 << 4)) {        // insert front-left-bottom corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x - VOXEL_EDGE / 2.0f,
-// 				pos.y - VOXEL_EDGE / 2.0f,
-// 				pos.z - VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & (1 << 3)) {        // insert back-left-top corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x - VOXEL_EDGE / 2.0f,
-// 				pos.y + VOXEL_EDGE / 2.0f,
-// 				pos.z + VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & (1 << 2)) {        // insert back-right-top corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x + VOXEL_EDGE / 2.0f,
-// 				pos.y + VOXEL_EDGE / 2.0f,
-// 				pos.z + VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & (1 << 1)) {        // insert back-right-bottom corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x + VOXEL_EDGE / 2.0f,
-// 				pos.y - VOXEL_EDGE / 2.0f,
-// 				pos.z + VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	if (mask & 1) {  		      // insert back-left-bottom corner
-// 		vertexes.push_back(ve::VulkanModel::Vertex{
-// 			vec3{
-// 				pos.x - VOXEL_EDGE / 2.0f,
-// 				pos.y - VOXEL_EDGE / 2.0f,
-// 				pos.z + VOXEL_EDGE / 2.0f,
-// 			},
-// 			ve::generateRandomColor(),
-// 			normal,
-// 			textureUv
-// 		});
-// 	}
-// 	return vertexes;
-// }
-//
-// std::vector<uint32_t> getVoxelIndexes( unsigned short voxelMask, uint32_t startIndex ) {
-// 	std::vector<uint32_t> indexes;
-// 	// triangle FLT-FRT-FRB
-//
-// 	// checking front-left-top corner
-// 	if (voxelMask & (1 << 10))
-// 		indexes.push_back(startIndex++ - (W_WIDTH + 1) * 36);
-// 	else if (voxelMask & (1 << 11))
-// 		indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// checking front-right-top corner
-// 	if (voxelMask & (1 << 11))
-// 		indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	else if (voxelMask & (1 << 12))
-// 		indexes.push_back(startIndex++ - (W_WIDTH - 1) * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// checking front-right-bottom corner
-// 	if (voxelMask & (1 << 4))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	else if (voxelMask & (1 << 5))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH + 1)) * 36);
-// 	else if (voxelMask & (1 << 7))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1)) * 36);
-// 	else if (voxelMask & (1 << 8))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1) + 1) * 36);
-// 	else if (voxelMask & (1 << 11))
-// 		indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	else if (voxelMask & (1 << 12))
-// 		indexes.push_back(startIndex++ - (W_WIDTH - 1) * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-//
-//
-// 	// triangle FRT-FRB-FLB
-// 	// checking front-right-top corner
-// 	if (voxelMask & (1 << 11))
-// 		indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	else if (voxelMask & (1 << 12))
-// 		indexes.push_back(startIndex++ - (W_WIDTH - 1) * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// checking front-right-bottom corner
-// 	if (voxelMask & (1 << 4))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	else if (voxelMask & (1 << 5))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH + 1)) * 36);
-// 	else if (voxelMask & (1 << 7))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1)) * 36);
-// 	else if (voxelMask & (1 << 8))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1) + 1) * 36);
-// 	else if (voxelMask & (1 << 11))
-// 		indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	else if (voxelMask & (1 << 12))
-// 		indexes.push_back(startIndex++ - (W_WIDTH - 1) * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// checking front-left-bottom corner
-// 	if (voxelMask & (1 << 3))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH - 1) * 36);
-// 	else if (voxelMask & (1 << 4))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	else if (voxelMask & (1 << 6))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1) - 1) * 36);
-// 	else if (voxelMask & (1 << 7))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1)) * 36);
-// 	else if (voxelMask & (1 << 9))
-// 		indexes.push_back(startIndex++ - 36);
-// 	else if (voxelMask & (1 << 10))
-// 		indexes.push_back(startIndex++ - (W_WIDTH + 1) * 36);
-// 	else if (voxelMask & (1 << 11))
-// 		indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-//
-//
-//
-//
-//
-// 	// checking back-left-bottom corner
-// 	if (voxelMask & 1)
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH + W_WIDTH - 1) * 36);
-// 	else if (voxelMask & (1 << 1))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH + W_WIDTH) * 36);
-// 	else if (voxelMask & (1 << 3))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH - 1) * 36);
-// 	else if (voxelMask & (1 << 4))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	else if (voxelMask & (1 << 9))
-// 		indexes.push_back(startIndex++ - 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// checking back-right-bottom corner
-// 	if (voxelMask & (1 << 1))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH + W_WIDTH) * 36);
-// 	else if (voxelMask & (1 << 2))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH + W_WIDTH + 1) * 36);
-// 	else if (voxelMask & (1 << 4))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	else if (voxelMask & (1 << 5))
-// 		indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH + 1) * 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// corner back-right-top can't be already in a voxel, so add it directly
-// 	indexes.push_back(startIndex++);
-// 	// checking back-left-top corner
-// 	if (voxelMask & (1 << 9))
-// 		indexes.push_back(startIndex++ - 36);
-// 	else
-// 		indexes.push_back(startIndex++);
-// 	// // checking front-left-bottom corner
-// 	// if (voxelMask & (1 << 3))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH - 1) * 36);
-// 	// else if (voxelMask & (1 << 4))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	// else if (voxelMask & (1 << 6))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1) - 1) * 36);
-// 	// else if (voxelMask & (1 << 7))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1)) * 36);
-// 	// else if (voxelMask & (1 << 9))
-// 	// 	indexes.push_back(startIndex++ - 36);
-// 	// else if (voxelMask & (1 << 10))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH + 1) * 36);
-// 	// else if (voxelMask & (1 << 11))
-// 	// 	indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	// else
-// 	// 	indexes.push_back(startIndex++);
-// 	// // checking front-right-bottom corner
-// 	// if (voxelMask & (1 << 4))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * W_LENGTH) * 36);
-// 	// else if (voxelMask & (1 << 5))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH + 1)) * 36);
-// 	// else if (voxelMask & (1 << 7))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1)) * 36);
-// 	// else if (voxelMask & (1 << 8))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH * (W_LENGTH - 1) + 1) * 36);
-// 	// else if (voxelMask & (1 << 11))
-// 	// 	indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	// else if (voxelMask & (1 << 12))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH - 1) * 36);
-// 	// else
-// 	// 	indexes.push_back(startIndex++);
-// 	// // checking front-right-top corner
-// 	// if (voxelMask & (1 << 11))
-// 	// 	indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	// else if (voxelMask & (1 << 12))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH - 1) * 36);
-// 	// else
-// 	// 	indexes.push_back(startIndex++);
-// 	// // checking front-left-top corner
-// 	// if (voxelMask & (1 << 10))
-// 	// 	indexes.push_back(startIndex++ - (W_WIDTH + 1) * 36);
-// 	// else if (voxelMask & (1 << 11))
-// 	// 	indexes.push_back(startIndex++ - W_WIDTH * 36);
-// 	// else
-// 	// 	indexes.push_back(startIndex++);
-//
-//		
-// 	return indexes;
-// 	// return std::vector<uint32_t>{
-// 	// 	startIndex + 0, startIndex + 1, startIndex + 2,
-// 	// 	startIndex + 0, startIndex + 2, startIndex + 3,
-// 	// 	startIndex + 4, startIndex + 7, startIndex + 6,
-// 	// 	startIndex + 4, startIndex + 6, startIndex + 5,
-// 	// 	startIndex + 0, startIndex + 1, startIndex + 5,
-// 	// 	startIndex + 0, startIndex + 5, startIndex + 4,
-// 	// 	startIndex + 3, startIndex + 7, startIndex + 6,
-// 	// 	startIndex + 3, startIndex + 6, startIndex + 2,
-// 	// 	startIndex + 1, startIndex + 2, startIndex + 6,
-// 	// 	startIndex + 1, startIndex + 6, startIndex + 5,
-// 	// 	startIndex + 0, startIndex + 3, startIndex + 7,
-// 	// 	startIndex + 0, startIndex + 7, startIndex + 4,
-// 	// };
-// }
-//
-// unsigned char VoxelWorld::checkSurroundings( uint32_t x, uint32_t y, uint32_t z ) const noexcept {
-// 	// store which corner of the cube is shared with other voxels
-// 	// 8 bits = 8 corners of the cube, from left to right the bits are:
-// 	// FLT-FRT-FRB-FLB-BLT-BRT-BRB-BLB  [Front-Back, Left-Right, Top-Bottom]
-// 	unsigned char vertexMask = 0b11111111;
-// 	// store which voxel surrounds the cube
-// 	// 13 bits (ignore leftiest 3) = 13 possible voxel surrounding the voxel checked:
-// 	// 9 below (z-1), 4 on the same level ((x-1, y), (x-1, y-1), (x, y-1), (x+1, y-1))
-// 	// 
-// 	// |X|X|X|
-// 	// |X|X|X|
-// 	// |X|X|X|
-// 	//
-// 	// the bits with pos 0->8 correspond to the nine positions of the grid above, 
-// 	// starting top left corner, the bits with pos 9->12 correspond to 
-// 	// positions (x-1, y), (x-1, y-1), (x, y-1), (x+1, y-1)
-// 	unsigned short voxelMask = 0b0000000000000000;
-// 	if (z > 0) {	// check level below the voxel
-// 		if (this->isVoxel(x, y, z - 1)) {
-// 			vertexMask &= 0b11001100;
-// 			voxelMask &= 0b0000000000010000;
-// 		}
-// 		if (y > 0) {
-// 			if (this->isVoxel(x, y - 1, z - 1)) {
-// 				vertexMask &= 0b11001111;
-// 				voxelMask &= 0b0000000001000000;
-// 			}
-// 		}
-// 		if (y < W_LENGTH - 1) {
-// 			if (this->isVoxel(x, y + 1, z - 1)) {
-// 				vertexMask &= 0b11111100;
-// 				voxelMask &= 0b0000000000000010;
-// 			}
-// 		}
-// 		if (x > 0) {
-// 			if (this->isVoxel(x - 1, y, z - 1)) {
-// 				vertexMask &= 0b11101110;
-// 				voxelMask &= 0b0000000000001000;
-// 			}
-// 			if (y > 0) {
-// 				if (this->isVoxel(x - 1, y - 1, z - 1)) {
-// 					vertexMask &= 0b11101111;
-// 					voxelMask &= 0b0000000001000000;
-// 				}
-// 			}
-// 			if (y < W_LENGTH - 1) {
-// 				if (this->isVoxel(x - 1, y + 1, z - 1)) {
-// 					vertexMask &= 0b11111110;
-// 					voxelMask &= 0b0000000000000001;
-// 				}
-// 			}
-// 		}
-// 		if (x < W_WIDTH - 1) {
-// 			if (this->isVoxel(x + 1, y, z - 1)) {
-// 				vertexMask &= 0b11011101;
-// 				voxelMask &= 0b0000000000100000;
-// 			}
-// 			if (y > 0) {
-// 				if (this->isVoxel(x + 1, y - 1, z - 1)) {
-// 					vertexMask &= 0b11011111;
-// 					voxelMask &= 0b0000000100000000;
-// 				}
-// 			}
-// 			if (y < W_LENGTH) {
-// 				if (this->isVoxel(x + 1, y + 1, z - 1)) {
-// 					vertexMask &= 0b11111101;
-// 					voxelMask &= 0b0000000000000100;
-// 				}
-// 			}
-// 		}
-// 	}
-// 	// check same level of the voxel
-// 	if (x > 0) {
-// 		if (this->isVoxel(x - 1, y, z)) {
-// 			vertexMask &= 0b01100110;
-// 			voxelMask &= 0b0000001000000000;
-// 		}
-// 		if (y > 0) {
-// 			if (this->isVoxel(x - 1, y - 1, z)) {
-// 				vertexMask &= 0b01101111;
-// 				voxelMask &= 0b0000010000000000;
-// 			}
-// 		}
-// 	}
-// 	if (y > 0) {
-// 		if (this->isVoxel(x, y - 1, z)) {
-// 			vertexMask &= 0b00001111;
-// 			voxelMask &= 0b0000100000000000;
-// 		}
-// 		if (x < W_WIDTH - 1) {
-// 			if (this->isVoxel(x + 1, y - 1, z)) {
-// 				vertexMask &= 0b10011111;
-// 				voxelMask &= 0b0001000000000000;
-// 			}
-// 		}
-// 	}
-// 	return vertexMask;
-// }
+// sequence of rectangluar prisms, smaller in area going to the top
+std::vector<bool> voxelGenerator5( uint32_t maxW, uint32_t maxL, uint32_t maxH ) {
+	std::vector<bool> grid(maxW * maxL * maxH, false);
+	uint32_t h = 0U;
+
+	for(; h<2; h++) {
+		for(uint32_t j=0; j<maxL; j++) {
+			for(uint32_t i=0; i<maxW; i++)
+				grid[i + j * maxW + h * maxW * maxL] = true;
+		}
+	}
+	if (4 < maxH) {
+		for(; h<4; h++) {
+			for(uint32_t j=2; j<maxL-2; j++) {
+				for(uint32_t i=2; i<maxW-2; i++)
+					grid[i + j * maxW + h * maxW * maxL] = true;
+			}
+		}
+		if (6 < maxH) {
+			for(; h<6; h++) {
+				for(uint32_t j=4; j<maxL-4; j++) {
+					for(uint32_t i=4; i<maxW-4; i++)
+						grid[i + j * maxW + h * maxW * maxL] = true;
+				}
+			}
+			if (8 < maxH) {
+				for(; h<8; h++) {
+					for(uint32_t j=6; j<maxL-6; j++) {
+						for(uint32_t i=6; i<maxW-6; i++)
+							grid[i + j * maxW + h * maxW * maxL] = true;
+					}
+				}
+			}
+		}
+	}
+
+	return grid;
+}
 
 // apply textures and normal
 //
@@ -575,79 +229,191 @@ std::vector<bool> generatorVoxTest4( uint32_t maxW, uint32_t maxL, uint32_t maxH
 // 		}
 
 
-VoxelWorld::VoxelWorld( std::vector<bool> (&generator)(uint32_t, uint32_t, uint32_t) ) {
-	std::vector<bool> grid = generator(W_WIDTH, W_LENGTH, W_HEIGHT);
+VoxelWorld::VoxelWorld( vec3ui const& worldSize ) {
+	this->_worldSize = worldSize;
+}
 
-	for (uint32_t z=0; z<W_HEIGHT; z++) {
-		for (uint32_t y=0; y<W_LENGTH; y++) {
-			for (uint32_t x=0; x<W_WIDTH; x++) {
-				// order of insetion left->right, bottom->top
-				if (grid[x + y * W_WIDTH + z * W_WIDTH * W_LENGTH] == true) {
-					float xF = static_cast<float>(x);
-					float yF = static_cast<float>(z);		// invert y and z!
-					float zF = static_cast<float>(y);
-					this->_voxels.push_back(Voxel(vec3{xF, yF, zF}));
+ve::VulkanModel::Builder VoxelWorld::generateBufferData( std::vector<bool> (&generator)( uint32_t, uint32_t, uint32_t) ) {
+	this->_grid = generator(this->_worldSize.x, this->_worldSize.y, this->_worldSize.z);
+
+	ve::VulkanModel::Builder			builder;
+	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+	uint32_t 							indexCount = 0U;
+
+	for (uint32_t z=0; z<this->_worldSize.x; z++) {
+		for (uint32_t y=0; y<this->_worldSize.y; y++) {
+			for (uint32_t x=0; x<this->_worldSize.z; x++) {
+				if (this->isVoxel(x, y, z) == false)
+					continue;
+				// found a voxel, it has 8 vertexes, add the vertex only if it's unique
+				Voxel				voxel(vec3ui{x, z, y});		// NB: invertion of y and z
+				std::vector<vec3>	voxelVertexes = voxel.getVertexes();
+				for (uint32_t index : VOXEL_VERTEX_INDEXES) {
+					if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+						// there's already such vertex, add only the vertex index
+						builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+					else {
+						uniqueVertexes[voxelVertexes[index]] = indexCount;
+						// new vertex, add it and its vertex index
+						builder.vertices.push_back(ve::VulkanModel::Vertex{
+							voxelVertexes[index],
+							ve::generateRandomColor(),
+							vec3{0.0f, 0.0f, 0.0f},
+							vec2{0.0f, 0.0f}
+						});
+						builder.indices.push_back(indexCount++);
+					}
 				}
 			}
 		}
 	}
-	std::cout << "n voxels: " << this->_voxels.size() << std::endl;
+	return builder;
 }
 
-void VoxelWorld::generateBufferData( void ) {
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	uint32_t indexCount = 0U;
+ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( std::vector<bool> (&generator)( uint32_t, uint32_t, uint32_t) ) {
+	this->_grid = generator(this->_worldSize.x, this->_worldSize.y, this->_worldSize.z);
+	std::vector<Boxel> boxels = this->greedyMeshing();
 
-	for (Voxel const& voxel : this->_voxels) {
+	ve::VulkanModel::Builder			builder;
+	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+	uint32_t 							indexCount = 0U;
+	builder.vertices.reserve(boxels.size() * INDEX_PER_VOXEL);
+	builder.indices.reserve(boxels.size() * INDEX_PER_VOXEL);
+
+	for (Boxel const& voxel : boxels) {
 		std::vector<vec3> voxelVertexes = voxel.getVertexes();
-		for (uint32_t index : VOXEL_FACES) {
+		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
 			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
 			else {
 				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
 					ve::generateRandomColor(),
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
-				this->_builder.indices.push_back(indexCount++);
+				builder.indices.push_back(indexCount++);
 			}
 		}
+	}
+	return builder;
+}
 
+std::vector<Boxel> VoxelWorld::greedyMeshing( void ) {
+	vec3ui start(0U), curr(0U), boxelSize(1U);
+	std::vector<Boxel> boxels;
+
+	while (true) {
+		while (this->isVoxel(start) == false) {
+			start = this->nextVoxel(start);
+			if (start == vec3ui{0U, 0U, 0U})
+				return boxels; // no voxel remain in the grid, end of algorithm
+		}
+		curr = start;
+		boxelSize.x = 1U, boxelSize.y = 1U, boxelSize.z = 1U;
+		// find longest line of consecutive voxels
+		for (curr.x = start.x + 1; curr.x < this->_worldSize.x; curr.x++) {
+			if (this->isVoxel(curr) == false)
+				break;
+			boxelSize.x++;
+		}
+		// find widest rectangle of voxels
+		for (curr.y = start.y + 1; curr.y < this->_worldSize.y; curr.y++) {
+			for (curr.x = start.x; curr.x < start.x + boxelSize.x; curr.x++) {
+				if (this->isVoxel(curr) == false)
+					break;
+			}
+			if (curr.x < start.x + boxelSize.x) break;
+			boxelSize.y++;
+		}
+		// find biggest rectangular prism of voxels
+		for (curr.z = start.z + 1; curr.z < this->_worldSize.z; curr.z++) {
+			for (curr.y = start.y; curr.y < start.y + boxelSize.y; curr.y++) {
+				for (curr.x = start.x; curr.x < start.x + boxelSize.x; curr.x++) {
+					if (this->isVoxel(curr) == false) break;
+				}
+				if (curr.x < start.x + boxelSize.x) break;
+			}
+			if ((curr.x < start.x + boxelSize.x) or (curr.y < start.y + boxelSize.y)) break;
+			boxelSize.z++;
+		}
+		// add the newly found boxel, invert Y and Z!
+		boxels.push_back(Boxel(vec3ui{start.x, start.z, start.y}, vec3ui{boxelSize.x, boxelSize.z, boxelSize.y}));
+		// deactivate all the valid past voxels
+		this->setVoxel(start, start + boxelSize, false);
 	}
 }
 
-void VoxelWorld::generateBufferDataOpt( void ) {
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	uint32_t indexCount = 0U;
+bool VoxelWorld::isVoxel( vec3ui const& pos ) const {
+	if ((pos.x >= this->_worldSize.x) or
+		(pos.y >= this->_worldSize.y) or
+		(pos.z >= this->_worldSize.z))
+			throw std::runtime_error("voxel position out of world!");
 
-	for (Boxel const& voxel : this->_boxels) {
-		std::vector<vec3> voxelVertexes = voxel.getVertexes();
-		for (uint32_t index : VOXEL_FACES) {
-			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				this->_builder.indices.push_back(indexCount++);
-			}
+	return this->_grid[pos.x + pos.y * this->_worldSize.x + pos.z * this->_worldSize.x * this->_worldSize.y];
+}
+
+bool VoxelWorld::isVoxel( uint32_t x, uint32_t y, uint32_t z ) const {
+	if ((x >= this->_worldSize.x) or
+		(y >= this->_worldSize.y) or
+		(z >= this->_worldSize.z))
+			throw std::runtime_error("voxel position out of world!");
+
+	return this->_grid[x + y * this->_worldSize.x + z * this->_worldSize.x * this->_worldSize.y];
+}
+
+void VoxelWorld::setVoxel( vec3ui const& pos, bool value ) {
+	if ((pos.x >= this->_worldSize.x) or
+		(pos.y >= this->_worldSize.y) or
+		(pos.z >= this->_worldSize.z))
+			throw std::runtime_error("voxel position out of world!");
+
+	this->_grid[pos.x + pos.y * this->_worldSize.x + pos.z * this->_worldSize.x * this->_worldSize.y] = value;
+}
+
+void VoxelWorld::setVoxel( vec3ui const& start, vec3ui const& end, bool ) {
+	if ((start.x >= this->_worldSize.x) or
+		(start.y >= this->_worldSize.y) or
+		(start.z >= this->_worldSize.z) or
+		(end.x > this->_worldSize.x) or
+		(end.y > this->_worldSize.y) or
+		(end.z > this->_worldSize.z))
+			throw std::runtime_error("voxel position(s) out of world!");
+
+	vec3ui index = start;
+	for (index.z=start.z; index.z < end.z; index.z++) {
+		for (index.y=start.y; index.y < end.y; index.y++) {
+			for (index.x=start.x; index.x < end.x; index.x++)
+				this->setVoxel(index, false);
 		}
-
 	}
 }
 
-ve::VulkanModel::Builder const&	VoxelWorld::getBuilder( void ) const noexcept {
-	return this->_builder;
+void VoxelWorld::setVoxel( uint32_t x, uint32_t y, uint32_t z, bool value ) {
+	if ((x >= this->_worldSize.x) or
+		(y >= this->_worldSize.y) or
+		(z >= this->_worldSize.z))
+			throw std::runtime_error("voxel position out of world!");
+
+	this->_grid[x + y * this->_worldSize.x + z * this->_worldSize.x * this->_worldSize.y] = value;
 }
 
-ve::VulkanModel::Builder&		VoxelWorld::getBuilder( void ) noexcept {
-	return this->_builder;
+vec3ui VoxelWorld::nextVoxel( vec3ui const& pos ) const {
+	if ((pos.x >= this->_worldSize.x) or
+		(pos.y >= this->_worldSize.y) or
+		(pos.z >= this->_worldSize.z))
+			throw std::runtime_error("3 voxel position out of world!");
+
+	if (pos.x < this->_worldSize.x - 1)				// next voxel in line
+		return vec3ui{pos.x + 1, pos.y, pos.z};
+	else if (pos.y < this->_worldSize.y - 1)		// end of line, check y+1
+		return vec3ui{0U, pos.y + 1, pos.z};
+	else if (pos.z < this->_worldSize.z - 1) 	 	// end of surface, check z+1
+		return vec3ui{0U, 0U, pos.z + 1};
+	else											// current voxel is the last one, return {0U, 0U, 0U}
+		return vec3ui{0U, 0U, 0U};
 }
+
 
 }
