@@ -97,15 +97,18 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-Vox::Vox( void ) : objModelPath("models/teapot.obj"), camera(vec3{0.0f, 0.0f, Config::cameraDistance}), world(generatorVoxTest4)
+Vox::Vox( void ) : 
+	objModelPath("models/teapot.obj"),
+	camera(vec3{0.0f, 0.0f, Config::cameraDistance}),
+	world(vec3ui{W_WIDTH, W_LENGTH, W_HEIGHT})
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.build();
-	world.generateBufferDataOpt();
 	inputHandler.setCallbacks(vulkanWindow.getGLFWwindow(), *this);
+
 	createObjects();
 }
 
@@ -219,10 +222,12 @@ void Vox::run( void )
 
 void Vox::createObjects( void )
 {
-	ve::VulkanModel::Builder b;
-	b.loadModel(objModelPath);
-	// std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, b);
-	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, world.getBuilder());
+	// ve::VulkanModel::Builder builder = world.generateBufferData(voxelGenerator3);
+	ve::VulkanModel::Builder builder = world.generateBufferDataGreedy(voxelGenerator3);
+	
+	// b.loadModel(objModelPath);
+	// std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);
+	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);
 	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
 	object.model = std::move(model);
@@ -240,7 +245,6 @@ void Vox::createObjects( void )
 
 void Vox::shutdown( void )
 {
-
 }
 
 InputHandler const& Vox::getHandler( void ) const noexcept {

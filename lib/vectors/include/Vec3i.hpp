@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ostream>
+#include <cstdint>
 
 class vec3i
 {
@@ -49,3 +50,23 @@ class vec3i
 };
 
 std::ostream&	operator<<(std::ostream& os, const vec3i& v);
+
+namespace std {
+
+template<>
+struct hash<vec3i>
+{
+	size_t operator()(const vec3i& v) const noexcept
+	{
+		size_t h1 = hash<uint32_t>{}(v.x);
+		size_t h2 = hash<uint32_t>{}(v.y);
+		size_t h3 = hash<uint32_t>{}(v.z);
+		size_t seed = h1;
+
+		seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		return seed;
+	}
+};
+
+}	// namespace std
