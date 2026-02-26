@@ -9,30 +9,30 @@ namespace vox {
 
 vec3 Boxel::getCenter( void ) const noexcept {
 	return vec3{ 
-		static_cast<float>(this->_center.x) + (this->_size.x / 2.0f) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_center.y) + (this->_size.y / 2.0f) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_center.z) + (this->_size.z / 2.0f) * VOXEL_EDGE_LEN
+		static_cast<float>(this->_center.x) + (this->_size.x / 2.0f),
+		static_cast<float>(this->_center.y) + (this->_size.y / 2.0f),
+		static_cast<float>(this->_center.z) + (this->_size.z / 2.0f)
 	};
 }
 
 vec3 Boxel::getSize( void ) const noexcept {
 	return vec3{
-		static_cast<float>(this->_size.x) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_size.y) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_size.z) * VOXEL_EDGE_LEN
+		static_cast<float>(this->_size.x),
+		static_cast<float>(this->_size.y),
+		static_cast<float>(this->_size.z)
 	};
 }
 
-std::vector<vec3> Boxel::getVertexes( void ) const noexcept {
+std::vector<vec3> Boxel::getVertexes( vec3 const& relativeOrigin ) const noexcept {
 	std::vector<vec3>	vertexes(VERTEX_PER_VOXEL);
-	vec3				centerFloat = this->getCenter();
 	vec3				sizeFloat = this->getSize();
+	vec3				center = this->getCenter() + vec3{relativeOrigin.x, relativeOrigin.y, 0.0f};
 
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
 		// pos = posV * scale-size + center-pos
-		vertexes[i].x = VOXEL_VERTEXES[i].x * sizeFloat.x / 2.0f + centerFloat.x;
-		vertexes[i].y = VOXEL_VERTEXES[i].y * sizeFloat.y / 2.0f + centerFloat.y;
-		vertexes[i].z = VOXEL_VERTEXES[i].z * sizeFloat.z / 2.0f + centerFloat.z;
+		vertexes[i].x = center.x + VOXEL_VERTEXES[i].x * sizeFloat.x / 2.0f;
+		vertexes[i].y = center.y + VOXEL_VERTEXES[i].y * sizeFloat.y / 2.0f;
+		vertexes[i].z = center.z + VOXEL_VERTEXES[i].z * sizeFloat.z / 2.0f;
 	}
 	return vertexes;
 }
@@ -40,22 +40,18 @@ std::vector<vec3> Boxel::getVertexes( void ) const noexcept {
 
 vec3 Voxel::getCenter( void ) const noexcept {
 	return vec3{
-		static_cast<float>(this->_center.x) + VOXEL_EDGE_LEN / 2.0f,
-		static_cast<float>(this->_center.y) + VOXEL_EDGE_LEN / 2.0f,
-		static_cast<float>(this->_center.z) + VOXEL_EDGE_LEN / 2.0f
+		static_cast<float>(this->_center.x) + 0.5f,
+		static_cast<float>(this->_center.y) + 0.5f,
+		static_cast<float>(this->_center.z) + 0.5f
 	};
 }
 
-float Voxel::getSize( void ) const noexcept {
-	return VOXEL_EDGE_LEN;
-}
-
-std::vector<vec3> Voxel::getVertexes( void ) const noexcept {
-	vec3 centerFloat = this->getCenter();
-	std::vector<vec3> vertexes(VERTEX_PER_VOXEL);
+std::vector<vec3> Voxel::getVertexes( vec3 const& relativeOrigin ) const noexcept {
+	std::vector<vec3>	vertexes(VERTEX_PER_VOXEL);
+	vec3				center = this->getCenter() + vec3{relativeOrigin.x, relativeOrigin.y, 0.0f};
 
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++)
-		vertexes[i] = centerFloat + VOXEL_VERTEXES[i] * VOXEL_EDGE_LEN / 2.0f;
+		vertexes[i] = center + VOXEL_VERTEXES[i] * 0.5f;
 	return vertexes;
 }
 
@@ -414,20 +410,21 @@ std::vector<Boxel> VoxelGrid::getBoxels( void ) {
 }
 
 
-void VoxelWorld::createNewWorld( VoxelGrid (&generator)( vec3ui const& ) ) {
+void VoxelWorld::spawnWorld( VoxelGrid (&generator)( vec3ui const& ) ) {
 	this->_grid = generator(this->_gridSize);
 }
 
-ve::VulkanModel::Builder VoxelWorld::generateBufferData( bool duplicateVertex ) {
+ve::VulkanModel::Builder VoxelWorld::generateBufferData( vec3 const& origin, bool duplicateVertex ) {
 	ve::VulkanModel::Builder			builder;
 	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 	uint32_t 							indexCount = 0U;
+	vec3 relativeOrigin = origin - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
 
 	uint32_t	_debugNvoxels = 0U;
 	uint32_t	_debugNtriangles = 0U;
 
 	for (Voxel const& voxel : this->_grid.getVoxels()) {
-		std::vector<vec3>	voxelVertexes = voxel.getVertexes();
+		std::vector<vec3> voxelVertexes = voxel.getVertexes(relativeOrigin);
 		// check every vertex of the cube/voxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
 			if (duplicateVertex == true) {
@@ -474,17 +471,19 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferData( bool duplicateVertex ) 
 	return builder;
 }
 
-ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVertex ) {
+ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( vec3 const& origin, bool duplicateVertex ) {
 	ve::VulkanModel::Builder			builder;
 	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 	uint32_t 							indexCount = 0U;
+
+	vec3 relativeOrigin = origin - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
 
 	uint32_t	_debugNboxels = 0U;
 	uint32_t	_debugNvoxels = 0U;
 	uint32_t	_debugNtriangles = 0U;
 
 	for (Boxel const& boxel : this->_grid.getBoxels()) {
-		std::vector<vec3> voxelVertexes = boxel.getVertexes();
+		std::vector<vec3> voxelVertexes = boxel.getVertexes(relativeOrigin);
 		// check every vertex of the prism/boxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
 			if (duplicateVertex == true) {

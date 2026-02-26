@@ -8,7 +8,7 @@ namespace ve {
 struct FrameInfo
 {
 	int					frameIndex;
-	float				frameTime;
+	// float			frameTime;
 	Camera&				camera;
 	VkCommandBuffer		commandBuffer;
 	VkDescriptorSet		globalDescriptorSet;

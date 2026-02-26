@@ -31,7 +31,7 @@ class VulkanRenderSystem
 	VulkanRenderSystem(const VulkanRenderSystem&) = delete;
 	VulkanRenderSystem& operator=(const VulkanRenderSystem&) = delete;
 	
-	void	renderObjects(FrameInfo& frameInfo);
+	void	renderObject(FrameInfo& frameInfo);
 
 	private:
 

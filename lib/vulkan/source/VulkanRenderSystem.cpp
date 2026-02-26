@@ -72,7 +72,7 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 	);
 }
 
-void	VulkanRenderSystem::renderObjects(FrameInfo& frameInfo)
+void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 {
 	vulkanPipeline->bind(frameInfo.commandBuffer);
 
@@ -83,34 +83,21 @@ void	VulkanRenderSystem::renderObjects(FrameInfo& frameInfo)
 		0, 1, &frameInfo.globalDescriptorSet,
 		0, nullptr
 	);
-	for (std::pair<const id_t, VulkanObject>& kv : frameInfo.gameObjects)
-	{
-		VulkanObject& obj = kv.second;
+	SimplePushConstantData	push{};
+	// NB do they have an active role in the rendering system?
+	push.modelMatrix = frameInfo.gameObject.transform.matrix4(frameInfo.gameObject.model->getBoundingCenter());
+	push.normalMatrix = frameInfo.gameObject.transform.normalMatrix();
 
-		if (obj.model == nullptr)
-		{
-			continue;
-		}
-		if (frameInfo.rotateModel == true)
-		{
-			obj.transform.rotation.y = std::fmod(obj.transform.rotation.y + 0.015f, two_pi());
-		}
-		SimplePushConstantData	push{};
-		// push.modelMatrix = obj.transform.matrix4(obj.model->getBoundingCenter());
-		push.normalMatrix = obj.transform.normalMatrix();
-		push.useTexture = frameInfo.useTexture;
-
-		vkCmdPushConstants(
-			frameInfo.commandBuffer,
-			pipelineLayout,
-			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-			0,
-			sizeof(SimplePushConstantData),
-			&push
-		);
-		obj.model->bind(frameInfo.commandBuffer);
-		obj.model->draw(frameInfo.commandBuffer);
-	}
+	vkCmdPushConstants(
+		frameInfo.commandBuffer,
+		pipelineLayout,
+		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		sizeof(SimplePushConstantData),
+		&push
+	);
+	frameInfo.gameObject.model->bind(frameInfo.commandBuffer);
+	frameInfo.gameObject.model->draw(frameInfo.commandBuffer);
 }
 
 } // namespace ve

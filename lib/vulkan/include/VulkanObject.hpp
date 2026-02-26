@@ -80,9 +80,9 @@ class VulkanObject
 	static id_t		currentID;
 
 	std::shared_ptr<VulkanModel>	model;
-	vec3							color;
+	// vec3							color;
 	TransformComponent				transform{};
-	
+
 	id_t	getID() const noexcept { return id; }
 
 	private:

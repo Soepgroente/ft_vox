@@ -10,11 +10,6 @@
 
 namespace vox {
 
-inline constexpr uint32_t W_WIDTH = 16U;	// 16384U
-inline constexpr uint32_t W_LENGTH = 16U;	// 16384U
-inline constexpr uint32_t W_HEIGHT = 16U;	// 256U
-
-inline constexpr float		VOXEL_EDGE_LEN = 1.0f;
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 8U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertexes per voxel
 
@@ -25,21 +20,20 @@ class Boxel {
 
 		vec3				getCenter( void ) const noexcept; // this is the exact center of the boxel
 		vec3				getSize( void ) const noexcept;
-		std::vector<vec3>	getVertexes( void ) const noexcept;
+		std::vector<vec3>	getVertexes( vec3 const& ) const noexcept;
 
 	private:
 		vec3ui	_center;	// the center of the boxel is the coordinate of its front-bottom-left corner
 		vec3ui	_size;
 };
 
-// 3D cube with fixed edge length
+// 3D cube with fixed edge length (supposed do be 1)
 class Voxel {
 	public:
 		constexpr explicit Voxel( vec3ui const& center) : _center(center) {};
 
 		vec3				getCenter( void ) const noexcept; // this is the exact center of the voxel
-		float				getSize( void ) const noexcept;
-		std::vector<vec3>	getVertexes( void ) const noexcept;
+		std::vector<vec3>	getVertexes( vec3 const& ) const noexcept;
 
 	private:
 		vec3ui	_center;	// the center of the voxel is the coordinate of its front-bottom-left corner
@@ -121,9 +115,9 @@ class VoxelWorld {
 		VoxelWorld& operator=( VoxelWorld const& ) = default;
 		VoxelWorld& operator=( VoxelWorld&& ) = default;
 
-		void						createNewWorld( VoxelGrid (&)( vec3ui const& ) );
-		ve::VulkanModel::Builder	generateBufferData( bool duplicateVertex = false );
-		ve::VulkanModel::Builder	generateBufferDataGreedy( bool duplicateVertex = false );
+		void						spawnWorld( VoxelGrid (&)( vec3ui const& ) );
+		ve::VulkanModel::Builder	generateBufferData( vec3 const&, bool duplicateVertex = false );
+		ve::VulkanModel::Builder	generateBufferDataGreedy( vec3 const&, bool duplicateVertex = false );
 
 	private:
 		vec3ui		_gridSize;
