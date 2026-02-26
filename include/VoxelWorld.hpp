@@ -103,7 +103,6 @@ class VoxelGrid {
 		static VoxelGrid voxelGenerator6( vec3ui const& );
 
 	private:
-
 		vec3ui				_size;
 		std::vector<bool>	_grid;
 };
@@ -125,9 +124,9 @@ class VoxelWorld {
 		ve::VulkanModel::Builder	generateBufferDataGreedy( bool duplicateVertex = false );
 
 	private:
-		vec3ui const	_gridSize;
-		VoxelGrid		_grid;
-		bool			_debugMode;
+		vec3ui		_gridSize;
+		VoxelGrid	_grid;
+		bool		_debugMode;
 };
 
 

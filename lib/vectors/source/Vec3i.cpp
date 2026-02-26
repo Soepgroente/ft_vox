@@ -2,16 +2,6 @@
 
 #include <algorithm>
 
-vec3i&	vec3i::operator=(const vec3i& other)
-{
-	if (this != &other)
-	{
-		x = other.x;
-		y = other.y;
-		z = other.z;
-	}
-	return *this;
-}
 
 bool	vec3i::operator<(const vec3i& other) const noexcept
 {

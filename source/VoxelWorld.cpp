@@ -146,7 +146,6 @@ VoxelGrid VoxelGrid::voxelGenerator3( vec3ui const& worldLimit ) {
 // four voxels in the middle
 VoxelGrid VoxelGrid::voxelGenerator4( vec3ui const& worldLimit ) {
 	VoxelGrid grid(worldLimit);
-	vec3ui index(0U);
 
 	grid[vec3ui{(worldLimit.x - 1) / 2, (worldLimit.y - 1) / 2, (worldLimit.z - 1) / 2}] = true;
 	grid[vec3ui{(worldLimit.x - 1) / 2 + 1, (worldLimit.y - 1) / 2, (worldLimit.z - 1) / 2}] = true;

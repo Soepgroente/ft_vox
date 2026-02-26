@@ -21,8 +21,10 @@ class vec3ui
 	constexpr vec3ui() : x(0), y(0), z(0) {}
 	constexpr explicit vec3ui(unsigned int val) : x(val), y(val), z(val) {}
 	constexpr vec3ui(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
-	constexpr vec3ui(const vec3ui& other) : x(other.x), y(other.y), z(other.z) {}
-	vec3ui&	operator=(const vec3ui& other);
+	constexpr vec3ui(const vec3ui&) noexcept = default;
+	constexpr vec3ui(vec3ui&&) noexcept = default;
+	vec3ui&	operator=(const vec3ui&) noexcept = default;
+	vec3ui&	operator=(vec3ui&&) noexcept = default;
 	~vec3ui() = default;
 
 	vec3ui	operator+(const vec3ui& other) const noexcept { return vec3ui(x + other.x, y + other.y, z + other.z); }
