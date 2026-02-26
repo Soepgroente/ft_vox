@@ -21,8 +21,10 @@ class vec3i
 	constexpr vec3i() : x(0), y(0), z(0) {}
 	constexpr explicit vec3i(int val) : x(val), y(val), z(val) {}
 	constexpr vec3i(int x, int y, int z) : x(x), y(y), z(z) {}
-	constexpr vec3i(const vec3i& other) : x(other.x), y(other.y), z(other.z) {}
-	vec3i&	operator=(const vec3i& other);
+	constexpr vec3i(const vec3i&) noexcept = default;
+	constexpr vec3i(vec3i&&) noexcept = default;
+	vec3i&	operator=(const vec3i&) noexcept = default;
+	vec3i&	operator=(vec3i&&) noexcept = default;
 	~vec3i() = default;
 
 	vec3i	operator+(const vec3i& other) const noexcept { return vec3i(x + other.x, y + other.y, z + other.z); }
