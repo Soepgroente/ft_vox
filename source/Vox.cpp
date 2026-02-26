@@ -71,7 +71,13 @@ void Vox::run( void )
 			.writeImage(1, &imageInfo)
 			.build(globalDescriptorSets[i]);
 	}
-	ve::VulkanRenderSystem	renderSystem{vulkanDevice, vulkanRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
+	ve::VulkanRenderSystem	renderSystem{
+		vulkanDevice,
+		vulkanRenderer.getSwapChainRenderPass(),
+		globalSetLayout->getDescriptorSetLayout(),
+		Config::vertShaderPath,
+		Config::fragShaderPath
+	};
 
 	float aspectRatio = this->vulkanWindow.getAspectRatio();
 	camera.setViewMatrix();
@@ -95,9 +101,9 @@ void Vox::run( void )
 		camera,
 		commandBuffer,
 		nullptr,
-		objects,
-		false,
-		false
+		objWorld,
+		// false,
+		// false
 	};
 
 	vec3	playerPos(.0f);

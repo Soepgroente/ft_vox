@@ -10,6 +10,9 @@ struct Config
 
 	static constexpr float	movementSpeed = 10.0f;
 	static constexpr float	lookSpeed = 75.0f;
+
+	static constexpr char const	vertShaderPath[] = "build/basic.vert.spv";
+	static constexpr char const	fragShaderPath[] = "build/basic.frag.spv";
 };
 
 } // namespace vox

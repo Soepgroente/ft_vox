@@ -14,11 +14,13 @@ struct SimplePushConstantData
 {
 	mat4		modelMatrix{1.0f};
 	mat4		normalMatrix{1.0f};
-	uint32_t	useTexture;
+	// uint32_t	useTexture;
 };
 
-VulkanRenderSystem::VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-	: vulkanDevice(device)
+VulkanRenderSystem::VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, char const* vertexShaderFile, char const* fragmentShaderFile) :
+	vulkanDevice(device),
+	vertexShaderFile(vertexShaderFile),
+	fragmentShaderFile(fragmentShaderFile)
 {
 	createPipelineLayout(globalSetLayout);
 	createPipeline(renderPass);
@@ -64,8 +66,8 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 
 	vulkanPipeline = std::make_unique<VulkanPipeline>(
 		vulkanDevice,
-		"build/basic.vert.spv",	// NB store files inside env file?
-		"build/basic.frag.spv",
+		this->vertexShaderFile,
+		this->fragmentShaderFile,
 		pipelineConfig
 	);
 }
