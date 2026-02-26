@@ -62,27 +62,69 @@ vec3 const& Camera::getCameraPos( void ) noexcept {
 }
 
 void Camera::moveForward( float delta ) noexcept {
-	this->_position += this->_cameraForward * delta;
+	vec3 progression = this->_position + this->_cameraForward * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveBackward( float delta ) noexcept {
-	this->_position -= this->_cameraForward * delta;
+	vec3 progression = this->_position - this->_cameraForward * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveRight( float delta ) noexcept {
-	this->_position += this->_cameraLeft * delta;
+	vec3 progression = this->_position + this->_cameraLeft * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveLeft( float delta ) noexcept {
-	this->_position -= this->_cameraLeft * delta;
+	vec3 progression = this->_position - this->_cameraLeft * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveUp( float delta ) noexcept {
-	this->_position += this->_cameraUp * delta;
+	vec3 progression = this->_position + this->_cameraUp * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveDown( float delta ) noexcept {
-	this->_position -= this->_cameraUp * delta;
+	vec3 progression = this->_position - this->_cameraUp * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::rotate( float pitch, float yaw, float roll ) noexcept {

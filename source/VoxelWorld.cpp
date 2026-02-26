@@ -1,64 +1,11 @@
 #include "VoxelWorld.hpp"
 #include "Vectors.hpp"
+#include "Config.hpp"
 
 #include <map>
 
 
 namespace vox {
-
-float	perlin(float x, float y, float z);
-
-vec3 Boxel::getCenter( void ) const noexcept {
-	return vec3{ 
-		static_cast<float>(this->_center.x) + (this->_size.x / 2.0f) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_center.y) + (this->_size.y / 2.0f) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_center.z) + (this->_size.z / 2.0f) * VOXEL_EDGE_LEN
-	};
-}
-
-vec3 Boxel::getSize( void ) const noexcept {
-	return vec3{
-		static_cast<float>(this->_size.x) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_size.y) * VOXEL_EDGE_LEN,
-		static_cast<float>(this->_size.z) * VOXEL_EDGE_LEN
-	};
-}
-
-std::vector<vec3> Boxel::getVertexes( void ) const noexcept {
-	std::vector<vec3>	vertexes(VERTEX_PER_VOXEL);
-	vec3				centerFloat = this->getCenter();
-	vec3				sizeFloat = this->getSize();
-
-	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
-		// pos = posV * scale-size + center-pos
-		vertexes[i].x = VOXEL_VERTEXES[i].x * sizeFloat.x / 2.0f + centerFloat.x;
-		vertexes[i].y = VOXEL_VERTEXES[i].y * sizeFloat.y / 2.0f + centerFloat.y;
-		vertexes[i].z = VOXEL_VERTEXES[i].z * sizeFloat.z / 2.0f + centerFloat.z;
-	}
-	return vertexes;
-}
-
-
-vec3 Voxel::getCenter( void ) const noexcept {
-	return vec3{
-		static_cast<float>(this->_center.x) + VOXEL_EDGE_LEN / 2.0f,
-		static_cast<float>(this->_center.y) + VOXEL_EDGE_LEN / 2.0f,
-		static_cast<float>(this->_center.z) + VOXEL_EDGE_LEN / 2.0f
-	};
-}
-
-float Voxel::getSize( void ) const noexcept {
-	return VOXEL_EDGE_LEN;
-}
-
-std::vector<vec3> Voxel::getVertexes( void ) const noexcept {
-	vec3 centerFloat = this->getCenter();
-	std::vector<vec3> vertexes(VERTEX_PER_VOXEL);
-
-	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++)
-		vertexes[i] = centerFloat + VOXEL_VERTEXES[i] * VOXEL_EDGE_LEN / 2.0f;
-	return vertexes;
-}
 
 
 // floor on the ground, two 'towers' of voxels, left and right
@@ -356,65 +303,133 @@ vec3ui VoxelGrid::firstVoxel( void ) const {
 	return next;
 }
 
-std::vector<Voxel>	VoxelGrid::getVoxels( void ) {
-	std::vector<Voxel>	voxels;
-	vec3ui				index(0U);
-
-	for(; index.z<this->_size.z; index.z++) {
-		for(index.y=0; index.y<this->_size.y; index.y++) {
-			for(index.x=0; index.x<this->_size.x; index.x++) {
-				if (this->isVoxel(index))
-					voxels.push_back(Voxel(index));
-			}
-		}
+std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes;
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+		voxelVertexes[i].x = (VOXEL_VERTEXES[i].x + 0.5f) * dimension.x + relativeOrigin.x;
+		voxelVertexes[i].y = (VOXEL_VERTEXES[i].y + 0.5f) * dimension.y + relativeOrigin.y;
+		voxelVertexes[i].z = (VOXEL_VERTEXES[i].z + 0.5f) * dimension.z + relativeOrigin.z;
 	}
-	return voxels;
+	return voxelVertexes;
 }
 
-std::vector<Voxel>	VoxelGrid::getVoxelsFromMap( void ) {
-	std::vector<Voxel>	voxels;
-	size_t sizeZ = gridData.size();
-	size_t sizeX = gridData[0].size();
 
-	for (size_t z = 0; z < sizeZ; z++)
-	{
-		for (size_t x = 0; x < sizeX; x++)
-		{
-			for (size_t y = 0; y < gridData[z][x]; x++)
-			{
-				if (this->isVoxel(vec3ui(x, y, z)))
-				{
-					voxels.push_back(Voxel(vec3ui(x, y, z)));
+void WorldGenerator::initWorld( void ) {
+	this->_builder.vertices.clear();
+	this->_builder.indices.clear();
+	this->addeNewGrid(vec2i(0));
+}
+
+bool WorldGenerator::checkSurroundings( vec3 const& playerPos ) {
+	vec2i currentWorldPos{
+		static_cast<int32_t>(playerPos.x) / static_cast<int32_t>(this->_gridSize.x),
+		static_cast<int32_t>(playerPos.y) / static_cast<int32_t>(this->_gridSize.y)
+	};
+	if (playerPos.x < 0.0f)
+		currentWorldPos.x -= 1;
+	if (playerPos.y < 0.0f)
+		currentWorldPos.y -= 1;
+
+	// add a grid in every of these 9 qudrants
+	//  __ __ __
+	// |NW|N |NE|
+	// |__|__|__|
+	// | W| M| E|
+	// |__|__|__|
+	// |SW|S |SE|
+	// |__|__|__|
+	bool realoadData = false;
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x, currentWorldPos.y + 1});		// N
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x + 1, currentWorldPos.y + 1});	// N-E
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x + 1, currentWorldPos.y});		// E
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x + 1, currentWorldPos.y - 1});	// S-E
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x, currentWorldPos.y - 1});		// S
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x - 1, currentWorldPos.y - 1});	// S-W
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x - 1, currentWorldPos.y});		// W
+	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x - 1, currentWorldPos.y + 1});	// N-W
+	return realoadData;
+}
+
+bool WorldGenerator::addeNewGrid( vec2i const& gridPos ) {
+	bool insertedNewGrid = this->_world.count(gridPos) == 0;
+
+	if (insertedNewGrid) {
+		VoxelGrid newGrid = VoxelGrid::voxelGenerator8(this->_gridSize);
+		this->_world.try_emplace(gridPos, newGrid);
+		this->fillBufferGrid(gridPos);
+	}
+	return insertedNewGrid;
+}
+
+void WorldGenerator::fillBufferGrid( vec2i const centerGrid ) {
+	// std::cout << "called refill, pos:" << centerGrid << std::endl;
+	uint32_t indexCount = this->_builder.vertices.size();
+	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+	vec2 relativeOrigin{
+		static_cast<float>(centerGrid.x * static_cast<int32_t>(this->_gridSize.x)),
+		static_cast<float>(centerGrid.y * static_cast<int32_t>(this->_gridSize.y)),
+	};
+	vec3ui	index(0U);
+	for(; index.z<this->_gridSize.z; index.z++) {
+		for(index.y=0; index.y<this->_gridSize.y; index.y++) {
+			for(index.x=0; index.x<this->_gridSize.x; index.x++) {
+				if (this->_world.at(centerGrid).isVoxel(index) == false)
+					continue;
+
+				vec3 centerVoxel{
+					static_cast<float>(index.x) + relativeOrigin.x,
+					static_cast<float>(index.y) + relativeOrigin.y,
+					static_cast<float>(index.z)
+				};
+				std::array<vec3,VERTEX_PER_VOXEL>	voxelVertexes;
+				for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++)
+					voxelVertexes[i] = centerVoxel + VOXEL_VERTEXES[i];  //  * 1.0f (length of a voxel)
+				// check every vertex of the cube/voxel to avoid duplicates
+				for (uint32_t index : VOXEL_VERTEX_INDEXES) {
+					if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+						// there's already such vertex, add only the vertex index
+						this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+					else {
+						uniqueVertexes[voxelVertexes[index]] = indexCount;
+						// new vertex, add it and its vertex index
+						this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+							voxelVertexes[index],
+							ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+							vec3{0.0f, 0.0f, 0.0f},
+							vec2{0.0f, 0.0f}
+						});
+						this->_builder.indices.push_back(indexCount++);
+					}
 				}
 			}
 		}
 	}
-	return voxels;
 }
 
-void	VoxelWorld::createRandomWorld()
-{
-	this->_grid = VoxelGrid::voxelGenerator(vec3ui{Config::worldSize, 256, Config::worldSize}, 0, perlin);
-}
-
-std::vector<Boxel> VoxelGrid::getBoxels( void ) {
-	vec3ui				start = this->firstVoxel(), curr(start), boxelSize(1U);
-	vec3ui const		endingVoxel(0U), wordlLimit = this->getSize();
-	std::vector<Boxel>	boxels;
-
-	do {
+void WorldGenerator::fillBufferGridGreedy( vec2i const centerGrid ) {
+	// std::cout << "(greedy) called refill, pos:" << centerGrid << std::endl;
+	uint32_t indexCount = this->_builder.vertices.size();
+	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+	vec2 relativeOrigin{
+		static_cast<float>(centerGrid.x) * static_cast<float>(this->_gridSize.x),
+		static_cast<float>(centerGrid.y) * static_cast<float>(this->_gridSize.y),
+	};
+	vec3ui			start = this->_world.at(centerGrid).firstVoxel(), curr = start, boxelSize(1U);
+	vec3ui const	endingVoxel(0U), wordlLimit = this->_world.at(centerGrid).getSize();
+	
+	do {	// start == {0,0,0} -> no voxels remain in the grid
 		curr = start;
 		boxelSize.x = 1U, boxelSize.y = 1U, boxelSize.z = 1U;
 		// find longest line of consecutive voxels
 		for (curr.x = start.x + 1; curr.x < wordlLimit.x; curr.x++) {
-			if (this->isVoxel(curr) == false)
+			if (this->_world.at(centerGrid).isVoxel(curr) == false)
 				break;
 			boxelSize.x++;
 		}
 		// find widest rectangle of voxels
 		for (curr.y = start.y + 1; curr.y < wordlLimit.y; curr.y++) {
 			for (curr.x = start.x; curr.x < start.x + boxelSize.x; curr.x++) {
-				if (this->isVoxel(curr) == false)
+				if (this->_world.at(centerGrid).isVoxel(curr) == false)
 					break;
 			}
 			if (curr.x < start.x + boxelSize.x) break;
@@ -424,174 +439,50 @@ std::vector<Boxel> VoxelGrid::getBoxels( void ) {
 		for (curr.z = start.z + 1; curr.z < wordlLimit.z; curr.z++) {
 			for (curr.y = start.y; curr.y < start.y + boxelSize.y; curr.y++) {
 				for (curr.x = start.x; curr.x < start.x + boxelSize.x; curr.x++) {
-					if (this->isVoxel(curr) == false) break;
+					if (this->_world.at(centerGrid).isVoxel(curr) == false) break;
 				}
 				if (curr.x < start.x + boxelSize.x) break;
 			}
 			if ((curr.x < start.x + boxelSize.x) or (curr.y < start.y + boxelSize.y)) break;
 			boxelSize.z++;
 		}
-		// add the newly found boxel
-		boxels.push_back(Boxel(start, boxelSize));
 		// deactivate all the valid past voxels
-		this->setVoxel(start, start + boxelSize, false);
-		// find next voxel
-		start = this->nextVoxel(start);
-	} while (start != endingVoxel); // start == {0,0,0} -> no voxels remain in the grid
-	return boxels;
-}
-
-
-void VoxelWorld::createNewWorld( VoxelGrid (&generator)( vec3ui const& ) ) {
-	this->_grid = generator(this->_gridSize);
-}
-
-ve::VulkanModel::Builder VoxelWorld::generateBufferData( bool duplicateVertex ) {
-	ve::VulkanModel::Builder			builder;
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	uint32_t 							indexCount = 0U;
-
-	uint32_t	_debugNvoxels = 0U;
-	uint32_t	_debugNtriangles = 0U;
-
-	for (Voxel const& voxel : this->_grid.getVoxels()) {
-		std::vector<vec3>	voxelVertexes = voxel.getVertexes();
+		// std::cout << "found boxel in: " << start << std::endl;
+		this->_world.at(centerGrid).setVoxel(start, start + boxelSize, false);
+		// add the newly found boxel
+		vec3 centerBoxel{
+			static_cast<float>(start.x) + relativeOrigin.x,
+			static_cast<float>(start.y) + relativeOrigin.y,
+			static_cast<float>(start.z)
+		};
+		// std::cout << "bounding box: " << boxelSize << std::endl;
+		std::array<vec3,VERTEX_PER_VOXEL>	voxelVertexes;
+		for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+			// pos = posV * scale-size + center-pos
+			voxelVertexes[i].x = centerBoxel.x + VOXEL_VERTEXES[i].x * boxelSize.x;
+			voxelVertexes[i].y = centerBoxel.y + VOXEL_VERTEXES[i].y * boxelSize.y;
+			voxelVertexes[i].z = centerBoxel.z + VOXEL_VERTEXES[i].z * boxelSize.z;
+		}
 		// check every vertex of the cube/voxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-			if (duplicateVertex == true) {
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
+			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+				// there's already such vertex, add only the vertex index
+				this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+			else {
+				uniqueVertexes[voxelVertexes[index]] = indexCount;
+				// new vertex, add it and its vertex index
+				this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
 					vec3{voxelVertexes[index].y, voxelVertexes[index].y, voxelVertexes[index].y},		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
-				_debugNtriangles++;			// debug info
-				builder.indices.push_back(indexCount++);
-			}
-			else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				// there's already such vertex, add only the vertex index
-				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				// new vertex, add it and its vertex index
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					vec3{voxelVertexes[index].y, voxelVertexes[index].y, voxelVertexes[index].y},		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				_debugNtriangles++;			// debug info
-				builder.indices.push_back(indexCount++);
+				this->_builder.indices.push_back(indexCount++);
 			}
 		}
-		_debugNvoxels++;			// debug info
-	}
-
-	if (this->_debugMode) {
-		std::cout << "\n------" << std::endl;
-		std::cout << "VoxWorld generation, debug mode:" << std::endl;
-		std::cout << "  voxels generated: " << _debugNvoxels << std::endl;
-		if (duplicateVertex == true)
-			std::cout << "  [duplicated vertexes are inserted in buffer]" << std::endl;
-		else
-			std::cout << "  [duplicated vertexes are skipped]" << std::endl;
-		std::cout << "  vertexes inserted in buffer: " << _debugNtriangles << std::endl;
-		std::cout << "  triangles: " << (indexCount + 1) / 3 << std::endl;
-		std::cout << "------\n" << std::endl;
-	}
-	return builder;
+		// find next voxel
+		start = this->_world.at(centerGrid).nextVoxel(start);
+	} while (start != endingVoxel);
 }
 
-ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVertex ) {
-	ve::VulkanModel::Builder			builder;
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	uint32_t 							indexCount = 0U;
-
-	uint32_t	_debugNboxels = 0U;
-	uint32_t	_debugNvoxels = 0U;
-	uint32_t	_debugNtriangles = 0U;
-
-	for (Boxel const& boxel : this->_grid.getBoxels()) {
-		std::vector<vec3> voxelVertexes = boxel.getVertexes();
-		// check every vertex of the prism/boxel to avoid duplicates
-		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-			if (duplicateVertex == true) {
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					vec3{voxelVertexes[index].z / 255.0f},		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				builder.indices.push_back(indexCount++);
-				_debugNtriangles++;			// debug info
-			}
-			else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				// there's already such vertex, add only the vertex index
-				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				// std::cout << "color: " << voxelVertexes[index].z / 255.0f << std::endl;
-				// std::cout << "vertex: " << voxelVertexes[index] << std::endl;
-				// new vertex, add it and its vertex index
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				builder.indices.push_back(indexCount++);
-				_debugNtriangles++;			// debug info
-			}
-		}
-		_debugNboxels++;	// debug info
-	}
-
-	if (this->_debugMode) {
-		std::cout << "\n------" << std::endl;
-		std::cout << "VoxWorld generation, debug mode:" << std::endl;
-		std::cout << "  voxels generated: " << _debugNvoxels << std::endl;
-		std::cout << "  boxels generated: " << _debugNboxels << std::endl;
-		if (duplicateVertex == true)
-			std::cout << "  [duplicated vertexes are inserted in buffer]" << std::endl;
-		else
-			std::cout << "  [duplicated vertexes are skipped]" << std::endl;
-		std::cout << "  vertexes inserted in buffer: " << _debugNtriangles << std::endl;
-		std::cout << "  triangles: " << (indexCount + 1) / 3 << std::endl;
-		std::cout << "------\n" << std::endl;
-	}
-	return builder;
 }
-
-VoxelGrid	VoxelGrid::voxelGenerator(const vec3ui& worldSize, ui32 seed, const std::function<float(float, float, ui32&)>& noiseFunction)
-{
-	VoxelGrid grid(vec3ui{worldSize.width, worldSize.depth, 256});
-	float scalar = Config::noiseScalar;
-
-	for (ui32 z = 0; z < worldSize.depth; z++)
-	{
-		for (ui32 x = 0; x < worldSize.width; x++)
-		{
-			float noiseValue = noiseFunction(static_cast<float>(x) * scalar, static_cast<float>(z) * scalar, seed);
-
-			noiseValue = (noiseValue + 1.0f) / 2.0f;
-			std::cout << "Noise value for (" << x << ", " << z << "): " << noiseValue << std::endl;
-			grid.gridData[z][x] = static_cast<ui8>(std::roundf(noiseValue * 255.0f));
-		}
-	}
-	size_t sizeZ = worldSize.z;
-	size_t sizeX = worldSize.x;
-
-	for (size_t z = 0; z < sizeZ; z++)
-	{
-		for (size_t x = 0; x < sizeX; x++)
-		{
-			for (ui8 y = 0; y < grid.gridData[z][x]; y++)
-			{
-				grid.setVoxel(vec3ui(x, z, y), true);
-			}
-		}
-	}
-	return grid;
-}
-
-}	// namespace vox
