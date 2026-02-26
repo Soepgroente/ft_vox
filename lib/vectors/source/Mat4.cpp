@@ -178,6 +178,14 @@ mat4&	mat4::operator*=(const mat4& other)
 	return *this;
 }
 
+vec3	mat4::operator*( vec3 const& v ) const {
+	return vec3{
+		(*this)[0][0] * v.x + (*this)[0][1] * v.y + (*this)[0][2] * v.z + (*this)[0][3],
+		(*this)[1][0] * v.x + (*this)[1][1] * v.y + (*this)[1][2] * v.z + (*this)[1][3],
+		(*this)[2][0] * v.x + (*this)[2][1] * v.y + (*this)[2][2] * v.z + (*this)[2][3]
+	};
+}
+
 mat4&	mat4::transpose() noexcept {
 	for (int row = 0; row < 4; row++) {
 		for (int col = row + 1; col < 4; col++)
