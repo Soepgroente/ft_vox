@@ -18,14 +18,20 @@ class VulkanRenderSystem
 {
 	public:
 
-	VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout);
+	VulkanRenderSystem(
+		VulkanDevice& device,
+		VkRenderPass renderPass,
+		VkDescriptorSetLayout globalSetLayout,
+		char const* vertexShaderFile,
+		char const* fragmentShaderFile
+	);
 	~VulkanRenderSystem();
 	
 	VulkanRenderSystem() = delete;
 	VulkanRenderSystem(const VulkanRenderSystem&) = delete;
 	VulkanRenderSystem& operator=(const VulkanRenderSystem&) = delete;
 	
-	void	renderObjects(FrameInfo& frameInfo);
+	void	renderObject(FrameInfo& frameInfo);
 
 	private:
 
@@ -34,8 +40,10 @@ class VulkanRenderSystem
 
 	VulkanDevice&	vulkanDevice;
 
-	std::unique_ptr<VulkanPipeline>		vulkanPipeline;
-	VkPipelineLayout					pipelineLayout;
+	std::unique_ptr<VulkanPipeline>	vulkanPipeline;
+	VkPipelineLayout				pipelineLayout;
+	char const*						vertexShaderFile;
+	char const*						fragmentShaderFile;
 };
 
 }

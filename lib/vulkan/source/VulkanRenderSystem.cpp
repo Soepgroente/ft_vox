@@ -14,11 +14,12 @@ struct SimplePushConstantData
 {
 	mat4		modelMatrix{1.0f};
 	mat4		normalMatrix{1.0f};
-	uint32_t	useTexture;
 };
 
-VulkanRenderSystem::VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout)
-	: vulkanDevice(device)
+VulkanRenderSystem::VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, char const* vertexShaderFile, char const* fragmentShaderFile) :
+	vulkanDevice(device),
+	vertexShaderFile(vertexShaderFile),
+	fragmentShaderFile(fragmentShaderFile)
 {
 	createPipelineLayout(globalSetLayout);
 	createPipeline(renderPass);
@@ -64,13 +65,13 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 
 	vulkanPipeline = std::make_unique<VulkanPipeline>(
 		vulkanDevice,
-		"build/basic.vert.spv",	// NB store files inside env file?
-		"build/basic.frag.spv",
+		this->vertexShaderFile,
+		this->fragmentShaderFile,
 		pipelineConfig
 	);
 }
 
-void	VulkanRenderSystem::renderObjects(FrameInfo& frameInfo)
+void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 {
 	vulkanPipeline->bind(frameInfo.commandBuffer);
 
@@ -81,34 +82,26 @@ void	VulkanRenderSystem::renderObjects(FrameInfo& frameInfo)
 		0, 1, &frameInfo.globalDescriptorSet,
 		0, nullptr
 	);
-	for (std::pair<const id_t, VulkanObject>& kv : frameInfo.gameObjects)
+	if (frameInfo.gameObject.model == nullptr)
 	{
-		VulkanObject& obj = kv.second;
-
-		if (obj.model == nullptr)
-		{
-			continue;
-		}
-		if (frameInfo.rotateModel == true)
-		{
-			obj.transform.rotation.y = std::fmod(obj.transform.rotation.y + 0.015f, two_pi());
-		}
-		SimplePushConstantData	push{};
-		push.modelMatrix = obj.transform.matrix4(obj.model->getBoundingCenter());
-		push.normalMatrix = obj.transform.normalMatrix();
-		push.useTexture = frameInfo.useTexture;
-
-		vkCmdPushConstants(
-			frameInfo.commandBuffer,
-			pipelineLayout,
-			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-			0,
-			sizeof(SimplePushConstantData),
-			&push
-		);
-		obj.model->bind(frameInfo.commandBuffer);
-		obj.model->draw(frameInfo.commandBuffer);
+		return;
 	}
+
+	SimplePushConstantData	push{};
+	push.modelMatrix = frameInfo.gameObject.transform.matrix4(frameInfo.gameObject.model->getBoundingCenter());
+	push.normalMatrix = frameInfo.gameObject.transform.normalMatrix();
+
+	vkCmdPushConstants(
+		frameInfo.commandBuffer,
+		pipelineLayout,
+		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		sizeof(SimplePushConstantData),
+		&push
+	);
+	
+	frameInfo.gameObject.model->bind(frameInfo.commandBuffer);
+	frameInfo.gameObject.model->draw(frameInfo.commandBuffer);
 }
 
 } // namespace ve
