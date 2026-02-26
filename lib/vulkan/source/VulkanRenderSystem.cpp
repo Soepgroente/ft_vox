@@ -94,10 +94,7 @@ void	VulkanRenderSystem::renderObjects(FrameInfo& frameInfo)
 			obj.transform.rotation.y = std::fmod(obj.transform.rotation.y + 0.015f, two_pi());
 		}
 		SimplePushConstantData	push{};
-		// default rotation of an object by 55° along x
-		// so that the camera looks at it in front instead at it from above
-		obj.transform.rotation = vec3{55.0f, 0.0f, 0.0f};
-		push.modelMatrix = obj.transform.matrix4(obj.model->getBoundingCenter());
+		// push.modelMatrix = obj.transform.matrix4(obj.model->getBoundingCenter());
 		push.normalMatrix = obj.transform.normalMatrix();
 		push.useTexture = frameInfo.useTexture;
 

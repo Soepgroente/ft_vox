@@ -16,7 +16,7 @@ struct GlobalUBO
 
 Vox::Vox( void ) : 
 	objModelPath("models/teapot.obj"),
-	camera(vec3{0.0f, 0.0f, ve::CameraSettings::cameraDistance}),
+	camera(vec3(0.0f), vec3{0.0f, ve::CameraSettings::cameraDistance, 0.0f}),
 	world(vec3ui{Config::worldSize, Config::worldSize, Config::worldSize}, true)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
@@ -100,6 +100,7 @@ void Vox::run( void )
 		false
 	};
 
+	vec3	playerPos(.0f);
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
@@ -127,8 +128,11 @@ void Vox::run( void )
 			renderSystem.renderObjects(info);
 
 			newTime = std::chrono::high_resolution_clock::now();
-			std::cout << "\rFrames per second: " << static_cast<int> (1.0f / elapsedTime) << ", Frame time: ";
-			std::cout << std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count() << "ms " << std::flush;		
+			std::cout << "\033[2A" << "\033[K" << "Frames per second: " << static_cast<int> (1.0f / elapsedTime) << ", Frame time: ";
+			std::cout << std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count() << "ms "<< std::endl;
+
+			playerPos = info.camera.getCameraPos();
+			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
 
 			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();
@@ -141,9 +145,9 @@ void Vox::run( void )
 
 void Vox::createObjects( void )
 {
-	world.createNewWorld(VoxelGrid::voxelGenerator3);
-	ve::VulkanModel::Builder			builder = world.generateBufferDataGreedy(false);
+	world.createNewWorld(VoxelGrid::voxelGenerator8);
 
+	ve::VulkanModel::Builder			builder = world.generateBufferData(false);
 	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);
 	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
 
