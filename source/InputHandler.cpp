@@ -76,7 +76,10 @@ bool InputHandler::cursorPositionHasChanged( float& deltaX, float& deltaY ) noex
 
 void InputHandler::toggleCursorFocus( GLFWwindow* window) noexcept {
 	this->cursorFocus = !this->cursorFocus; 
-	glfwSetInputMode(window, GLFW_CURSOR, this->cursorFocus ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+	if (this->cursorFocus)
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	else
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 
