@@ -12,7 +12,7 @@
 namespace vox {
 
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 8U;	// number of vertexes per voxel
-inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertexes per voxel
+inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
 
 // 3D rectangular prism with 3 dimensions for each side, is an agglomerate of voxels
 class Boxel {
@@ -21,7 +21,8 @@ class Boxel {
 
 		vec3				getCenter( void ) const noexcept; // this is the exact center of the boxel
 		vec3				getSize( void ) const noexcept;
-		std::vector<vec3>	getVertexes( vec3 const& ) const noexcept;
+
+		std::array<vec3,VERTEX_PER_VOXEL>			getVertexes( vec3 const& ) const noexcept;
 
 	private:
 		vec3ui	_center;	// the center of the boxel is the coordinate of its front-bottom-left corner
@@ -33,12 +34,14 @@ class Voxel {
 	public:
 		constexpr explicit Voxel( vec3ui const& center) : _center(center) {};
 
-		vec3				getCenter( void ) const noexcept; // this is the exact center of the voxel
-		std::vector<vec3>	getVertexes( vec3 const& ) const noexcept;
+		vec3					getCenter( void ) const noexcept; // this is the exact center of the voxel
+
+		std::array<vec3,VERTEX_PER_VOXEL>			getVertexes( vec3 const& ) const noexcept;
 
 	private:
 		vec3ui	_center;	// the center of the voxel is the coordinate of its front-bottom-left corner
 };
+
 
 inline constexpr std::array<vec3,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
 	vec3{-1.0f,  1.0f, -1.0f},	// front-top-left corner
@@ -123,21 +126,23 @@ class WorldGenerator {
 		WorldGenerator& operator=( WorldGenerator const& ) = default;
 		WorldGenerator& operator=( WorldGenerator&& ) = default;
 
+		void	fillBuffer( void );
+		void	fillBufferGreedy( void );
+		bool	checkSurroundings( vec3 const&);
 		void						initWorld( vec3 const& );
 		void						expandWorld( WorldDirection );
 		// void						spawnWorld( VoxelGrid (&)( vec3ui const& ) );
-		ve::VulkanModel::Builder	generateBufferDataGreedy( bool duplicateVertex = false );
+		ve::VulkanModel::Builder	generateBufferDataGreedy( void );
 		void						crossWorldBorder( WorldDirection );
 
 		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return _builder; };
-		vec2ui const&					getCurrentCenterWorld( void ) const noexcept { return _currentWorldPos; };
+		vec2i const&					getCurrentCenterWorld( void ) const noexcept { return _currentWorldPos; };
 
 	private:
-		void generateBufferData( bool duplicateVertex = false );
+		void generateBufferData( void );
 
-		// vec3ui might be better instead of vec2ui?
-		std::unordered_map<vec2ui,VoxelGrid>	_world;
-		vec2ui									_currentWorldPos;
+		std::unordered_map<vec2i,VoxelGrid>	_world;
+		vec2i									_currentWorldPos;
 		vec3ui									_gridSize;
 		// VoxelGrid								_grid;
 		bool									_debugMode;

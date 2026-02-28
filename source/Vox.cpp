@@ -100,12 +100,9 @@ void Vox::run( void )
 	);
 
 	vec3				playerPos = this->camera.getCameraPos();
-	// vec3				lastSpawnPos = playerPos;
 	ve::VulkanObject	gameObject = ve::VulkanObject::createVulkanObject();
 
 	this->world.initWorld(playerPos);
-	// builder should be filled with new vertrexes/indexes evey time a new grid is spawned, 
-	// not being fully created every time
 	gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
 
 	ve::FrameInfo info
@@ -127,31 +124,18 @@ void Vox::run( void )
 		// do game operations
 		this->moveCamera(elapsedTime);
 		this->rotateCamera();
-		vec2ui centerGrid = this->world.getCurrentCenterWorld();
+		vec2i centerGrid = this->world.getCurrentCenterWorld();
 		vec3 centerGrid3D{
 			static_cast<float>(centerGrid.x),
 			static_cast<float>(centerGrid.y),
 			2.0f
 		};
+		// add chunks of maps if necessary
 		playerPos = this->camera.getCameraPos();
-		vec3 delta = playerPos - centerGrid3D;
-		// if delta > limit generated a new world on the side of the closest border
-		if (std::fabs(delta.x) > Config::respawnDistance or std::fabs(delta.y) > Config::respawnDistance) {
-			WorldDirection newWordDirection;
-			if (delta.y > epsilon())
-				newWordDirection = D_NORTH;
-			else if (delta.x < -epsilon())
-				newWordDirection = D_WEST;
-			else if (delta.y < -epsilon())
-				newWordDirection = D_SOUTH;
-			else if (delta.x > epsilon())
-				newWordDirection = D_EAST;
-			this->world.expandWorld(newWordDirection);
+		if (this->world.checkSurroundings(playerPos) == true)
 			info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
-		}
 
 		commandBuffer = vulkanRenderer.beginFrame();
-
 		if (commandBuffer != nullptr)
 		{
 			int frameIndex = vulkanRenderer.getCurrentFrameIndex();
@@ -167,13 +151,13 @@ void Vox::run( void )
 			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
 			renderSystem.renderObject(info);
 
-			newTime = std::chrono::high_resolution_clock::now();
-			int32_t	fps = static_cast<int> (1.0f / elapsedTime);
-			float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
-			std::cout << "\033[2A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
+			// newTime = std::chrono::high_resolution_clock::now();
+			// int32_t	fps = static_cast<int> (1.0f / elapsedTime);
+			// float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
+			// std::cout << "\033[2A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
 
-			playerPos = info.camera.getCameraPos();
-			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			// playerPos = info.camera.getCameraPos();
+			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
 
 			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();

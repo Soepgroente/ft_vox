@@ -29,7 +29,7 @@ struct Config
 		2.0f
 	};
 
-	static constexpr float	respawnDistance = gridSize / 4.0f;
+	static constexpr float	spawnDistance = gridSize / 4.0f;
 	static constexpr float	movementSpeed = 10.0f;
 	static constexpr float	lookSpeed = 75.0f;
 
