@@ -556,110 +556,153 @@ void WorldGenerator::fillBufferGreedy( void ) {
 }
 
 bool WorldGenerator::checkSurroundings( vec3 const& playerPos ) {
-	vec2 delta{
-		playerPos.x - this->_currentWorldPos.x,
-		playerPos.y - this->_currentWorldPos.y,
+	GridQuadPos quadrant = this->getQuadrantPos(playerPos);
+	vec3 currentWorldPosF{
+		static_cast<float>(this->_currentWorldPos.x),
+		static_cast<float>(this->_currentWorldPos.y),
+		2.0f
 	};
-	// player is not far enough to trigger another world spawn
-	if (std::fabs(delta.x) < Config::spawnDistance and std::fabs(delta.y) < Config::spawnDistance)
+	// std::cout << "center: " << currentWorldPosF << std::endl;
+	// std::cout << "quadrant: " << vox::qts(quadrant) << std::endl;
+	// std::cout << "playerPos (rel): " << playerPos << std::endl;
+	// vec3 playerPosAbs;
+	// if ((playerPos.x >= currentWorldPosF.x) and (playerPos.y >= currentWorldPosF.y))
+	// 	playerPosAbs = vec3{playerPos.x - currentWorldPosF.x, playerPos.y - currentWorldPosF.y, 2.0f};
+	// else if ((playerPos.x >= currentWorldPosF.x) and (playerPos.y <= currentWorldPosF.y))
+	// 	playerPosAbs = vec3{playerPos.x - currentWorldPosF.x, currentWorldPosF.y - playerPos.y, 2.0f};
+	// else if ((playerPos.x <= currentWorldPosF.x) and (playerPos.y <= currentWorldPosF.y))
+	// 	playerPosAbs = vec3{currentWorldPosF.x - playerPos.x, currentWorldPosF.y - playerPos.y, 2.0f};
+	// else if ((playerPos.x <= currentWorldPosF.x) and (playerPos.y >= currentWorldPosF.y))
+	// 	playerPosAbs = vec3{currentWorldPosF.x - playerPos.x, playerPos.y - currentWorldPosF.y, 2.0f};
+	// std::cout << "playerPos (abs): " << playerPosAbs << std::endl;
+	vec2i nextPos = this->_currentWorldPos;
+	switch (quadrant)
+	{
+		case QUAD_N:
+			nextPos.y += this->_gridSize.y;
+			break;
+		case QUAD_W:
+			nextPos.x -= this->_gridSize.x;
+			break;
+		case QUAD_S:
+			nextPos.y -= this->_gridSize.y;
+			break;
+		case QUAD_E:
+			nextPos.x += this->_gridSize.x;
+			break;
+		case QUAD_MID:
+			return false;
+			break;
+		default:
+			break;
+	}
+	if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) or (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)) {
+		this->_currentWorldPos = nextPos;
+		std::cout << "****" << std::endl;
+		std::cout << "new center set: " << this->_currentWorldPos << std::endl;
+		std::cout << "****" << std::endl;
 		return false;
-
-	// std::cout << "playerPos:" << playerPos << std::endl;
-	// std::cout << "current pos:" << this->_currentWorldPos << std::endl;
-	vec2i nextPos{this->_currentWorldPos.x, this->_currentWorldPos.y};
-	if (delta.y > 0.0f) {
-		// std::cout << "crossing border north" << std::endl;
-		nextPos.y += this->_gridSize.y;
-		// if (this->_world.count(nextPos) == 0) {
-		// std::cout << "----" << std::endl;
-		// std::cout << "playerPos:" << playerPos << std::endl;
-		// std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
-		// std::cout << "worlds:" << std::endl;
-		// for (auto const& [p, k] : this->_world)
-		// 	std::cout << "\tworld pos: " << p << std::endl;
-		// this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
-		// this->fillBuffer();
-		// std::cout << "\tworld new: " << nextPos << std::endl;
-		// std::cout << "----" << std::endl;
-		// return true;
-		// }
 	}
-	else if (delta.y < 0.0f) {
-		// std::cout << "crossing border south" << std::endl;
-		nextPos.y -= this->_gridSize.y;
-		// if (this->_world.count(nextPos) == 0) {
-		// std::cout << "----" << std::endl;
-		// std::cout << "playerPos:" << playerPos << std::endl;
-		// std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
-		// std::cout << "worlds:" << std::endl;
-		// for (auto const& [p, k] : this->_world)
-		// 	std::cout << "\tworld pos: " << p << std::endl;
-		// this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
-		// this->fillBuffer();
-		// std::cout << "\tworld new: " << nextPos << std::endl;
-		// std::cout << "----" << std::endl;
-		// return true;
-		// }
-	}
-
-	// vec2i nextPos{this->_currentWorldPos.x, this->_currentWorldPos.y};
-	if (delta.x < 0.0f) {
-		// std::cout << "crossing border west" << std::endl;
-		nextPos.x -= this->_gridSize.x;
-	// 	if (this->_world.count(nextPos) == 0) {
-	// 	std::cout << "----" << std::endl;
-	// 	std::cout << "playerPos:" << playerPos << std::endl;
-	// 	std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
-	// 	std::cout << "worlds:" << std::endl;
-	// 	for (auto const& [p, k] : this->_world)
-	// 		std::cout << "\tworld pos: " << p << std::endl;
-	// 	this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
-	// 	this->fillBuffer();
-	// 	std::cout << "\tworld new: " << nextPos << std::endl;
-	// 	std::cout << "----" << std::endl;
-	// 	return true;
-	// }
-	}
-	else if (delta.x > 0.0f) {
-		// std::cout << "crossing border east" << std::endl;
-		nextPos.x += this->_gridSize.x;
-	// 	if (this->_world.count(nextPos) == 0) {
-	// 	std::cout << "----" << std::endl;
-	// 	std::cout << "playerPos:" << playerPos << std::endl;
-	// 	std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
-	// 	std::cout << "worlds:" << std::endl;
-	// 	for (auto const& [p, k] : this->_world)
-	// 		std::cout << "\tworld pos: " << p << std::endl;
-	// 	this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
-	// 	this->fillBuffer();
-	// 	std::cout << "\tworld new: " << nextPos << std::endl;
-	// 	std::cout << "----" << std::endl;
-	// 	return true;
-	// }
-	}
-
-	
-	// crossing the spawn distance: genereate another world if is doesn't exist yet
-	if (this->_world.count(nextPos) == 0) {
+	else if (this->_world.count(nextPos) == 0) {
 		std::cout << "----" << std::endl;
-		std::cout << "playerPos:" << playerPos << std::endl;
-		std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
-		std::cout << "worlds:" << std::endl;
+		std::cout << "playerPos: " << playerPos << std::endl;
+		std::cout << "current grid center: " << this->_currentWorldPos << std::endl;
 		for (auto const& [p, k] : this->_world)
 			std::cout << "\tworld pos: " << p << std::endl;
+		std::cout << "\tworld to add: " << nextPos << std::endl;
+		std::cout << "----" << std::endl;
 		this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
 		this->fillBuffer();
-		std::cout << "\tworld new: " << nextPos << std::endl;
-		std::cout << "----" << std::endl;
 		return true;
-	}
-	// if the border between worlds has been crossed, update the curent world position
-	if (std::fabs(delta.x) > Config::gridSize / 2.0f or std::fabs(delta.y) > Config::gridSize / 2.0f) {
-		this->_currentWorldPos = nextPos;
-		std::cout << "new center set: " << this->_currentWorldPos << std::endl;
 	}
 	// std::cout << std::endl;
 	return false;
+
+	// if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x or std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y) {
+	// 	this->_currentWorldPos = nextPos;
+	// 	std::cout << "new center set: " << this->_currentWorldPos << std::endl;
+	// }
+	// else if (this->_world.count(nextPos) == 0) {
+	// 	std::cout << "----" << std::endl;
+	// 	std::cout << "playerPos:" << playerPos << std::endl;
+	// 	std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
+	// 	std::cout << "worlds:" << std::endl;
+	// 	for (auto const& [p, k] : this->_world)
+	// 		std::cout << "\tworld pos: " << p << std::endl;
+	// 	std::cout << "\tworld to add: " << nextPos << std::endl;
+	// 	std::cout << "----" << std::endl;
+	// 	this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
+	// 	this->fillBuffer();
+	// 	spawnNewModel = true;
+	// }
+
+	// std::cout << "playerPos:" << playerPos << std::endl;
+	// std::cout << "current pos:" << this->_currentWorldPos << std::endl;
+	//
+	// crossing the spawn distance: genereate another world if is doesn't exist yet
+	// if (this->_world.count(nextPos) == 0) {
+	// 	return true;
+	// }
+	// // if the border between worlds has been crossed, update the curent world position
+	// if (std::fabs(delta.x) > Config::gridSize / 2.0f or std::fabs(delta.y) > Config::gridSize / 2.0f) {
+	// 	this->_currentWorldPos = nextPos;
+	// 	std::cout << "new center set: " << this->_currentWorldPos << std::endl;
+	// }
+	// std::cout << std::endl;
+}
+
+GridQuadPos	WorldGenerator::getQuadrantPos( vec3 const& pos ) {
+	vec2 delta{
+		pos.x - this->_currentWorldPos.x,
+		pos.y - this->_currentWorldPos.y,
+	};
+	GridQuadPos gridQuad;
+	if (std::fabs(delta.x) < Config::spawnDistance and std::fabs(delta.y) < Config::spawnDistance)
+		gridQuad = QUAD_MID;
+	else if (delta.y > 0 and fabs(delta.y) > fabs(delta.x))
+		gridQuad = QUAD_N;
+	else if (delta.y < 0 and fabs(delta.y) > fabs(delta.x))
+		gridQuad = QUAD_S;
+	else if (delta.x > 0 and fabs(delta.x) > fabs(delta.y))
+		gridQuad = QUAD_E;
+	else if (delta.x < 0 and fabs(delta.x) > fabs(delta.y))
+		gridQuad = QUAD_W;
+
+	
+	// else if (delta.y > 0.0f)
+	// 	gridQuad = QUAD_N;
+	// else if (delta.x < 0.0f)
+	// 	gridQuad = QUAD_W;
+	// else if (delta.y < 0.0f)
+	// 	gridQuad = QUAD_S;
+	// else if (delta.x > 0.0f)
+	// 	gridQuad = QUAD_E;
+
+	// if (std::fabs(delta.x) > Config::spawnDistance and std::fabs(delta.y) > Config::spawnDistance) {
+	// 	if (delta.y > 0.0f) {
+	// 		if (delta.x > 0.0f)
+	// 			gridQuad = QUAD_NE;
+	// 		else
+	// 			gridQuad = QUAD_NW;
+	// 	} else {
+	// 		if (delta.x > 0.0f)
+	// 			gridQuad = QUAD_SE;
+	// 		else
+	// 			gridQuad = QUAD_SW;
+	// 	}
+	// } else if (std::fabs(delta.x) < Config::spawnDistance and std::fabs(delta.y) > Config::spawnDistance) {
+	// 	if (delta.y > 0.0f)
+	// 		gridQuad = QUAD_N;
+	// 	else
+	// 		gridQuad = QUAD_S;
+	// } else if (std::fabs(delta.x) > Config::spawnDistance and std::fabs(delta.y) < Config::spawnDistance) {
+	// 	if (delta.x > 0.0f)
+	// 		gridQuad = QUAD_E;
+	// 	else
+	// 		gridQuad = QUAD_W;
+	// }
+
+	return gridQuad;
 }
 
 void WorldGenerator::initWorld(vec3 const& centerGrid ) {
@@ -673,30 +716,30 @@ void WorldGenerator::initWorld(vec3 const& centerGrid ) {
 	this->generateBufferData();
 }
 
-void WorldGenerator::expandWorld( WorldDirection direction ) {
-	vec2i newWorldCenter = this->_currentWorldPos;
-	switch (direction)
-	{
-		case D_NORTH:
-			newWorldCenter.y += this->_gridSize.y;
-			break;
-		case D_WEST:
-			newWorldCenter.x -= this->_gridSize.x;
-			break;
-		case D_SOUTH:
-			newWorldCenter.y -= this->_gridSize.y;
-			break;
-		case D_EAST:
-			newWorldCenter.x += this->_gridSize.x;
-			break;
-		default:
-			break;
-	}
-	std::cout << "espansione!" << std::endl;
+// void WorldGenerator::expandWorld( WorldDirection direction ) {
+// 	vec2i newWorldCenter = this->_currentWorldPos;
+// 	switch (direction)
+// 	{
+// 		case D_NORTH:
+// 			newWorldCenter.y += this->_gridSize.y;
+// 			break;
+// 		case D_WEST:
+// 			newWorldCenter.x -= this->_gridSize.x;
+// 			break;
+// 		case D_SOUTH:
+// 			newWorldCenter.y -= this->_gridSize.y;
+// 			break;
+// 		case D_EAST:
+// 			newWorldCenter.x += this->_gridSize.x;
+// 			break;
+// 		default:
+// 			break;
+// 	}
+// 	std::cout << "espansione!" << std::endl;
 
- 	this->_world.try_emplace(newWorldCenter, VoxelGrid::voxelGenerator8(this->_gridSize));
-	this->fillBuffer();
-}
+//  	this->_world.try_emplace(newWorldCenter, VoxelGrid::voxelGenerator8(this->_gridSize));
+// 	this->fillBuffer();
+// }
 
 void WorldGenerator::generateBufferData( void ) {
 	uint32_t indexCount = 0U;
@@ -750,30 +793,30 @@ void WorldGenerator::generateBufferData( void ) {
 	}
 }
 
-void WorldGenerator::crossWorldBorder( WorldDirection border ) {
-	vec2i newWorldCenter = this->_currentWorldPos;
-	switch (border)
-	{
-		case D_NORTH:
-			newWorldCenter.y += this->_gridSize.y;
-			break;
-		case D_WEST:
-			newWorldCenter.x -= this->_gridSize.x;
-			break;
-		case D_SOUTH:
-			newWorldCenter.y -= this->_gridSize.y;
-			break;
-		case D_EAST:
-			newWorldCenter.x += this->_gridSize.x;
-			break;
-		default:
-			break;
-	}
-	if (this->_world.count(newWorldCenter) == 0)
-		throw std::runtime_error("Error, world not existing");
+// void WorldGenerator::crossWorldBorder( WorldDirection border ) {
+// 	vec2i newWorldCenter = this->_currentWorldPos;
+// 	switch (border)
+// 	{
+// 		case D_NORTH:
+// 			newWorldCenter.y += this->_gridSize.y;
+// 			break;
+// 		case D_WEST:
+// 			newWorldCenter.x -= this->_gridSize.x;
+// 			break;
+// 		case D_SOUTH:
+// 			newWorldCenter.y -= this->_gridSize.y;
+// 			break;
+// 		case D_EAST:
+// 			newWorldCenter.x += this->_gridSize.x;
+// 			break;
+// 		default:
+// 			break;
+// 	}
+// 	if (this->_world.count(newWorldCenter) == 0)
+// 		throw std::runtime_error("Error, world not existing");
 
-	this->_currentWorldPos = newWorldCenter;
-}
+// 	this->_currentWorldPos = newWorldCenter;
+// }
 
 ve::VulkanModel::Builder WorldGenerator::generateBufferDataGreedy( void ) {
 	ve::VulkanModel::Builder	builder;

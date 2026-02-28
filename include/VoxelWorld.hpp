@@ -107,12 +107,41 @@ class VoxelGrid {
 		std::vector<bool>	_grid;
 };
 
-enum WorldDirection {
-	D_NORTH,
-	D_WEST,
-	D_SOUTH,
-	D_EAST
+enum GridQuadPos {
+	QUAD_N,
+	QUAD_NW,
+	QUAD_W,
+	QUAD_SW,
+	QUAD_S,
+	QUAD_SE,
+	QUAD_E,
+	QUAD_NE,
+	QUAD_MID
 };
+
+inline std::string qts( GridQuadPos pos ) {
+	switch (pos)
+	{
+		case QUAD_N:
+			return "QUAD_N";
+		case QUAD_NW:
+			return "QUAD_NW";
+		case QUAD_W:
+			return "QUAD_W";
+		case QUAD_SW:
+			return "QUAD_SW";
+		case QUAD_S:
+			return "QUAD_S";
+		case QUAD_SE:
+			return "QUAD_SE";
+		case QUAD_E:
+			return "QUAD_E";
+		case QUAD_NE:
+			return "QUAD_NE";
+		default:
+			return "QUAD_MID";
+	}
+}
 
 class WorldGenerator {
 	public:
@@ -128,12 +157,13 @@ class WorldGenerator {
 
 		void	fillBuffer( void );
 		void	fillBufferGreedy( void );
-		bool	checkSurroundings( vec3 const&);
+		bool	checkSurroundings( vec3 const& );
+		GridQuadPos	getQuadrantPos( vec3 const& );
 		void						initWorld( vec3 const& );
-		void						expandWorld( WorldDirection );
+		// void						expandWorld( WorldDirection );
 		// void						spawnWorld( VoxelGrid (&)( vec3ui const& ) );
 		ve::VulkanModel::Builder	generateBufferDataGreedy( void );
-		void						crossWorldBorder( WorldDirection );
+		// void						crossWorldBorder( WorldDirection );
 
 		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return _builder; };
 		vec2i const&					getCurrentCenterWorld( void ) const noexcept { return _currentWorldPos; };

@@ -114,6 +114,8 @@ void Vox::run( void )
 		gameObject,
 	};
 
+	std::chrono::high_resolution_clock::time_point	lastTime = std::chrono::high_resolution_clock::now();
+	std::cout << std::chrono::duration<float, std::chrono::milliseconds::period>(lastTime - lastTime).count() <<"\n\n\n\n";
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
@@ -124,16 +126,19 @@ void Vox::run( void )
 		// do game operations
 		this->moveCamera(elapsedTime);
 		this->rotateCamera();
-		vec2i centerGrid = this->world.getCurrentCenterWorld();
-		vec3 centerGrid3D{
-			static_cast<float>(centerGrid.x),
-			static_cast<float>(centerGrid.y),
-			2.0f
-		};
+		// vec2i centerGrid = this->world.getCurrentCenterWorld();
+		// vec3 centerGrid3D{
+		// 	static_cast<float>(centerGrid.x),
+		// 	static_cast<float>(centerGrid.y),
+		// 	2.0f
+		// };
 		// add chunks of maps if necessary
 		playerPos = this->camera.getCameraPos();
+		// if (std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count() > 1) {
+		// 	lastTime = std::chrono::high_resolution_clock::now();
 		if (this->world.checkSurroundings(playerPos) == true)
 			info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
+		// }
 
 		commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
