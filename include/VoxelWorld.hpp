@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <map>
 #include <iostream>
 
 #include "Vulkan.hpp"
@@ -85,7 +86,7 @@ class VoxelGrid {
 		vec3ui			nextVoxel( vec3ui const& ) const;
 		vec3ui			firstVoxel( void ) const;
 
-		std::vector<Voxel>	getVoxels( void );
+		std::vector<Voxel>	getVoxels( void ) const;
 		// spwans boxels, aka clusters of voxels, more optimized
 		std::vector<Boxel>	getBoxels( void );
 
@@ -103,26 +104,44 @@ class VoxelGrid {
 		std::vector<bool>	_grid;
 };
 
-class VoxelWorld {
-	public:
-		VoxelWorld( vec3ui const& gridSize, bool debugMode = true ) :
-			_gridSize(gridSize),
-			_grid(gridSize),
-			_debugMode(debugMode) {};
-		~VoxelWorld( void ) = default;
-		VoxelWorld( VoxelWorld const& ) = default;
-		VoxelWorld( VoxelWorld&& ) = default;
-		VoxelWorld& operator=( VoxelWorld const& ) = default;
-		VoxelWorld& operator=( VoxelWorld&& ) = default;
+enum WorldDirection {
+	D_NORTH,
+	D_WEST,
+	D_SOUTH,
+	D_EAST
+};
 
-		void						spawnWorld( VoxelGrid (&)( vec3ui const& ) );
-		ve::VulkanModel::Builder	generateBufferData( vec3 const&, bool duplicateVertex = false );
-		ve::VulkanModel::Builder	generateBufferDataGreedy( vec3 const&, bool duplicateVertex = false );
+class WorldGenerator {
+	public:
+		WorldGenerator( vec3ui const& gridSize, bool debugMode = true ) :
+			_gridSize(gridSize),
+			// _grid(gridSize),
+			_debugMode(debugMode) {};
+		~WorldGenerator( void ) = default;
+		WorldGenerator( WorldGenerator const& ) = default;
+		WorldGenerator( WorldGenerator&& ) = default;
+		WorldGenerator& operator=( WorldGenerator const& ) = default;
+		WorldGenerator& operator=( WorldGenerator&& ) = default;
+
+		void						initWorld( vec3 const& );
+		void						expandWorld( WorldDirection );
+		// void						spawnWorld( VoxelGrid (&)( vec3ui const& ) );
+		ve::VulkanModel::Builder	generateBufferDataGreedy( bool duplicateVertex = false );
+		void						crossWorldBorder( WorldDirection );
+
+		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return _builder; };
+		vec2ui const&					getCurrentCenterWorld( void ) const noexcept { return _currentWorldPos; };
 
 	private:
-		vec3ui		_gridSize;
-		VoxelGrid	_grid;
-		bool		_debugMode;
+		void generateBufferData( bool duplicateVertex = false );
+
+		// vec3ui might be better instead of vec2ui?
+		std::unordered_map<vec2ui,VoxelGrid>	_world;
+		vec2ui									_currentWorldPos;
+		vec3ui									_gridSize;
+		// VoxelGrid								_grid;
+		bool									_debugMode;
+		ve::VulkanModel::Builder				_builder;
 };
 
 

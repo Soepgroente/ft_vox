@@ -100,12 +100,13 @@ void Vox::run( void )
 	);
 
 	vec3				playerPos = this->camera.getCameraPos();
-	vec3				lastSpawnPos = playerPos;
+	// vec3				lastSpawnPos = playerPos;
 	ve::VulkanObject	gameObject = ve::VulkanObject::createVulkanObject();
 
-	gameObject.model = this->createModel(lastSpawnPos);
-	// gameObject.color = {1.0f, 0.4f, 0.2f};
-	// gameObject.transform.translation = gameObject.model->getBoundingCenter().inverted();
+	this->world.initWorld(playerPos);
+	// builder should be filled with new vertrexes/indexes evey time a new grid is spawned, 
+	// not being fully created every time
+	gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
 
 	ve::FrameInfo info
 	{
@@ -115,7 +116,7 @@ void Vox::run( void )
 		nullptr,
 		gameObject,
 	};
-	
+
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
@@ -126,12 +127,27 @@ void Vox::run( void )
 		// do game operations
 		this->moveCamera(elapsedTime);
 		this->rotateCamera();
+		vec2ui centerGrid = this->world.getCurrentCenterWorld();
+		vec3 centerGrid3D{
+			static_cast<float>(centerGrid.x),
+			static_cast<float>(centerGrid.y),
+			2.0f
+		};
 		playerPos = this->camera.getCameraPos();
-		// regenereate the world, centered in the camera pos if distance is big enough
-		if (std::fabs(lastSpawnPos.x - playerPos.x) > Config::respawnDistance or
-			std::fabs(lastSpawnPos.y - playerPos.y) > Config::respawnDistance) {
-			lastSpawnPos = playerPos;
-			info.gameObject.model = this->createModel(lastSpawnPos);
+		vec3 delta = playerPos - centerGrid3D;
+		// if delta > limit generated a new world on the side of the closest border
+		if (std::fabs(delta.x) > Config::respawnDistance or std::fabs(delta.y) > Config::respawnDistance) {
+			WorldDirection newWordDirection;
+			if (delta.y > epsilon())
+				newWordDirection = D_NORTH;
+			else if (delta.x < -epsilon())
+				newWordDirection = D_WEST;
+			else if (delta.y < -epsilon())
+				newWordDirection = D_SOUTH;
+			else if (delta.x > epsilon())
+				newWordDirection = D_EAST;
+			this->world.expandWorld(newWordDirection);
+			info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
 		}
 
 		commandBuffer = vulkanRenderer.beginFrame();
@@ -173,12 +189,12 @@ void Vox::shutdown( void )
 {
 }
 
-std::unique_ptr<ve::VulkanModel> Vox::createModel( vec3 const& pos ) {
-	this->world.spawnWorld(VoxelGrid::voxelGenerator8);
-	ve::VulkanModel::Builder	builder = this->world.generateBufferData(pos, false);
+// std::unique_ptr<ve::VulkanModel> Vox::createModel( vec3 const& pos ) {
+// 	// this->world.spawnWorld(VoxelGrid::voxelGenerator8);
+// 	ve::VulkanModel::Builder	builder = this->world.generateBufferData(pos, false);
 
-	return ve::VulkanModel::createModel(this->vulkanDevice, builder);
-}
+// 	return ve::VulkanModel::createModel(this->vulkanDevice, builder);
+// }
 
 InputHandler const& Vox::getHandler( void ) const noexcept {
 	return this->inputHandler;

@@ -350,7 +350,7 @@ vec3ui VoxelGrid::firstVoxel( void ) const {
 	return next;
 }
 
-std::vector<Voxel>	VoxelGrid::getVoxels( void ) {
+std::vector<Voxel>	VoxelGrid::getVoxels( void ) const {
 	std::vector<Voxel>	voxels;
 	vec3ui				index(0U);
 
@@ -410,50 +410,90 @@ std::vector<Boxel> VoxelGrid::getBoxels( void ) {
 }
 
 
-void VoxelWorld::spawnWorld( VoxelGrid (&generator)( vec3ui const& ) ) {
-	this->_grid = generator(this->_gridSize);
+
+void WorldGenerator::initWorld(vec3 const& centerGrid ) {
+	vec2ui centerGrid2D{
+		static_cast<uint32_t>(centerGrid.x),
+		static_cast<uint32_t>(centerGrid.y),
+	};
+	
+	this->_currentWorldPos = centerGrid2D;
+	this->_world.try_emplace(centerGrid2D, VoxelGrid::voxelGenerator8(this->_gridSize));
+	this->generateBufferData();
 }
 
-ve::VulkanModel::Builder VoxelWorld::generateBufferData( vec3 const& origin, bool duplicateVertex ) {
-	ve::VulkanModel::Builder			builder;
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	uint32_t 							indexCount = 0U;
-	vec3 relativeOrigin = origin - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
+void WorldGenerator::expandWorld( WorldDirection direction ) {
+	vec2ui newWorldCenter = this->_currentWorldPos;
+	switch (direction)
+	{
+		case D_NORTH:
+			newWorldCenter.y += this->_gridSize.y;
+			break;
+		case D_WEST:
+			newWorldCenter.x -= this->_gridSize.x;
+			break;
+		case D_SOUTH:
+			newWorldCenter.y -= this->_gridSize.y;
+			break;
+		case D_EAST:
+			newWorldCenter.x += this->_gridSize.x;
+			break;
+		default:
+			break;
+	}
 
-	uint32_t	_debugNvoxels = 0U;
-	uint32_t	_debugNtriangles = 0U;
+	this->_world.try_emplace(newWorldCenter, VoxelGrid::voxelGenerator8(this->_gridSize));
+	// in an ideal world I should just add the newly created vertexes, not re-create
+	// all of them everty time a new world is created
+	this->generateBufferData();
+}
 
-	for (Voxel const& voxel : this->_grid.getVoxels()) {
-		std::vector<vec3> voxelVertexes = voxel.getVertexes(relativeOrigin);
-		// check every vertex of the cube/voxel to avoid duplicates
-		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-			if (duplicateVertex == true) {
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				_debugNtriangles++;			// debug info
-				builder.indices.push_back(indexCount++);
+void WorldGenerator::generateBufferData( bool duplicateVertex ) {
+	uint32_t indexCount = 0U;
+	uint32_t _debugNvoxels = 0U;
+	uint32_t _debugNtriangles = 0U;
+	
+	for (auto const& [centerGrid, grid] : this->_world) {
+		std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+		vec3 origin3D {
+			static_cast<float>(centerGrid.x),
+			static_cast<float>(centerGrid.y),
+			2.0f,
+		};
+		vec3 relativeOrigin = origin3D - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
+
+		for (Voxel const& voxel : grid.getVoxels()) {
+			std::vector<vec3> voxelVertexes = voxel.getVertexes(relativeOrigin);
+			// check every vertex of the cube/voxel to avoid duplicates
+			for (uint32_t index : VOXEL_VERTEX_INDEXES) {
+				if (duplicateVertex == true) {
+					this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+						voxelVertexes[index],
+						ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+						vec3{0.0f, 0.0f, 0.0f},
+						vec2{0.0f, 0.0f}
+					});
+					_debugNtriangles++;			// debug info
+					this->_builder.indices.push_back(indexCount++);
+				}
+				else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+					// there's already such vertex, add only the vertex index
+					this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+				else {
+					uniqueVertexes[voxelVertexes[index]] = indexCount;
+					// new vertex, add it and its vertex index
+					this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+						voxelVertexes[index],
+						ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+						vec3{0.0f, 0.0f, 0.0f},
+						vec2{0.0f, 0.0f}
+					});
+					_debugNtriangles++;			// debug info
+					this->_builder.indices.push_back(indexCount++);
+				}
 			}
-			else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				// there's already such vertex, add only the vertex index
-				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				// new vertex, add it and its vertex index
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				_debugNtriangles++;			// debug info
-				builder.indices.push_back(indexCount++);
-			}
+			_debugNvoxels++;			// debug info
 		}
-		_debugNvoxels++;			// debug info
 	}
 
 	if (this->_debugMode) {
@@ -468,51 +508,82 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferData( vec3 const& origin, boo
 		std::cout << "  triangles: " << (indexCount + 1) / 3 << std::endl;
 		std::cout << "------\n" << std::endl;
 	}
-	return builder;
 }
 
-ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( vec3 const& origin, bool duplicateVertex ) {
-	ve::VulkanModel::Builder			builder;
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	uint32_t 							indexCount = 0U;
+void WorldGenerator::crossWorldBorder( WorldDirection border ) {
+	vec2ui newWorldCenter = this->_currentWorldPos;
+	switch (border)
+	{
+		case D_NORTH:
+			newWorldCenter.y += this->_gridSize.y;
+			break;
+		case D_WEST:
+			newWorldCenter.x -= this->_gridSize.x;
+			break;
+		case D_SOUTH:
+			newWorldCenter.y -= this->_gridSize.y;
+			break;
+		case D_EAST:
+			newWorldCenter.x += this->_gridSize.x;
+			break;
+		default:
+			break;
+	}
+	if (this->_world.count(newWorldCenter) == 0)
+		throw std::runtime_error("Error, world not existing");
 
-	vec3 relativeOrigin = origin - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
+	this->_currentWorldPos = newWorldCenter;
+}
+
+ve::VulkanModel::Builder WorldGenerator::generateBufferDataGreedy( bool duplicateVertex ) {
+	ve::VulkanModel::Builder	builder;
+	uint32_t 					indexCount = 0U;
 
 	uint32_t	_debugNboxels = 0U;
 	uint32_t	_debugNvoxels = 0U;
 	uint32_t	_debugNtriangles = 0U;
+	
+	for (auto& [centerGrid, grid] : this->_world) {
+		std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+		vec3 origin3D {
+			static_cast<float>(centerGrid.x),
+			static_cast<float>(centerGrid.y),
+			2.0f,
+		};
+		vec3 relativeOrigin = origin3D - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
 
-	for (Boxel const& boxel : this->_grid.getBoxels()) {
-		std::vector<vec3> voxelVertexes = boxel.getVertexes(relativeOrigin);
-		// check every vertex of the prism/boxel to avoid duplicates
-		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-			if (duplicateVertex == true) {
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				builder.indices.push_back(indexCount++);
-				_debugNtriangles++;			// debug info
+		for (Boxel const& boxel : grid.getBoxels()) {
+			std::vector<vec3> voxelVertexes = boxel.getVertexes(relativeOrigin);
+			// check every vertex of the prism/boxel to avoid duplicates
+			for (uint32_t index : VOXEL_VERTEX_INDEXES) {
+				if (duplicateVertex == true) {
+					builder.vertices.push_back(ve::VulkanModel::Vertex{
+						voxelVertexes[index],
+						ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+						vec3{0.0f, 0.0f, 0.0f},
+						vec2{0.0f, 0.0f}
+					});
+					builder.indices.push_back(indexCount++);
+					_debugNtriangles++;			// debug info
+				}
+				else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+					// there's already such vertex, add only the vertex index
+					builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+				else {
+					uniqueVertexes[voxelVertexes[index]] = indexCount;
+					// new vertex, add it and its vertex index
+					builder.vertices.push_back(ve::VulkanModel::Vertex{
+						voxelVertexes[index],
+						ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+						vec3{0.0f, 0.0f, 0.0f},
+						vec2{0.0f, 0.0f}
+					});
+					builder.indices.push_back(indexCount++);
+					_debugNtriangles++;			// debug info
+				}
 			}
-			else if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				// there's already such vertex, add only the vertex index
-				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				// new vertex, add it and its vertex index
-				builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				builder.indices.push_back(indexCount++);
-				_debugNtriangles++;			// debug info
-			}
+			_debugNboxels++;	// debug info
 		}
-		_debugNboxels++;	// debug info
 	}
 
 	if (this->_debugMode) {
@@ -530,6 +601,5 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( vec3 const& origi
 	}
 	return builder;
 }
-
 
 }

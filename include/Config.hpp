@@ -22,7 +22,7 @@ struct Config
 		1.5f
 	};
 
-	static constexpr uint32_t	gridSize = 64U;
+	static constexpr uint32_t	gridSize = 16U;
 	static constexpr vec3		centerGridPos{		// NB this is ugly, z should depend on ground lvl
 		0.0f,	// it should be: gridSize / 2.0f
 		0.0f,	// it should be: gridSize / 2.0f

@@ -25,7 +25,7 @@ class Vox
 		void run( void );
 		void shutdown( void );
 
-		std::unique_ptr<ve::VulkanModel>	createModel( vec3 const& );
+		// std::unique_ptr<ve::VulkanModel>	createModel( vec3 const& );
 
 		InputHandler const& getHandler( void ) const noexcept;
 		InputHandler&		getHandler( void ) noexcept;
@@ -42,7 +42,7 @@ class Vox
 		std::string						objModelPath;
 		std::vector<ve::VulkanTexture>	textures;
 		ve::Camera						camera;
-		VoxelWorld						world;
+		WorldGenerator					world;
 		InputHandler					inputHandler;
 };
 
