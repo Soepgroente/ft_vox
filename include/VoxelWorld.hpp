@@ -157,8 +157,12 @@ class WorldGenerator {
 
 		void	fillBuffer( void );
 		void	fillBufferGreedy( void );
+		void	fillBufferGrid( vec2i const );
 		bool	checkSurroundings( vec3 const& );
+		bool	checkSurroundingsGreedy( vec3 const& );
+		bool	addeNewGrid( vec2i const& );
 		GridQuadPos	getQuadrantPos( vec3 const& );
+		GridQuadPos	getQuadrantPosGreedy( vec3 const& );
 		void						initWorld( vec3 const& );
 		// void						expandWorld( WorldDirection );
 		// void						spawnWorld( VoxelGrid (&)( vec3ui const& ) );

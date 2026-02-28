@@ -350,7 +350,7 @@ vec3ui VoxelGrid::firstVoxel( void ) const {
 	return next;
 }
 
-std::vector<Voxel>	VoxelGrid::getVoxels( void ) const {
+std::vector<Voxel> VoxelGrid::getVoxels( void ) const {
 	std::vector<Voxel>	voxels;
 	vec3ui				index(0U);
 
@@ -410,9 +410,54 @@ std::vector<Boxel> VoxelGrid::getBoxels( void ) {
 }
 
 
+void WorldGenerator::fillBufferGrid( vec2i const centerGrid ) {
+	std::cout << "called refill, pos:" << centerGrid << std::endl;;
+	uint32_t indexCount = this->_builder.vertices.size();
+	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
+	vec3 origin3D {
+		static_cast<float>(centerGrid.x),
+		static_cast<float>(centerGrid.y),
+		2.0f,
+	};
+	vec3	relativeOrigin = origin3D - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
+	vec3ui	index(0U);
+	for(; index.z<this->_gridSize.z; index.z++) {
+		for(index.y=0; index.y<this->_gridSize.y; index.y++) {
+			for(index.x=0; index.x<this->_gridSize.x; index.x++) {
+				if (this->_world.at(centerGrid).isVoxel(index)) {
+					vec3 center{
+						static_cast<float>(index.x) + 0.5f + relativeOrigin.x,
+						static_cast<float>(index.y) + 0.5f + relativeOrigin.y,
+						static_cast<float>(index.z) + 0.5f
+					};
+
+					std::array<vec3,VERTEX_PER_VOXEL>	voxelVertexes;
+					for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++)
+						voxelVertexes[i] = center + VOXEL_VERTEXES[i] * 0.5f;
+					// check every vertex of the cube/voxel to avoid duplicates
+					for (uint32_t index : VOXEL_VERTEX_INDEXES) {
+						if (uniqueVertexes.count(voxelVertexes[index]) > 0)
+							// there's already such vertex, add only the vertex index
+							this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
+						else {
+							uniqueVertexes[voxelVertexes[index]] = indexCount;
+							// new vertex, add it and its vertex index
+							this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
+								voxelVertexes[index],
+								ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+								vec3{0.0f, 0.0f, 0.0f},
+								vec2{0.0f, 0.0f}
+							});
+							this->_builder.indices.push_back(indexCount++);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 void WorldGenerator::fillBuffer( void ) {
-	this->_builder.vertices.clear();
-	this->_builder.indices.clear();
 
 	uint32_t indexCount = 0U;
 	for (auto& [centerGrid, grid] : this->_world) {
@@ -468,7 +513,7 @@ void WorldGenerator::fillBufferGreedy( void ) {
 	this->_builder.vertices.clear();
 	this->_builder.indices.clear();
 	uint32_t indexCount = 0U;
-	
+
 	for (auto& [centerGrid, grid] : this->_world) {
 		std::unordered_map<vec3, uint32_t>	uniqueVertexes;
 		vec3 origin3D {
@@ -477,10 +522,10 @@ void WorldGenerator::fillBufferGreedy( void ) {
 			2.0f,
 		};
 		vec3 relativeOrigin = origin3D - vec3{this->_gridSize.x / 2.0f, this->_gridSize.y / 2.0f, 0.0f};
-		vec3ui				start = grid.firstVoxel(), curr(start), boxelSize(1U);
-		vec3ui const		endingVoxel(0U), wordlLimit = grid.getSize();
+		vec3ui			start = grid.firstVoxel(), curr(start), boxelSize(1U);
+		vec3ui const	endingVoxel(0U), wordlLimit = grid.getSize();
 
-		while (start != endingVoxel) {	// start == {0,0,0} -> no voxels remain in the grid
+		do {	// start == {0,0,0} -> no voxels remain in the grid
 			curr = start;
 			boxelSize.x = 1U, boxelSize.y = 1U, boxelSize.z = 1U;
 			// find longest line of consecutive voxels
@@ -510,6 +555,7 @@ void WorldGenerator::fillBufferGreedy( void ) {
 				boxelSize.z++;
 			}
 			// deactivate all the valid past voxels
+			std::cout << "found boxel in: " << start << std::endl;
 			grid.setVoxel(start, start + boxelSize, false);
 			// add the newly found boxel
 			vec3 center{
@@ -517,18 +563,18 @@ void WorldGenerator::fillBufferGreedy( void ) {
 				static_cast<float>(start.y) + (boxelSize.y / 2.0f) + relativeOrigin.y,
 				static_cast<float>(start.z) + (boxelSize.z / 2.0f)
 			};
-			vec3 sizeInFloat{
-				static_cast<float>(boxelSize.x),
-				static_cast<float>(boxelSize.y),
-				static_cast<float>(boxelSize.z)
-			};
+			// vec3 sizeInFloat{
+			// 	static_cast<float>(boxelSize.x),
+			// 	static_cast<float>(boxelSize.y),
+			// 	static_cast<float>(boxelSize.z)
+			// };
 
 			std::array<vec3,VERTEX_PER_VOXEL>	voxelVertexes;
 			for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
 				// pos = posV * scale-size + center-pos
-				voxelVertexes[i].x = center.x + VOXEL_VERTEXES[i].x * sizeInFloat.x / 2.0f;
-				voxelVertexes[i].y = center.y + VOXEL_VERTEXES[i].y * sizeInFloat.y / 2.0f;
-				voxelVertexes[i].z = center.z + VOXEL_VERTEXES[i].z * sizeInFloat.z / 2.0f;
+				voxelVertexes[i].x = center.x + VOXEL_VERTEXES[i].x * boxelSize.x / 2.0f;
+				voxelVertexes[i].y = center.y + VOXEL_VERTEXES[i].y * boxelSize.y / 2.0f;
+				voxelVertexes[i].z = center.z + VOXEL_VERTEXES[i].z * boxelSize.z / 2.0f;
 			}
 			// check every vertex of the cube/voxel to avoid duplicates
 			for (uint32_t index : VOXEL_VERTEX_INDEXES) {
@@ -549,171 +595,337 @@ void WorldGenerator::fillBufferGreedy( void ) {
 			}
 			// find next voxel
 			start = grid.nextVoxel(start);
-		} 
+		} while (start != endingVoxel);
 	}
-
-
 }
 
 bool WorldGenerator::checkSurroundings( vec3 const& playerPos ) {
 	GridQuadPos quadrant = this->getQuadrantPos(playerPos);
+	vec2i newGridPos = this->_currentWorldPos;
+	switch (quadrant) {
+		case QUAD_N:
+			newGridPos.y += static_cast<int32_t>(this->_gridSize.y);
+			if (std::fabs(playerPos.y - newGridPos.y) < std::fabs(playerPos.y - this->_currentWorldPos.y))
+				this->_currentWorldPos = newGridPos;
+			break;
+		case QUAD_W:
+			newGridPos.x -= static_cast<int32_t>(this->_gridSize.x);
+			if (std::fabs(playerPos.x - newGridPos.x) < std::fabs(playerPos.x - this->_currentWorldPos.x))
+				this->_currentWorldPos = newGridPos;
+			break;
+		case QUAD_S:
+			newGridPos.y -= static_cast<int32_t>(this->_gridSize.x);
+			if (std::fabs(playerPos.y - newGridPos.y) < std::fabs(playerPos.y - this->_currentWorldPos.y))
+				this->_currentWorldPos = newGridPos;
+			break;
+		case QUAD_E:
+			newGridPos.x += static_cast<int32_t>(this->_gridSize.x);
+			if (std::fabs(playerPos.x - newGridPos.x) < std::fabs(playerPos.x - this->_currentWorldPos.x))
+				this->_currentWorldPos = newGridPos;
+			break;
+		default:
+			return false;
+		// case QUAD_NW:
+		// 	if (this->_world.count(vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+		// 		this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)};
+		// 	else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+		// 	else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)};
+		// 	break;
+		// case QUAD_SW:
+		// 	if (this->_world.count(vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+		// 		this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)};
+		// 	else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+		// 	else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)};
+		// 	break;
+		// case QUAD_SE:
+		// 	if (this->_world.count(vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+		// 		this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y - static_cast<int32_t>(this->_gridSize.y)};
+		// 	else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+		// 	else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x, nextPos.y - static_cast<int32_t>(this->_gridSize.y)};
+		// 	break;
+		// case QUAD_NE:
+		// 	if (this->_world.count(vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)}) == 0) {
+		// 		this->_world.try_emplace(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)}, VoxelGrid::voxelGenerator8(this->_gridSize));
+		// 		this->fillBufferGrid(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)});
+		// 		reLoadModel = true;
+		// 	}
+		// 	if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+		// 		this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y + static_cast<int32_t>(this->_gridSize.y)};
+		// 	else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+		// 	else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+		// 		this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + static_cast<int32_t>(this->_gridSize.y)};
+		// 	break;
+		// default:
+		// 	break;
+	}
+	return this->addeNewGrid(newGridPos);
+}
+
+bool WorldGenerator::checkSurroundingsGreedy( vec3 const& playerPos ) {
+	GridQuadPos quadrant = this->getQuadrantPos(playerPos);
+	bool		reLoadModel = false;
 	vec3 currentWorldPosF{
 		static_cast<float>(this->_currentWorldPos.x),
 		static_cast<float>(this->_currentWorldPos.y),
 		2.0f
 	};
-	// std::cout << "center: " << currentWorldPosF << std::endl;
-	// std::cout << "quadrant: " << vox::qts(quadrant) << std::endl;
-	// std::cout << "playerPos (rel): " << playerPos << std::endl;
-	// vec3 playerPosAbs;
-	// if ((playerPos.x >= currentWorldPosF.x) and (playerPos.y >= currentWorldPosF.y))
-	// 	playerPosAbs = vec3{playerPos.x - currentWorldPosF.x, playerPos.y - currentWorldPosF.y, 2.0f};
-	// else if ((playerPos.x >= currentWorldPosF.x) and (playerPos.y <= currentWorldPosF.y))
-	// 	playerPosAbs = vec3{playerPos.x - currentWorldPosF.x, currentWorldPosF.y - playerPos.y, 2.0f};
-	// else if ((playerPos.x <= currentWorldPosF.x) and (playerPos.y <= currentWorldPosF.y))
-	// 	playerPosAbs = vec3{currentWorldPosF.x - playerPos.x, currentWorldPosF.y - playerPos.y, 2.0f};
-	// else if ((playerPos.x <= currentWorldPosF.x) and (playerPos.y >= currentWorldPosF.y))
-	// 	playerPosAbs = vec3{currentWorldPosF.x - playerPos.x, playerPos.y - currentWorldPosF.y, 2.0f};
-	// std::cout << "playerPos (abs): " << playerPosAbs << std::endl;
+
 	vec2i nextPos = this->_currentWorldPos;
-	switch (quadrant)
-	{
+	switch (quadrant) {
 		case QUAD_N:
-			nextPos.y += this->_gridSize.y;
+			if (this->_world.count(vec2i{nextPos.x, nextPos.y + 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x, nextPos.y + 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (playerPos.y - this->_currentWorldPos.y > 1 / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + 1};
 			break;
 		case QUAD_W:
-			nextPos.x -= this->_gridSize.x;
+			if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  - static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_currentWorldPos.x - playerPos.x > static_cast<int32_t>(this->_gridSize.x) / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + 1};
 			break;
 		case QUAD_S:
-			nextPos.y -= this->_gridSize.y;
+			if (this->_world.count(vec2i{nextPos.x, nextPos.y - 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x, nextPos.y - 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_currentWorldPos.y - playerPos.y > 1 / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + 1};
 			break;
 		case QUAD_E:
-			nextPos.x += this->_gridSize.x;
+			if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  + static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (playerPos.x - this->_currentWorldPos.x > 1 / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + 1};
 			break;
-		case QUAD_MID:
-			return false;
+		case QUAD_NW:
+			if (this->_world.count(vec2i{nextPos.x, nextPos.y + 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x, nextPos.y + 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  - static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y + 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  - static_cast<int32_t>(this->_gridSize.x), nextPos.y + 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+				this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y + 1};
+			else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+			else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + 1};
+			break;
+		case QUAD_SW:
+			if (this->_world.count(vec2i{nextPos.x, nextPos.y - 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x, nextPos.y - 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  - static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y - 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  - static_cast<int32_t>(this->_gridSize.x), nextPos.y - 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+				this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y - 1};
+			else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x - static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+			else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y - 1};
+			break;
+		case QUAD_SE:
+			if (this->_world.count(vec2i{nextPos.x, nextPos.y - 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x, nextPos.y - 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  + static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y - 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  + static_cast<int32_t>(this->_gridSize.x), nextPos.y - 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+				this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y - 1};
+			else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+			else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y - 1};
+			break;
+		case QUAD_NE:
+			if (this->_world.count(vec2i{nextPos.x, nextPos.y + 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x, nextPos.y + 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  + static_cast<int32_t>(this->_gridSize.x), nextPos.y}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if (this->_world.count(vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y + 1}) == 0) {
+				this->_world.try_emplace(vec2i{nextPos.x  + static_cast<int32_t>(this->_gridSize.x), nextPos.y + 1}, VoxelGrid::voxelGenerator8(this->_gridSize));
+				reLoadModel = true;
+			}
+			if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) and (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f))
+				this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y + 1};
+			else if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x + static_cast<int32_t>(this->_gridSize.x), nextPos.y};
+			else if (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)
+				this->_currentWorldPos = vec2i{nextPos.x, nextPos.y + 1};
 			break;
 		default:
 			break;
 	}
-	if ((std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x / 2.0f) or (std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y / 2.0f)) {
-		this->_currentWorldPos = nextPos;
-		std::cout << "****" << std::endl;
-		std::cout << "new center set: " << this->_currentWorldPos << std::endl;
-		std::cout << "****" << std::endl;
-		return false;
-	}
-	else if (this->_world.count(nextPos) == 0) {
-		std::cout << "----" << std::endl;
-		std::cout << "playerPos: " << playerPos << std::endl;
-		std::cout << "current grid center: " << this->_currentWorldPos << std::endl;
-		for (auto const& [p, k] : this->_world)
-			std::cout << "\tworld pos: " << p << std::endl;
-		std::cout << "\tworld to add: " << nextPos << std::endl;
-		std::cout << "----" << std::endl;
-		this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
-		this->fillBuffer();
-		return true;
-	}
-	// std::cout << std::endl;
-	return false;
-
-	// if (std::fabs(playerPos.x - this->_currentWorldPos.x) > this->_gridSize.x or std::fabs(playerPos.y - this->_currentWorldPos.y) > this->_gridSize.y) {
-	// 	this->_currentWorldPos = nextPos;
-	// 	std::cout << "new center set: " << this->_currentWorldPos << std::endl;
-	// }
-	// else if (this->_world.count(nextPos) == 0) {
-	// 	std::cout << "----" << std::endl;
-	// 	std::cout << "playerPos:" << playerPos << std::endl;
-	// 	std::cout << "current grid center:" << this->_currentWorldPos << std::endl;
-	// 	std::cout << "worlds:" << std::endl;
-	// 	for (auto const& [p, k] : this->_world)
-	// 		std::cout << "\tworld pos: " << p << std::endl;
-	// 	std::cout << "\tworld to add: " << nextPos << std::endl;
-	// 	std::cout << "----" << std::endl;
-	// 	this->_world.try_emplace(nextPos, VoxelGrid::voxelGenerator8(this->_gridSize));
-	// 	this->fillBuffer();
-	// 	spawnNewModel = true;
-	// }
-
-	// std::cout << "playerPos:" << playerPos << std::endl;
-	// std::cout << "current pos:" << this->_currentWorldPos << std::endl;
-	//
-	// crossing the spawn distance: genereate another world if is doesn't exist yet
-	// if (this->_world.count(nextPos) == 0) {
-	// 	return true;
-	// }
-	// // if the border between worlds has been crossed, update the curent world position
-	// if (std::fabs(delta.x) > Config::gridSize / 2.0f or std::fabs(delta.y) > Config::gridSize / 2.0f) {
-	// 	this->_currentWorldPos = nextPos;
-	// 	std::cout << "new center set: " << this->_currentWorldPos << std::endl;
-	// }
-	// std::cout << std::endl;
+	return reLoadModel;
 }
+
+bool WorldGenerator::addeNewGrid( vec2i const& gridPos ) {
+	bool insertedNewGrid = this->_world.count(gridPos) == 0;
+
+	if (insertedNewGrid) {
+		VoxelGrid newGrid = VoxelGrid::voxelGenerator8(this->_gridSize);
+		this->_world.try_emplace(gridPos, newGrid);
+		this->fillBufferGrid(gridPos);
+	}
+	return insertedNewGrid;
+}
+
+// given the grid with this 9 quadrants
+//  __ __ __
+// |NW| N|NE|
+// |__|__|__|
+// |W | M| E|
+// |__|__|__|
+// |SW| S|SE|
+// |__|__|__|
+// returns the quadrant where playerPos belongs
 
 GridQuadPos	WorldGenerator::getQuadrantPos( vec3 const& pos ) {
 	vec2 delta{
 		pos.x - this->_currentWorldPos.x,
 		pos.y - this->_currentWorldPos.y,
 	};
-	GridQuadPos gridQuad;
-	if (std::fabs(delta.x) < Config::spawnDistance and std::fabs(delta.y) < Config::spawnDistance)
-		gridQuad = QUAD_MID;
-	else if (delta.y > 0 and fabs(delta.y) > fabs(delta.x))
-		gridQuad = QUAD_N;
-	else if (delta.y < 0 and fabs(delta.y) > fabs(delta.x))
-		gridQuad = QUAD_S;
-	else if (delta.x > 0 and fabs(delta.x) > fabs(delta.y))
-		gridQuad = QUAD_E;
-	else if (delta.x < 0 and fabs(delta.x) > fabs(delta.y))
-		gridQuad = QUAD_W;
+	GridQuadPos gridQuad = QUAD_MID;
 
-	
-	// else if (delta.y > 0.0f)
-	// 	gridQuad = QUAD_N;
-	// else if (delta.x < 0.0f)
-	// 	gridQuad = QUAD_W;
-	// else if (delta.y < 0.0f)
-	// 	gridQuad = QUAD_S;
-	// else if (delta.x > 0.0f)
-	// 	gridQuad = QUAD_E;
-
-	// if (std::fabs(delta.x) > Config::spawnDistance and std::fabs(delta.y) > Config::spawnDistance) {
-	// 	if (delta.y > 0.0f) {
-	// 		if (delta.x > 0.0f)
-	// 			gridQuad = QUAD_NE;
-	// 		else
-	// 			gridQuad = QUAD_NW;
-	// 	} else {
-	// 		if (delta.x > 0.0f)
-	// 			gridQuad = QUAD_SE;
-	// 		else
-	// 			gridQuad = QUAD_SW;
-	// 	}
-	// } else if (std::fabs(delta.x) < Config::spawnDistance and std::fabs(delta.y) > Config::spawnDistance) {
-	// 	if (delta.y > 0.0f)
-	// 		gridQuad = QUAD_N;
-	// 	else
-	// 		gridQuad = QUAD_S;
-	// } else if (std::fabs(delta.x) > Config::spawnDistance and std::fabs(delta.y) < Config::spawnDistance) {
-	// 	if (delta.x > 0.0f)
-	// 		gridQuad = QUAD_E;
-	// 	else
-	// 		gridQuad = QUAD_W;
-	// }
-
+	if (std::fabs(delta.x) > Config::spawnDistance and std::fabs(delta.y) > Config::spawnDistance) {
+		if (delta.y > 0.0f) {
+			if (delta.x > 0.0f)
+				gridQuad = QUAD_NE;
+			else
+				gridQuad = QUAD_NW;
+		} else {
+			if (delta.x > 0.0f)
+				gridQuad = QUAD_SE;
+			else
+				gridQuad = QUAD_SW;
+		}
+	} else if (std::fabs(delta.x) < Config::spawnDistance and std::fabs(delta.y) > Config::spawnDistance) {
+		if (delta.y > 0.0f)
+			gridQuad = QUAD_N;
+		else
+			gridQuad = QUAD_S;
+	} else if (std::fabs(delta.x) > Config::spawnDistance and std::fabs(delta.y) < Config::spawnDistance) {
+		if (delta.x > 0.0f)
+			gridQuad = QUAD_E;
+		else
+			gridQuad = QUAD_W;
+	}
 	return gridQuad;
 }
+
+GridQuadPos	WorldGenerator::getQuadrantPosGreedy( vec3 const& pos ) {
+	return this->getQuadrantPos(vec3{
+		static_cast<float>(static_cast<int32_t>(pos.x) % this->_gridSize.x),
+		static_cast<float>(static_cast<int32_t>(pos.y) % this->_gridSize.y),
+		0.0f
+	});
+}
+
 
 void WorldGenerator::initWorld(vec3 const& centerGrid ) {
 	vec2i centerGrid2D{
 		static_cast<int32_t>(centerGrid.x),
 		static_cast<int32_t>(centerGrid.y),
 	};
-	
+
+	this->_builder.vertices.clear();
+	this->_builder.indices.clear();
 	this->_currentWorldPos = centerGrid2D;
 	this->_world.try_emplace(centerGrid2D, VoxelGrid::voxelGenerator8(this->_gridSize));
-	this->generateBufferData();
+	this->fillBufferGrid(centerGrid2D);
 }
 
 // void WorldGenerator::expandWorld( WorldDirection direction ) {

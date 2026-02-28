@@ -136,8 +136,8 @@ void Vox::run( void )
 		playerPos = this->camera.getCameraPos();
 		// if (std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count() > 1) {
 		// 	lastTime = std::chrono::high_resolution_clock::now();
-		if (this->world.checkSurroundings(playerPos) == true)
-			info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
+			if (this->world.checkSurroundings(playerPos) == true)
+				info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
 		// }
 
 		commandBuffer = vulkanRenderer.beginFrame();
