@@ -5,6 +5,7 @@
 #include "InputHandler.hpp"
 #include "VoxelWorld.hpp"
 #include "Config.hpp"
+#include "InputHandler.hpp"
 
 #include <array>
 #include <memory>

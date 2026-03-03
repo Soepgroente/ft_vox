@@ -1,7 +1,4 @@
 #pragma once
-
-#include "Vulkan.hpp"
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -9,6 +6,8 @@
 #include <functional>
 #include <array>
 #include <cmath>
+
+#include "Vulkan.hpp"
 
 
 namespace vox {

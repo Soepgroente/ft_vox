@@ -11,7 +11,6 @@ KeyboardInput::KeyboardInput()
 void	KeyboardInput::reset()
 {
 	keyStates.fill(false);
-	// keysPressed.fill(false);
 	keysReleased.fill(false);
 }
 
