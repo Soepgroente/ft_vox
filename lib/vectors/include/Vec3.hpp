@@ -31,11 +31,11 @@ class vec3
 		};
 	};
 
-	vec3() : x(0.0f), y(0.0f), z(0.0f) {}
-	vec3(float val) : x(val), y(val), z(val) {}
-	vec3(float x, float y, float z) : x(x), y(y), z(z) {}
-	explicit vec3(const vec2& v2, float z = 0.0f) : x(v2.x), y(v2.y), z(z) {}
-	vec3(const vec3& other) : x(other.x), y(other.y), z(other.z) {}
+	constexpr vec3() : x(0.0f), y(0.0f), z(0.0f) {}
+	constexpr explicit vec3(float val) : x(val), y(val), z(val) {}
+	constexpr vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+	constexpr explicit vec3(const vec2& v2, float z = 0.0f) : x(v2.x), y(v2.y), z(z) {}
+	constexpr vec3(const vec3& other) : x(other.x), y(other.y), z(other.z) {}
 	vec3&	operator=(const vec3& other);
 	~vec3() = default;
 

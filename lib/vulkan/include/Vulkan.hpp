@@ -18,3 +18,5 @@
 #include "VulkanTexture.hpp"
 #include "VulkanFrameInfo.hpp"
 #include "VulkanUtils.hpp"
+#include "MouseInput.hpp"
+#include "KeyboardInput.hpp"

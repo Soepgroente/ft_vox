@@ -25,11 +25,15 @@ class InputHandler
 	bool	isKeyRepeated(int key) const { return keyboard.keysRepeated[key]; }
 	bool	isMouseButtonPressed(int button) const { return mouse.buttonsPressed[button]; }
 	bool	isMouseButtonReleased(int button) const { return mouse.buttonsReleased[button]; }
+	void	setCursorPos( float, float );
+	bool	cursorPositionHasChanged( float&, float& ) noexcept;
+	void	toggleCursorFocus( GLFWwindow* ) noexcept;
 
 	private:
 
 	KeyboardInput	keyboard;
 	MouseInput		mouse;
+	bool			cursorFocus = false;
 };
 
 } // namespace vox

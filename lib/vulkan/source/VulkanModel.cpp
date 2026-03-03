@@ -171,21 +171,8 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 	return center;
 }
 
-std::unique_ptr<VulkanModel>	VulkanModel::createModelFromFile(VulkanDevice& device, const std::string& filepath)
-{
-	Builder	builder{};
-
-	builder.loadModel(filepath);
-
-	if (builder.vertices.size() < 10)
-	{
-		for (VulkanModel::Vertex& vertex : builder.vertices)
-		{
-			vertex.color = {0.6f};
-		}
-	}
-
-	std::unique_ptr<VulkanModel>	model = std::make_unique<VulkanModel>(device, builder);
+std::unique_ptr<VulkanModel> VulkanModel::createModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
+	std::unique_ptr<VulkanModel> model = std::make_unique<VulkanModel>(device, builder);
 
 	model->vertexCenter = model->calculateVertexCenter(builder.vertices);
 	model->setBoundingBox(builder.vertices);

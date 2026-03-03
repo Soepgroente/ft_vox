@@ -84,7 +84,7 @@ class VulkanObject
 	TransformComponent				transform{};
 	
 	id_t	getID() const noexcept { return id; }
-	
+
 	private:
 
 	VulkanObject(id_t objID);

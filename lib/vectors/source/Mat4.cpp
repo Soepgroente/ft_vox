@@ -6,6 +6,57 @@
 #include <cmath>
 #include <cstring>
 
+
+mat4	mat4::idMat( void ) {
+	mat4	id(0.0f);
+
+	id.data[0][0] = 1.0f;
+	id.data[1][1] = 1.0f;
+	id.data[2][2] = 1.0f;
+	id.data[3][3] = 1.0f;
+	return id;
+}
+
+mat4	mat4::transMat( vec3 const& transVect ) {
+	mat4	trans = idMat();
+
+	trans.data[0][3] = transVect.x;
+	trans.data[1][3] = transVect.y;
+	trans.data[2][3] = transVect.z;
+	return trans;
+}
+
+mat4	mat4::scaleMat( vec3 const& scaleVect ) {
+	mat4	scale = idMat();
+
+	scale.data[0][0] = scaleVect.x;
+	scale.data[1][1] = scaleVect.y;
+	scale.data[2][2] = scaleVect.z;
+	scale.data[3][3] = 1.0f;
+	return scale;
+}
+
+mat4	mat4::rotationMat( float angleRadians, vec3 const& axis ) {
+
+	mat4		rotation(0.0f);
+	const float	cosAngle = std::cos(angleRadians);
+	const float	sinAngle = std::sin(angleRadians);
+
+	rotation.data[0][0] = cosAngle + axis.x * axis.x * (1 - cosAngle);
+	rotation.data[0][1] = axis.x * axis.y * (1 - cosAngle) - axis.z * sinAngle;
+	rotation.data[0][2] = axis.x * axis.z * (1 - cosAngle) + axis.y * sinAngle;
+	
+	rotation.data[1][0] = axis.y * axis.x * (1 - cosAngle) + axis.z * sinAngle;
+	rotation.data[1][1] = cosAngle + axis.y * axis.y * (1 - cosAngle);
+	rotation.data[1][2] = axis.y * axis.z * (1 - cosAngle) - axis.x * sinAngle;
+	
+	rotation.data[2][0] = axis.z * axis.x * (1 - cosAngle) - axis.y * sinAngle;
+	rotation.data[2][1] = axis.z * axis.y * (1 - cosAngle) + axis.x * sinAngle;
+	rotation.data[2][2] = cosAngle + axis.z * axis.z * (1 - cosAngle);
+	return rotation;
+}
+
+
 mat4::mat4()
 {
 	std::memset(data, 0, sizeof(data));
@@ -127,64 +178,40 @@ mat4&	mat4::operator*=(const mat4& other)
 	return *this;
 }
 
+mat4&	mat4::transpose() noexcept {
+	for (int row = 0; row < 4; row++) {
+		for (int col = row + 1; col < 4; col++)
+			std::swap((*this)[row][col], (*this)[col][row]);
+	}
+	return *this;
+}
+
+mat4	mat4::transposed() const noexcept {
+	mat4 transposed = *this;
+	return transposed.transpose();
+}
+
 mat4&	mat4::translate(const vec3& translation) noexcept
 {
-	mat4	translationMatrix(1.0f);
-
-	translationMatrix.data[3][0] = translation.x;
-	translationMatrix.data[3][1] = translation.y;
-	translationMatrix.data[3][2] = translation.z;
-	*this *= translationMatrix;
+	*this *= mat4::transMat(translation);
 	return *this;
 }
 
 mat4	mat4::translated(const vec3& translation) const noexcept
 {
-	mat4	translationMatrix(1.0f);
-
-	translationMatrix.data[3][0] = translation.x;
-	translationMatrix.data[3][1] = translation.y;
-	translationMatrix.data[3][2] = translation.z;
-	return (*this) * translationMatrix;
+	return (*this) * mat4::transMat(translation);
 }
 
 
 mat4&	mat4::rotate(float angleRadians, const vec3& axis) noexcept
 {
-	const float	cosAngle = std::cos(angleRadians);
-	const float	sinAngle = std::sin(angleRadians);
-	mat4	r;
-
-	r.data[0][0] = cosAngle + axis.x * axis.x * (1 - cosAngle);
-	r.data[0][1] = axis.x * axis.y * (1 - cosAngle) - axis.z * sinAngle;
-	r.data[0][2] = axis.x * axis.z * (1 - cosAngle) + axis.y * sinAngle;
-	
-	r.data[1][0] = axis.y * axis.x * (1 - cosAngle) + axis.z * sinAngle;
-	r.data[1][1] = cosAngle + axis.y * axis.y * (1 - cosAngle);
-	r.data[1][2] = axis.y * axis.z * (1 - cosAngle) - axis.x * sinAngle;
-	
-	r.data[2][0] = axis.z * axis.x * (1 - cosAngle) - axis.y * sinAngle;
-	r.data[2][1] = axis.z * axis.y * (1 - cosAngle) + axis.x * sinAngle;
-	r.data[2][2] = cosAngle + axis.z * axis.z * (1 - cosAngle);
-	
-	r.data[0][3] = 0.0f;
-	r.data[1][3] = 0.0f;
-	r.data[2][3] = 0.0f;
-	r.data[3][0] = 0.0f;
-	r.data[3][1] = 0.0f;
-	r.data[3][2] = 0.0f;
-	r.data[3][3] = 1.0f;
-
-	*this *= r;
+	*this *= mat4::rotationMat(angleRadians, axis);
 	return *this;
 }
 
 mat4	mat4::rotated(float angleRadians, const vec3& axis) const noexcept
 {
-	mat4	result = *this;
-
-	result.rotate(angleRadians, axis);
-	return result;
+	return (*this) * mat4::rotationMat(angleRadians, axis);
 }
 
 std::ostream&	operator<<(std::ostream& os, const mat4& matrix)

@@ -2,10 +2,10 @@
 
 quat::quat(float angle, const vec3& v3)
 {
-	w = std::cos(angle / 2.0f);
-	x = v3.x * std::sin(angle / 2.0f);
-	y = v3.y * std::sin(angle / 2.0f);
-	z = v3.z * std::sin(angle / 2.0f);
+	w = std::cos(angle);
+	x = v3.x * std::sin(angle);
+	y = v3.y * std::sin(angle);
+	z = v3.z * std::sin(angle);
 }
 
 quat&	quat::operator=(const quat& other)
@@ -18,6 +18,10 @@ quat&	quat::operator=(const quat& other)
 		z = other.z;
 	}
 	return *this;
+}
+
+vec3	quat::vector() const noexcept {
+	return vec3{this->x, this->y, this->z};
 }
 
 quat	quat::clone() const noexcept

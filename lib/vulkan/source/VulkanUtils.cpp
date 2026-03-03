@@ -1,6 +1,8 @@
 #include "VulkanUtils.hpp"
 
-static float	randomFloat()
+namespace ve {
+
+float randomFloat()
 {
 	static std::default_random_engine	engine(std::chrono::system_clock::now().time_since_epoch().count());
 	static std::uniform_real_distribution<float>	distribution(0.0f, 1.0f);
@@ -27,4 +29,6 @@ vec3	generateSoftGreyscale()
 	float	grey = distribution(engine);
 
 	return vec3(grey, grey, grey);
+}
+
 }

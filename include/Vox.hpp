@@ -2,6 +2,8 @@
 
 #include "Vectors.hpp"
 #include "Vulkan.hpp"
+#include "InputHandler.hpp"
+#include "VoxelWorld.hpp"
 #include "Config.hpp"
 #include "InputHandler.hpp"
 
@@ -14,24 +16,36 @@ namespace vox {
 class Vox
 {
 	public:
+		Vox( void );
+		~Vox( void );
+		Vox( Vox const& ) = delete;
+		Vox( Vox&& ) = delete;
+		Vox& operator=( Vox const& ) = delete;
+		Vox& operator=( Vox&& ) = delete;
 
-	bool initialize( void );
-	void run( void );
-	void shutdown( void );
+		void run( void );
+		void shutdown( void );
+
+		InputHandler const& getHandler( void ) const noexcept;
+		InputHandler&		getHandler( void ) noexcept;
+
+		void moveCamera( float );
+		void rotateCamera( void );
 
 	private:
+		void	createObjects( void );
 
-	void	loadObjects();
+		ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};
+		ve::VulkanDevice	vulkanDevice{vulkanWindow};
+		ve::VulkanRenderer	vulkanRenderer{vulkanWindow, vulkanDevice};
+		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
 
-	ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};
-	ve::VulkanDevice	vulkanDevice{vulkanWindow};
-	ve::VulkanRenderer	vulkanRenderer{vulkanWindow, vulkanDevice};
-	std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
-
-	std::string					objModelPath;
-	ve::VulkanObject::Map			objects;
-	std::vector<ve::VulkanTexture>	textures;
-	InputHandler	inputHandler;
+		std::string						objModelPath;
+		ve::Camera						camera;
+		ve::VulkanObject::Map			objects;
+		std::vector<ve::VulkanTexture>	textures;
+		VoxelWorld						world;
+		InputHandler					inputHandler;
 };
 
-}	// namespace vox
+}

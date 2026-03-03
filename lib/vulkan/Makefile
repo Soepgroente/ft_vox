@@ -1,57 +1,53 @@
-# Makefile for Vulkan library
-
-NAME			:=	vulkan.a
 CC				:=	c++
 BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
 DEBUG_FLAGS		:=	-g -fsanitize=address
+CPPFLAGS		:=	$(BASE_CPPFLAGS)
+SRC_DIR			:=	source
 
-INCLUDE			:=	-I ./include \
-					-I /opt/homebrew/include \
-					-I ../vectors \
-					-I ../../include \
-					-I /usr/local/include \
+INCLUDE			:=	-Iinclude \
+					-I/opt/homebrew/include \
+					-I../vectors/include \
+					-I../../include \
+					-I/usr/local/include
 
-SOURCES			:=	Camera.cpp \
-					stb_image.cpp \
-					VulkanBuffer.cpp \
-					VulkanDescriptors.cpp \
-					VulkanDevice.cpp \
-					VulkanFrameInfo.cpp \
-					VulkanModel.cpp \
-					VulkanObject.cpp \
-					VulkanObjFileParser.cpp \
-					VulkanPipeline.cpp \
-					VulkanRenderer.cpp \
-					VulkanRenderSystem.cpp \
-					VulkanSwapChain.cpp \
-					VulkanTexture.cpp \
-					VulkanWindow.cpp \
+SOURCES			:=	$(shell find $(SRC_DIR) -type f -name '*.cpp')
 
-OBJ_DIR			:=	obj
-OBJECTS			:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))
-CPPFLAGS		:=	$(BASE_CPPFLAGS) $(RELEASE_FLAGS)
+BUILD_DIR	:=  build
+TARGET			:=	$(BUILD_DIR)/libvk.a
 
-all: $(NAME)
+OBJ_DIR		:=	$(BUILD_DIR)/obj
+DEPS_DIR	:=  $(BUILD_DIR)/deps
+OBJECTS		:=	$(addprefix $(OBJ_DIR)/,$(notdir $(SOURCES:%.cpp=%.o)))
+DEPS		:=	$(addprefix $(DEPS_DIR)/,$(notdir $(SOURCES:.cpp=.d)))
 
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
 
-$(NAME): $(OBJ_DIR) $(OBJECTS)
-	ar -rcs $(NAME) $(OBJECTS)
+all: $(TARGET)
 
-$(OBJ_DIR)/%.o: %.cpp
-	$(CC) $(CPPFLAGS) $(INCLUDE) -c $< -o $@
+release: CPPFLAGS = $(BASE_CPPFLAGS) $(RELEASE_FLAGS)
+release: all
 
 debug: CPPFLAGS = $(BASE_CPPFLAGS) $(DEBUG_FLAGS)
-debug: fclean $(NAME)
+debug: all
+
+$(OBJ_DIR) $(DEPS_DIR):
+	mkdir -p $@
+
+$(TARGET): $(OBJ_DIR) $(DEPS_DIR) $(OBJECTS)
+	ar -rcs $@ $(OBJECTS)
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CC) $(CPPFLAGS) $(INCLUDE) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@
+
+-include $(DEPS)
 
 clean:
 	rm -rf $(OBJ_DIR)
+	rm -rf $(DEPS_DIR)
 
-fclean: clean
-	rm -f $(NAME)
+fclean:
+	rm -rf $(BUILD_DIR)
 
 re: fclean all
 
-.PHONY: all debug clean fclean re
+.PHONY: all release debug clean fclean re
