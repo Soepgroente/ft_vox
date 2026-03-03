@@ -180,6 +180,43 @@ std::unique_ptr<VulkanModel> VulkanModel::createModel(VulkanDevice& device, ve::
 	return model;
 }
 
+void	VulkanModel::Builder::addVertex( vec3 const& vertex ) noexcept {
+	if (this->uniqueVertexes.count(vertex) > 0)
+		// there's already such vertex, add only the vertex index
+		this->indices.push_back(this->uniqueVertexes[vertex]);
+	else {
+		this->uniqueVertexes[vertex] = this->currentIndex;
+		// new vertex, add it and its vertex index
+		this->vertices.push_back(ve::VulkanModel::Vertex{
+			vertex,
+			ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+			vec3{0.0f, 0.0f, 0.0f},
+			vec2{0.0f, 0.0f}
+		});
+		this->indices.push_back(this->currentIndex++);
+	}
+}
+
+void	VulkanModel::Builder::addVertex( Vertex const& vertex ) noexcept {
+	if (this->uniqueVertexes.count(vertex.pos) > 0)
+		// there's already such vertex, add only the vertex index
+		this->indices.push_back(this->uniqueVertexes[vertex.pos]);
+	else {
+		this->uniqueVertexes[vertex.pos] = this->currentIndex;
+		// new vertex, add it and its vertex index
+		this->vertices.push_back(vertex);
+		this->indices.push_back(this->currentIndex++);
+	}
+}
+
+void	VulkanModel::Builder::emptyData( void ) noexcept {
+	this->vertices.clear();
+	this->indices.clear();
+	this->uniqueVertexes.clear();
+	this->currentIndex = 0U;
+}
+
+
 void	VulkanModel::Builder::loadModel(const std::string &filepath)
 {
 	std::vector<ObjInfo>		objs = parseOBJFile(filepath);
@@ -239,12 +276,7 @@ void	VulkanModel::Builder::loadModel(const std::string &filepath)
 							vertex.normal = obj.normals[norm[ti]];
 						}
 						vertex.color = generateRandomColor();
-						if (uniqueVertices.count(vertex) == 0)
-						{
-							uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-							vertices.push_back(vertex);
-						}
-						indices.push_back(uniqueVertices[vertex]);
+						addVertex(vertex);
 					}
 				}
 			}

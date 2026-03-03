@@ -314,8 +314,7 @@ std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& relativeOrigin,
 
 
 void WorldGenerator::initWorld( void ) {
-	this->_builder.vertices.clear();
-	this->_builder.indices.clear();
+	this->_builder.emptyData();
 	this->addeNewGrid(vec2i(0));
 }
 
@@ -361,12 +360,10 @@ bool WorldGenerator::addeNewGrid( vec2i const& gridPos ) {
 }
 
 void WorldGenerator::fillBufferGrid( vec2i const centerGrid ) {
-	// std::cout << "called refill, pos:" << centerGrid << std::endl;
-	uint32_t indexCount = this->_builder.vertices.size();
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	vec2 relativeOrigin{
+	vec3 relativeOrigin{
 		static_cast<float>(centerGrid.x * static_cast<int32_t>(this->_gridSize.x)),
 		static_cast<float>(centerGrid.y * static_cast<int32_t>(this->_gridSize.y)),
+		0.0f
 	};
 	vec3ui	index(0U);
 	for(; index.z<this->_gridSize.z; index.z++) {
@@ -380,36 +377,17 @@ void WorldGenerator::fillBufferGrid( vec2i const centerGrid ) {
 					static_cast<float>(index.y) + relativeOrigin.y,
 					static_cast<float>(index.z)
 				};
-				std::array<vec3,VERTEX_PER_VOXEL>	voxelVertexes;
-				for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++)
-					voxelVertexes[i] = centerVoxel + VOXEL_VERTEXES[i];  //  * 1.0f (length of a voxel)
+				std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative(centerVoxel);
 				// check every vertex of the cube/voxel to avoid duplicates
-				for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-					if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-						// there's already such vertex, add only the vertex index
-						this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-					else {
-						uniqueVertexes[voxelVertexes[index]] = indexCount;
-						// new vertex, add it and its vertex index
-						this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
-							voxelVertexes[index],
-							ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-							vec3{0.0f, 0.0f, 0.0f},
-							vec2{0.0f, 0.0f}
-						});
-						this->_builder.indices.push_back(indexCount++);
-					}
-				}
+				for (uint32_t index : VOXEL_VERTEX_INDEXES)
+					this->_builder.addVertex(voxelVertexes[index]);
 			}
 		}
 	}
 }
 
 void WorldGenerator::fillBufferGridGreedy( vec2i const centerGrid ) {
-	// std::cout << "(greedy) called refill, pos:" << centerGrid << std::endl;
-	uint32_t indexCount = this->_builder.vertices.size();
-	std::unordered_map<vec3, uint32_t>	uniqueVertexes;
-	vec2 relativeOrigin{
+	vec3 relativeOrigin{
 		static_cast<float>(centerGrid.x) * static_cast<float>(this->_gridSize.x),
 		static_cast<float>(centerGrid.y) * static_cast<float>(this->_gridSize.y),
 	};
@@ -454,31 +432,10 @@ void WorldGenerator::fillBufferGridGreedy( vec2i const centerGrid ) {
 			static_cast<float>(start.y) + relativeOrigin.y,
 			static_cast<float>(start.z)
 		};
-		// std::cout << "bounding box: " << boxelSize << std::endl;
-		std::array<vec3,VERTEX_PER_VOXEL>	voxelVertexes;
-		for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
-			// pos = posV * scale-size + center-pos
-			voxelVertexes[i].x = centerBoxel.x + VOXEL_VERTEXES[i].x * boxelSize.x;
-			voxelVertexes[i].y = centerBoxel.y + VOXEL_VERTEXES[i].y * boxelSize.y;
-			voxelVertexes[i].z = centerBoxel.z + VOXEL_VERTEXES[i].z * boxelSize.z;
-		}
+		std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative(centerBoxel, boxelSize);
 		// check every vertex of the cube/voxel to avoid duplicates
-		for (uint32_t index : VOXEL_VERTEX_INDEXES) {
-			if (uniqueVertexes.count(voxelVertexes[index]) > 0)
-				// there's already such vertex, add only the vertex index
-				this->_builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
-			else {
-				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				// new vertex, add it and its vertex index
-				this->_builder.vertices.push_back(ve::VulkanModel::Vertex{
-					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-					vec3{0.0f, 0.0f, 0.0f},
-					vec2{0.0f, 0.0f}
-				});
-				this->_builder.indices.push_back(indexCount++);
-			}
-		}
+		for (uint32_t index : VOXEL_VERTEX_INDEXES)
+			this->_builder.addVertex(voxelVertexes[index]);
 		// find next voxel
 		start = this->_world.at(centerGrid).nextVoxel(start);
 	} while (start != endingVoxel);
