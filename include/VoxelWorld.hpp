@@ -6,6 +6,7 @@
 #include <map>
 #include <iostream>
 #include <unordered_map>
+#include <deque>
 
 #include "Vulkan.hpp"
 
@@ -14,7 +15,6 @@ namespace vox {
 
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 8U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
-
 
 inline constexpr std::array<vec3,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
 	vec3{-0.5f,  0.5f, -0.5f},	// front-top-left corner
@@ -80,8 +80,45 @@ class VoxelGrid {
 
 
 class WorldGenerator {
+
+	class HistoryGrid {
+		
+		public:
+			HistoryGrid( uint32_t max ) : max(max) {};
+			~HistoryGrid( void ) noexcept = default;
+			HistoryGrid( HistoryGrid const& ) = default;
+			HistoryGrid( HistoryGrid&& ) = default;
+			HistoryGrid& operator=( HistoryGrid const& ) = default;
+			HistoryGrid& operator=( HistoryGrid&& ) = default;
+
+			void add(vec2i const& newPos) {
+				// if the limit of of the total positions
+				// visited is reached, drop the oldest position stored
+				if (counter.size() == this->max) {
+					vec2i const& lastPosInHistory = history.front();
+					history.pop_front();
+
+					auto it = counter.find(lastPosInHistory);
+					if (--(it->second) == 0)
+						counter.erase(it);
+					// NB it should also removed grid from GPU e reload model
+				}
+				history.push_back(newPos);
+				++counter[newPos];
+			}
+
+			bool visited(vec2i const& pos) const { return this->counter.find(pos) != this->counter.end();}
+
+		private:
+			uint32_t							max;
+			std::deque<vec2i>					history;	// order of grids visited
+			std::unordered_map<vec2i,uint32_t>	counter;	// use un. map for fast lookup 
+	};
+
 	public:
-		WorldGenerator( vec3ui const& gridSize ) : _gridSize(gridSize) {};
+		WorldGenerator( vec3ui const& gridSize, uint32_t maxGridStored ) : 
+			_history(maxGridStored), 
+			_gridSize(gridSize) {};
 		~WorldGenerator( void ) = default;
 		WorldGenerator( WorldGenerator const& ) = default;
 		WorldGenerator( WorldGenerator&& ) = default;
@@ -91,12 +128,16 @@ class WorldGenerator {
 		void	initWorld( void );
 		bool	checkSurroundings( vec3 const& );
 		bool	addeNewGrid( vec2i const& );
-		void	fillBufferGrid( vec2i const );
-		void	fillBufferGridGreedy( vec2i const );
+		bool	addeNewGridFast( vec2i const& );
+		void	fillBufferGrid( vec2i const& );
+		void	fillBufferGridGreedy( vec2i const& );
 
 		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return _builder; };
 
 	private:
+		void	loadNewGrid( vec2i const& );
+
+		HistoryGrid							_history;
 		std::unordered_map<vec2i,VoxelGrid>	_world;
 		vec3ui								_gridSize;
 		ve::VulkanModel::Builder			_builder;

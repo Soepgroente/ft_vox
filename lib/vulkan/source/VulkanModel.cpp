@@ -174,14 +174,14 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 std::unique_ptr<VulkanModel> VulkanModel::createModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
 	std::unique_ptr<VulkanModel> model = std::make_unique<VulkanModel>(device, builder);
 
-	model->vertexCenter = model->calculateVertexCenter(builder.vertices);
-	model->setBoundingBox(builder.vertices);
-	model->setObjectCenter();
+	// model->vertexCenter = model->calculateVertexCenter(builder.vertices);
+	// model->setBoundingBox(builder.vertices);
+	// model->setObjectCenter();
 	return model;
 }
 
 void	VulkanModel::Builder::addVertex( vec3 const& vertex ) noexcept {
-	if (this->uniqueVertexes.count(vertex) > 0)
+	if (this->uniqueVertexes.find(vertex) != this->uniqueVertexes.end())
 		// there's already such vertex, add only the vertex index
 		this->indices.push_back(this->uniqueVertexes[vertex]);
 	else {
@@ -198,7 +198,7 @@ void	VulkanModel::Builder::addVertex( vec3 const& vertex ) noexcept {
 }
 
 void	VulkanModel::Builder::addVertex( Vertex const& vertex ) noexcept {
-	if (this->uniqueVertexes.count(vertex.pos) > 0)
+	if (this->uniqueVertexes.find(vertex.pos) != this->uniqueVertexes.end())
 		// there's already such vertex, add only the vertex index
 		this->indices.push_back(this->uniqueVertexes[vertex.pos]);
 	else {
@@ -215,7 +215,6 @@ void	VulkanModel::Builder::emptyData( void ) noexcept {
 	this->uniqueVertexes.clear();
 	this->currentIndex = 0U;
 }
-
 
 void	VulkanModel::Builder::loadModel(const std::string &filepath)
 {

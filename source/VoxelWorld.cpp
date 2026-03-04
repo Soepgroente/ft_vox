@@ -315,7 +315,7 @@ std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& relativeOrigin,
 
 void WorldGenerator::initWorld( void ) {
 	this->_builder.emptyData();
-	this->addeNewGrid(vec2i(0));
+	this->addeNewGridFast(vec2i(0));
 }
 
 bool WorldGenerator::checkSurroundings( vec3 const& playerPos ) {
@@ -328,7 +328,7 @@ bool WorldGenerator::checkSurroundings( vec3 const& playerPos ) {
 	if (playerPos.y < 0.0f)
 		currentWorldPos.y -= 1;
 
-	// add a grid in every of these 9 qudrants
+	// add a grid in every of these 9 quadrants
 	//  __ __ __
 	// |NW|N |NE|
 	// |__|__|__|
@@ -337,20 +337,19 @@ bool WorldGenerator::checkSurroundings( vec3 const& playerPos ) {
 	// |SW|S |SE|
 	// |__|__|__|
 	bool realoadData = false;
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x, currentWorldPos.y + 1});		// N
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x + 1, currentWorldPos.y + 1});	// N-E
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x + 1, currentWorldPos.y});		// E
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x + 1, currentWorldPos.y - 1});	// S-E
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x, currentWorldPos.y - 1});		// S
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x - 1, currentWorldPos.y - 1});	// S-W
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x - 1, currentWorldPos.y});		// W
-	realoadData |= this->addeNewGrid(vec2i{currentWorldPos.x - 1, currentWorldPos.y + 1});	// N-W
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x, currentWorldPos.y + 1});		// N
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x + 1, currentWorldPos.y + 1});	// N-E
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x + 1, currentWorldPos.y});		// E
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x + 1, currentWorldPos.y - 1});	// S-E
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x, currentWorldPos.y - 1});		// S
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x - 1, currentWorldPos.y - 1});	// S-W
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x - 1, currentWorldPos.y});		// W
+	realoadData |= this->addeNewGridFast(vec2i{currentWorldPos.x - 1, currentWorldPos.y + 1});	// N-W
 	return realoadData;
 }
 
 bool WorldGenerator::addeNewGrid( vec2i const& gridPos ) {
-	bool insertedNewGrid = this->_world.count(gridPos) == 0;
-
+	bool insertedNewGrid = this->_world.find(gridPos) == this->_world.end();
 	if (insertedNewGrid) {
 		VoxelGrid newGrid = VoxelGrid::voxelGenerator8(this->_gridSize);
 		this->_world.try_emplace(gridPos, newGrid);
@@ -359,7 +358,16 @@ bool WorldGenerator::addeNewGrid( vec2i const& gridPos ) {
 	return insertedNewGrid;
 }
 
-void WorldGenerator::fillBufferGrid( vec2i const centerGrid ) {
+bool WorldGenerator::addeNewGridFast( vec2i const& gridPos ) {
+	bool newGridAdded = this->_history.visited(gridPos) == false;
+	if (newGridAdded) {
+		this->_history.add(gridPos);
+		this->loadNewGrid(gridPos);
+	}
+	return newGridAdded;
+}
+
+void WorldGenerator::fillBufferGrid( vec2i const& centerGrid ) {
 	vec3 relativeOrigin{
 		static_cast<float>(centerGrid.x * static_cast<int32_t>(this->_gridSize.x)),
 		static_cast<float>(centerGrid.y * static_cast<int32_t>(this->_gridSize.y)),
@@ -386,7 +394,7 @@ void WorldGenerator::fillBufferGrid( vec2i const centerGrid ) {
 	}
 }
 
-void WorldGenerator::fillBufferGridGreedy( vec2i const centerGrid ) {
+void WorldGenerator::fillBufferGridGreedy( vec2i const& centerGrid ) {
 	vec3 relativeOrigin{
 		static_cast<float>(centerGrid.x) * static_cast<float>(this->_gridSize.x),
 		static_cast<float>(centerGrid.y) * static_cast<float>(this->_gridSize.y),
@@ -441,4 +449,25 @@ void WorldGenerator::fillBufferGridGreedy( vec2i const centerGrid ) {
 	} while (start != endingVoxel);
 }
 
+void WorldGenerator::loadNewGrid( vec2i const& centerGrid ) {
+	vec2 relativeOrigin{
+		static_cast<float>(centerGrid.x * static_cast<int32_t>(this->_gridSize.x)),
+		static_cast<float>(centerGrid.y * static_cast<int32_t>(this->_gridSize.y))
+	};
+	vec3ui		index{0U, 0U, 0U};
+	// set floor
+	for(index.y=0; index.y<this->_gridSize.y; index.y++) {
+		for(index.x=0; index.x<this->_gridSize.x; index.x++) {
+			vec3 centerVoxel{
+				static_cast<float>(index.x) + relativeOrigin.x,
+				static_cast<float>(index.y) + relativeOrigin.y,
+				static_cast<float>(index.z)
+			};
+			std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative(centerVoxel);
+			// check every vertex of the cube/voxel to avoid duplicates
+			for (uint32_t index : VOXEL_VERTEX_INDEXES)
+				this->_builder.addVertex(voxelVertexes[index]);
+		}
+	}
+}
 }
