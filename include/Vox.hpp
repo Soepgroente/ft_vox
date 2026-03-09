@@ -31,6 +31,7 @@ class Vox
 
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( float, float );
+		void resizeWindow( uint32_t, uint32_t );
 
 	private:
 		ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};

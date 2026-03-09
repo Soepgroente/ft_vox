@@ -13,8 +13,9 @@ class InputHandler
 {
 	public:
 
-	InputHandler(std::function<void(float, float)> mouseCb) noexcept : 
-		mouseCallback(mouseCb) {};
+	InputHandler(std::function<void(float, float)> mouseCb, std::function<void(int32_t, int32_t)> resizeCb) noexcept : 
+		mouseCallback(mouseCb),
+		resizeCallback(resizeCb) {};
 	~InputHandler() noexcept = default;
 	InputHandler(const InputHandler&) = delete;
 	InputHandler& operator=(const InputHandler&) = delete;
@@ -38,6 +39,7 @@ class InputHandler
 	bool			cursorFocus = false;
 
 	std::function<void(float, float)>		mouseCallback;
+	std::function<void(int32_t, int32_t)>	resizeCallback;
 };
 
 } // namespace vox

@@ -25,8 +25,6 @@ void	VulkanWindow::initWindow()
 	{
 		throw std::runtime_error("failed to create GLFW window");
 	}
-	glfwSetWindowUserPointer(window, this);
-	glfwSetFramebufferSizeCallback(window, &framebufferResizeCallback);
 }
 
 void	VulkanWindow::createWindowSurface(VkInstance instance, VkSurfaceKHR* surface)
@@ -37,13 +35,11 @@ void	VulkanWindow::createWindowSurface(VkInstance instance, VkSurfaceKHR* surfac
 	}
 }
 
-void	VulkanWindow::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+void	VulkanWindow::resetWindowSize(int width, int height)
 {
-	VulkanWindow*	vulkanWindow = reinterpret_cast<VulkanWindow*>(glfwGetWindowUserPointer(window));
-
-	vulkanWindow->resized = true;
-	vulkanWindow->width = width;
-	vulkanWindow->height = height;
+	this->resized = true;
+	this->width = width;
+	this->height = height;
 }
 
 }	// namespace ve
