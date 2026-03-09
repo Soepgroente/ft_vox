@@ -109,7 +109,7 @@ class VoxelGrid {
 		static VoxelGrid voxelGenerator5( vec3ui const& );
 		static VoxelGrid voxelGenerator6( vec3ui const& );
 
-		static VoxelGrid voxelGenerator(const vec3ui& worldSize, ui32 seed, std::function<float(float, float, ui32&)> noiseFunction);
+		static VoxelGrid voxelGenerator(const vec3ui& worldSize, ui32 seed, const std::function<float(float, float, ui32&)>& noiseFunction);
 
 		private:
 			vec3ui				_size;

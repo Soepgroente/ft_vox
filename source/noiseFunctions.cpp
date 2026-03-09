@@ -35,35 +35,35 @@ static float	prn(ui32& id)
 	return static_cast<float>(result / 4294967295.0);
 }
 
-// static float	norm_dist(ui32& id)
-// {
-// 	float	rho;
-// 	float	theta;
+static float	norm_dist(ui32& id)
+{
+	float	rho;
+	float	theta;
 
-// 	rho = std::sqrt(-2 * std::log(prn(id)));
-// 	theta = 2 * pi() * prn(id);
-// 	return (rho * std::cos(theta));
-// }
+	rho = std::sqrt(-2 * std::log(prn(id)));
+	theta = 2 * pi() * prn(id);
+	return (rho * std::cos(theta));
+}
 
-// float	perlinNoise(float x, float y, ui32 seed)
-// {	
-// 	float xFloor = x - std::floor(x);
-// 	float yFloor = y - std::floor(y);
+float	perlinNoise(float x, float y, ui32 seed)
+{	
+	float xFloor = x - std::floor(x);
+	float yFloor = y - std::floor(y);
 
-// 	ui32 X = static_cast<ui32>(xFloor) % 256;
-// 	ui32 Y = static_cast<ui32>(yFloor) % 256;
+	ui32 X = static_cast<ui32>(xFloor) % 256;
+	ui32 Y = static_cast<ui32>(yFloor) % 256;
 
-// 	vec2	topLeft(xFloor, yFloor - 1.0f);
-// 	vec2	topRight(xFloor - 1.0f, yFloor - 1.0f);
-// 	vec2	bottomLeft(xFloor, yFloor);
-// 	vec2	bottomRight(xFloor - 1.0f, yFloor);
+	vec2	topLeft(xFloor, yFloor - 1.0f);
+	vec2	topRight(xFloor - 1.0f, yFloor - 1.0f);
+	vec2	bottomLeft(xFloor, yFloor);
+	vec2	bottomRight(xFloor - 1.0f, yFloor);
 
 
-// }
+}
 
 float	randomNoise(float, float, ui32& seed)
 {
-	return prn(seed) * 2.0f - 1.0f;
+	return prn(seed);
 }
 
 }	// namespace vox

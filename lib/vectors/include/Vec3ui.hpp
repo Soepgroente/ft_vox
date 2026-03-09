@@ -21,8 +21,8 @@ class vec3ui
 		struct
 		{
 			ui32	width;
-			ui32	length;
 			ui32	height;
+			ui32	depth;
 		};
 	};
 

@@ -344,7 +344,7 @@ std::vector<Voxel>	VoxelGrid::getVoxelsFromMap( void ) {
 
 void	VoxelWorld::createRandomWorld()
 {
-	this->_grid = VoxelGrid::voxelGenerator(vec3ui{Config::worldSize, 256, Config::worldSize}, 0, &randomNoise);
+	this->_grid = VoxelGrid::voxelGenerator(vec3ui{Config::worldSize, 256, Config::worldSize}, 0, randomNoise);
 }
 
 std::vector<Boxel> VoxelGrid::getBoxels( void ) {
@@ -411,7 +411,7 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferData( bool duplicateVertex ) 
 			if (duplicateVertex == true) {
 				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{voxelVertexes[index].y, voxelVertexes[index].y, voxelVertexes[index].y},		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
@@ -426,7 +426,7 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferData( bool duplicateVertex ) 
 				// new vertex, add it and its vertex index
 				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{voxelVertexes[index].y, voxelVertexes[index].y, voxelVertexes[index].y},		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
@@ -468,7 +468,7 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVer
 			if (duplicateVertex == true) {
 				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{voxelVertexes[index].z / 255.0f},		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
@@ -480,10 +480,12 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVer
 				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
 			else {
 				uniqueVertexes[voxelVertexes[index]] = indexCount;
+				std::cout << "color: " << voxelVertexes[index].z / 255.0f << std::endl;
+				std::cout << "vertex: " << voxelVertexes[index] << std::endl;
 				// new vertex, add it and its vertex index
 				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
-					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					vec3{std::pow(voxelVertexes[index].z / 255.0f, 2.0f)},		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
@@ -510,36 +512,32 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVer
 	return builder;
 }
 
-VoxelGrid	VoxelGrid::voxelGenerator(const vec3ui& worldSize, ui32 seed, std::function<float(float, float, ui32&)> noiseFunction)
+VoxelGrid	VoxelGrid::voxelGenerator(const vec3ui& worldSize, ui32 seed, const std::function<float(float, float, ui32&)>& noiseFunction)
 {
-	VoxelGrid grid(vec3ui{worldSize.x, 256, worldSize.z});
+	VoxelGrid grid(vec3ui{worldSize.width, worldSize.depth, 256});
 	float scalar = Config::noiseScalar;
 
-	for (ui32 z = 0; z < worldSize.z; z++)
+	for (ui32 z = 0; z < worldSize.depth; z++)
 	{
-		for (ui32 x = 0; x < worldSize.x; x++)
+		for (ui32 x = 0; x < worldSize.width; x++)
 		{
 			float noiseValue = noiseFunction(static_cast<float>(x) * scalar, static_cast<float>(z) * scalar, seed);
 
-			noiseValue = (noiseValue + 1.0f) / 2.0f;
-			std::cout << "Noise value for (" << x << ", " << z << "): " << noiseValue << std::endl;
-			grid.gridData[z][x] = static_cast<ui8>(std::roundf(noiseValue * 256.0f));
+			// noiseValue = (noiseValue + 1.0f) / 2.0f;
+			// std::cout << "Noise value for (" << x << ", " << z << "): " << noiseValue << std::endl;
+			grid.gridData[z][x] = static_cast<ui8>(std::roundf(noiseValue * 255.0f));
 		}
 	}
 	size_t sizeZ = worldSize.z;
 	size_t sizeX = worldSize.x;
 
-	std::cout << "sizes:" << sizeZ << " " << sizeX << std::endl;
-
 	for (size_t z = 0; z < sizeZ; z++)
 	{
 		for (size_t x = 0; x < sizeX; x++)
 		{
-			// std::cout << "GridData[z][x]: " << static_cast<int>(grid.gridData[z][x]) << std::endl;
 			for (ui8 y = 0; y < grid.gridData[z][x]; y++)
 			{
-				// std::cout << "Setting voxel at (" << x << ", " << static_cast<int>(y) << ", " << z << ") to true" << std::endl;
-				grid.setVoxel(vec3ui(x, y, z), true);
+				grid.setVoxel(vec3ui(x, z, y), true);
 			}
 		}
 	}
