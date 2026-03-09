@@ -42,29 +42,51 @@ inline constexpr std::array<uint32_t,INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 	1U, 2U, 6U,		// right face
 	1U, 6U, 5U,		// right face
 	0U, 3U, 7U,		// left face
-	0U, 7U, 4U			// left face
+	0U, 7U, 4U		// left face
 };
 
 
 class VoxelWorld {
 	public:
+	    class WorldIterator {
+			public:
+				WorldIterator( vec3ui const& start, vec3ui const& limits ) : pos3D(start), limits(limits) {}
+				~WorldIterator( void ) noexcept = default;
+				WorldIterator( WorldIterator const& ) = delete;
+				WorldIterator( WorldIterator&& ) = default;
+				WorldIterator& operator=( WorldIterator const& ) = delete;
+				WorldIterator& operator=( WorldIterator&& ) = delete;
+
+				vec3ui const&	operator*( void ) const { return pos3D; }
+				vec3ui&			operator*( void ) { return pos3D; }
+				WorldIterator&	operator++( void );
+				bool			operator!=( WorldIterator const& ) const;
+
+			private:
+				vec3ui			pos3D;
+				vec3ui const&	limits;
+
+			friend VoxelWorld;
+		};
+
 		~VoxelWorld( void ) = default;
-		VoxelWorld( VoxelWorld const& ) = default;
+		VoxelWorld( VoxelWorld const& ) = delete;
 		VoxelWorld( VoxelWorld&& ) = default;
-		VoxelWorld& operator=( VoxelWorld const& ) = default;
+		VoxelWorld& operator=( VoxelWorld const& ) = delete;
 		VoxelWorld& operator=( VoxelWorld&& ) = default;
 
 		std::vector<bool>::reference		operator[]( vec3ui const& );
 		std::vector<bool>::const_reference	operator[]( vec3ui const& ) const;
 
-		vec3ui const&	getSize( void ) const noexcept;
-		bool			isVoxel( vec3ui const& ) const;
-		// create/remove a single voxel in a 3D pos
-		void			setVoxel( vec3ui const&, bool );
-		// create/remove a sector of voxels
-		void			setVoxel( vec3ui const&, vec3ui const&, bool );
-		vec3ui			nextVoxel( vec3ui const& ) const;
-		vec3ui			firstVoxel( void ) const;
+		bool	isVoxel( vec3ui const& ) const;
+		void	setVoxel( vec3ui const&, bool );				// create/remove a single voxel in a 3D pos
+		void	setVoxel( vec3ui const&, vec3ui const&, bool ); // create/remove a sector of voxels
+		vec3ui	getBoxelSize( vec3ui const& ) const noexcept;	// greedy meshing
+
+		WorldIterator begin( void ) const { return WorldIterator(vec3ui(0U), this->size);};
+		WorldIterator begin( void ) { return WorldIterator(vec3ui(0U), this->size);};
+		WorldIterator end( void ) const { return WorldIterator(this->size, this->size); };
+		WorldIterator end( void ) { return WorldIterator(this->size, this->size); };
 
 		static VoxelWorld voxelGenerator1( vec3ui const& );
 		static VoxelWorld voxelGenerator2( vec3ui const& );
@@ -90,44 +112,43 @@ enum WorldCreationMode {
 };
 
 class WorldGenerator {
-
-	class HistoryWorlds {
-		public:
-			HistoryWorlds( uint32_t max ) : max(max) {};
-			~HistoryWorlds( void ) noexcept = default;
-			HistoryWorlds( HistoryWorlds const& ) = delete;
-			HistoryWorlds( HistoryWorlds&& ) = delete;
-			HistoryWorlds& operator=( HistoryWorlds const& ) = delete;
-			HistoryWorlds& operator=( HistoryWorlds&& ) = delete;
-
-			void add(vec2i const& newPos);
-			bool hasVisited(vec2i const& pos) const;
-
-		private:
-			uint32_t							max;		// max number of positions stored
-			std::deque<vec2i>					history;	// using FIFO for storing position history
-			std::unordered_map<vec2i,uint32_t>	counter;	// using unord. map for fast lookup 
-	};
-
 	public:
+		class HistoryWorlds {
+			public:
+				HistoryWorlds( uint32_t max ) : max(max) {};
+				~HistoryWorlds( void ) noexcept = default;
+				HistoryWorlds( HistoryWorlds const& ) = delete;
+				HistoryWorlds( HistoryWorlds&& ) = delete;
+				HistoryWorlds& operator=( HistoryWorlds const& ) = delete;
+				HistoryWorlds& operator=( HistoryWorlds&& ) = delete;
+
+				void add(vec2i const& newPos);
+				bool hasVisited(vec2i const& pos) const;
+
+			private:
+				uint32_t							max;		// max number of positions stored
+				std::deque<vec2i>					history;	// using FIFO for storing position history
+				std::unordered_map<vec2i,uint32_t>	counter;	// using unord. map for fast lookup 
+		};
+
 		WorldGenerator( vec3ui const& worldSize, uint32_t maxWorldsStored, WorldCreationMode mode = MODE_VOXEL_STATIC ) : 
 			history(maxWorldsStored), 
 			worldSize(worldSize),
 			mode(mode) {};
 		~WorldGenerator( void ) = default;
-		WorldGenerator( WorldGenerator const& ) = default;
-		WorldGenerator( WorldGenerator&& ) = default;
-		WorldGenerator& operator=( WorldGenerator const& ) = default;
-		WorldGenerator& operator=( WorldGenerator&& ) = default;
+		WorldGenerator( WorldGenerator const& ) = delete;
+		WorldGenerator( WorldGenerator&& ) = delete;
+		WorldGenerator& operator=( WorldGenerator const& ) = delete;
+		WorldGenerator& operator=( WorldGenerator&& ) = delete;
 
-		void	initGenerator( void );
+		void	init( void );
 		bool	spawnCloseByWorlds( vec3 const& );
+		bool	addeNewWorld( vec2i const& );
 
 		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return builder; };
 		ve::VulkanModel::Builder&		getBuilder( void ) noexcept { return builder; };
 
 	private:
-		bool	addeNewWorld( vec2i const& );
 		void	fillBufferVoxel( vec2i const& );
 		void	fillBufferBoxel( vec2i const& );
 

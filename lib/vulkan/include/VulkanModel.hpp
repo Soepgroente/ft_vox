@@ -88,7 +88,7 @@ class VulkanModel
 	const vec3&	getVertexCenter() const noexcept { return vertexCenter; }
 	const vec3&	getBoundingCenter() const noexcept { return boundingCenter; }
 	const BoundingBox&	getBoundingBox() const noexcept { return boundingBox; }
-	static std::unique_ptr<VulkanModel>	createModel(VulkanDevice&, ve::VulkanModel::Builder const&);
+	static std::unique_ptr<VulkanModel>	createVulkanModel(VulkanDevice&, ve::VulkanModel::Builder const&);
 
 	private:
 	
