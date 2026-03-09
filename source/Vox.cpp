@@ -19,7 +19,10 @@ struct GlobalUBO
 Vox::Vox( void ) : 
 	objModelPath("models/teapot.obj"),
 	camera(Config::centerMap, ve::CameraSettings::cameraForward, Config::worldLimits),
-	world(vec3ui(Config::worldSize), Config::maxWorldsStored)
+	world(vec3ui(Config::worldSize), Config::maxWorldsStored),
+	inputHandler(
+		[this](float width, float height) { this->rotateCameraFromCursorPos(width, height); }
+	)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -121,7 +124,6 @@ void Vox::run( void )
 		currentTime = std::chrono::high_resolution_clock::now();
 		// do game operations
 		this->moveCamera(elapsedTime);
-		this->rotateCamera();
 		// add chunks of maps if necessary
 		if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
 			info.gameObject.model = ve::VulkanModel::createVulkanModel(this->vulkanDevice, this->world.getBuilder());
@@ -204,18 +206,12 @@ void Vox::moveCamera( float deltaTime ) {
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
 }
 
-void Vox::rotateCamera( void ) {
-	float deltaX, deltaY;
-	if (this->inputHandler.cursorPositionHasChanged(deltaX, deltaY) == false)
-		return;
+void Vox::rotateCameraFromCursorPos( float newX, float newY ) {
+	float oldX, oldY;
+	this->inputHandler.getCursorPos(oldX, oldY);
 
-	float yaw = deltaX * ve::CameraSettings::cameraSensitivity;
-	float pitch = -deltaY * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
-
-	if (pitch > 89.0f)
-		pitch =  89.0f;
-	else if(pitch < -89.0f)
-		pitch = -89.0f;
+	float yaw = (newX - oldX) * ve::CameraSettings::cameraSensitivity;
+	float pitch = (oldY - newY) * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
 }
 
