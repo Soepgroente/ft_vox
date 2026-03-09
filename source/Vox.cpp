@@ -167,14 +167,6 @@ void Vox::shutdown( void )
 {
 }
 
-InputHandler const& Vox::getHandler( void ) const noexcept {
-	return this->inputHandler;
-}
-
-InputHandler& Vox::getHandler( void ) noexcept {
-	return this->inputHandler;
-}
-
 void Vox::moveCamera( float deltaTime ) {
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
 		this->camera.moveForward(deltaTime * Config::movementSpeed);

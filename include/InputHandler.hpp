@@ -31,6 +31,7 @@ class InputHandler
 	void	setCursorPos( float, float ) noexcept;
 	void	getCursorPos( float&, float& ) noexcept;
 	void	toggleCursorFocus( GLFWwindow* ) noexcept;
+	void	closeWindow( GLFWwindow* ) noexcept;
 
 	private:
 
