@@ -7,6 +7,7 @@
 #include "Config.hpp"
 
 #include <array>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -46,5 +47,6 @@ class Vox
 		VoxelWorld						world;
 		InputHandler					inputHandler;
 };
+
 
 }
