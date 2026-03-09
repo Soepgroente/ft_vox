@@ -49,29 +49,31 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		(void)window;
 		// Handle scroll input here if needed
 	});
+	// changed cursor position callback
 	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double posX, double posY) {
 		if (glfwGetWindowAttrib(window, GLFW_FOCUSED) == false)
 			return;
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
-		handler->setCursorPos(static_cast<float>(posX), static_cast<float>(posY));
+		float posXf = static_cast<float>(posX);
+		float posYf = static_cast<float>(posY);
+		if (handler->cursorFocus == true)
+			handler->mouseCallback(posXf, posYf);
+		handler->setCursorPos(posXf, posYf);
 	});
 }
 
-void InputHandler::reset()
+void InputHandler::reset()  noexcept
 {
 	keyboard.reset();
 	mouse.reset();
 }
 
-void InputHandler::setCursorPos( float posX, float posY ) {
+void InputHandler::setCursorPos( float posX, float posY ) noexcept {
 	this->mouse.setCursorPos(posX, posY);
 }
 
-bool InputHandler::cursorPositionHasChanged( float& deltaX, float& deltaY ) noexcept {
-	// if mouse is not focused do not update the change in the cursor pos
-	if (this->cursorFocus == false)
-		return false;
-	return this->mouse.cursorPositionHasChanged(deltaX, deltaY);
+void InputHandler::getCursorPos( float &posX, float &posY ) noexcept {
+	this->mouse.getCursorPos(posX, posY);
 }
 
 void InputHandler::toggleCursorFocus( GLFWwindow* window) noexcept {
@@ -81,6 +83,5 @@ void InputHandler::toggleCursorFocus( GLFWwindow* window) noexcept {
 	else
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
-
 
 }	// namespace vox

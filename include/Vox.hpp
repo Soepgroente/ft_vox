@@ -30,7 +30,7 @@ class Vox
 		InputHandler&		getHandler( void ) noexcept;
 
 		void moveCamera( float );
-		void rotateCamera( void );
+		void rotateCameraFromCursorPos( float, float );
 
 	private:
 		ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};
