@@ -8,6 +8,37 @@
 
 namespace vox {
 
+std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes;
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+		voxelVertexes[i].x = (VOXEL_VERTEXES[i].x + 0.5f) * dimension.x + relativeOrigin.x;
+		voxelVertexes[i].y = (VOXEL_VERTEXES[i].y + 0.5f) * dimension.y + relativeOrigin.y;
+		voxelVertexes[i].z = (VOXEL_VERTEXES[i].z + 0.5f) * dimension.z + relativeOrigin.z;
+	}
+	return voxelVertexes;
+}
+
+
+VoxelWorld::WorldIterator& VoxelWorld::WorldIterator::operator++( void ) {
+	this->pos3D.x++;
+	if (this->pos3D.x == this->limits.x) {
+		this->pos3D.y++;
+		if (this->pos3D.y == this->limits.y) {
+			this->pos3D.z++;
+			if (this->pos3D.z < this->limits.z) {
+				this->pos3D.x = 0U;
+				this->pos3D.y = 0U;
+			}	// else pos3D = limits == end
+		} else
+			this->pos3D.x = 0U;
+	}
+	return *this;
+}
+
+bool VoxelWorld::WorldIterator::operator!=( VoxelWorld::WorldIterator const& other ) const {
+	return this->pos3D != other.pos3D;
+}
+
 
 // floor on the ground, two 'towers' of voxels, left and right
 VoxelWorld VoxelWorld::voxelGenerator1( vec3ui const& worldLimit ) {
@@ -226,10 +257,6 @@ std::vector<bool>::const_reference VoxelWorld::operator[]( vec3ui const& pos ) c
 	return this->world[pos.x + pos.y * this->size.x + pos.z * this->size.x * this->size.y];
 }
 
-vec3ui const& VoxelWorld::getSize( void ) const noexcept {
-	return this->size;
-}
-
 bool VoxelWorld::isVoxel( vec3ui const& pos ) const {
 	return (*this)[pos];
 }
@@ -257,60 +284,38 @@ void VoxelWorld::setVoxel( vec3ui const& start, vec3ui const& end, bool value ) 
 
 }
 
-vec3ui VoxelWorld::nextVoxel( vec3ui const& pos ) const {
-	if ((pos.x >= this->size.x) or
-		(pos.y >= this->size.y) or
-		(pos.z >= this->size.z))
-			throw std::runtime_error("Voxel position out of world");
+vec3ui VoxelWorld::getBoxelSize( vec3ui const& startVoxel ) const noexcept {
+	if (this->isVoxel(startVoxel) == false)
+		return vec3ui(0U);
 
-	vec3ui	next(pos);
-	do {
-		if (next.x < this->size.x - 1)		// next voxel in line
-			next.x++;
-		else if (next.y < this->size.y - 1) {	// end of line, check y+1
-			next.x = 0;
-			next.y++;
-		}
-		else if (next.z < this->size.z - 1) {	 // end of surface, check z+1
-			next.x = 0;
-			next.y = 0;
-			next.z++;
-		}
-		else										// current voxel is the last one, return {0U, 0U, 0U}
-			return vec3ui{0U, 0U, 0U};
-	} while (this->isVoxel(next) == false);
-	return next;
-}
-
-vec3ui VoxelWorld::firstVoxel( void ) const {
-	vec3ui	next(0U);
-
-	while (this->isVoxel(next) == false) {
-		if (next.x < this->size.x - 1)		// next voxel in line
-			next.x++;
-		else if (next.y < this->size.y - 1) {	// end of line, check y+1
-			next.x = 0;
-			next.y++;
-		}
-		else if (next.z < this->size.z - 1) {	 // end of surface, check z+1
-			next.x = 0;
-			next.y = 0;
-			next.z++;
-		}
-		else
-			throw std::runtime_error("No voxel found in world");
+	vec3ui start(startVoxel), next(startVoxel), boxelSize(1U);
+	// find longest line of consecutive voxels
+	for (next.x = start.x + 1; next.x < this->size.x; next.x++) {
+		if (this->isVoxel(next) == false)
+			break;
+		boxelSize.x++;
 	}
-	return next;
-}
-
-std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& relativeOrigin, vec3ui const& dimension ) {
-	std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes;
-	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
-		voxelVertexes[i].x = (VOXEL_VERTEXES[i].x + 0.5f) * dimension.x + relativeOrigin.x;
-		voxelVertexes[i].y = (VOXEL_VERTEXES[i].y + 0.5f) * dimension.y + relativeOrigin.y;
-		voxelVertexes[i].z = (VOXEL_VERTEXES[i].z + 0.5f) * dimension.z + relativeOrigin.z;
+	// find widest rectangle of voxels
+	for (next.y = start.y + 1; next.y < this->size.y; next.y++) {
+		for (next.x = start.x; next.x < start.x + boxelSize.x; next.x++) {
+			if (this->isVoxel(next) == false)
+				break;
+		}
+		if (next.x < start.x + boxelSize.x) break;
+		boxelSize.y++;
 	}
-	return voxelVertexes;
+	// find biggest rectangular prism of voxels
+	for (next.z = start.z + 1; next.z < this->size.z; next.z++) {
+		for (next.y = start.y; next.y < start.y + boxelSize.y; next.y++) {
+			for (next.x = start.x; next.x < start.x + boxelSize.x; next.x++) {
+				if (this->isVoxel(next) == false) break;
+			}
+			if (next.x < start.x + boxelSize.x) break;
+		}
+		if ((next.x < start.x + boxelSize.x) or (next.y < start.y + boxelSize.y)) break;
+		boxelSize.z++;
+	}
+	return boxelSize;
 }
 
 
@@ -334,8 +339,7 @@ bool WorldGenerator::HistoryWorlds::hasVisited(vec2i const& pos) const {
 	return this->counter.find(pos) != this->counter.end();
 }
 
-
-void WorldGenerator::initGenerator( void ) {
+void WorldGenerator::init( void ) {
 	this->builder.emptyData();
 	this->addeNewWorld(vec2i(0));
 }
@@ -350,7 +354,7 @@ bool WorldGenerator::spawnCloseByWorlds( vec3 const& playerPos ) {
 	if (playerPos.y < 0.0f)
 		currentWorldPos.y -= 1;
 
-	// add a world, if not existent already, in every of these 9 quadrants
+	// add a world, if not existent already, in each of these 9 quadrants
 	//  __ __ __
 	// |NW|N |NE|
 	// |__|__|__|
@@ -358,7 +362,9 @@ bool WorldGenerator::spawnCloseByWorlds( vec3 const& playerPos ) {
 	// |__|__|__|
 	// |SW|S |SE|
 	// |__|__|__|
+	//
 	bool realoadData = false;
+	realoadData |= this->addeNewWorld(currentWorldPos);										// M
 	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x, currentWorldPos.y + 1});		// N
 	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x + 1, currentWorldPos.y + 1});	// N-E
 	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x + 1, currentWorldPos.y});		// E
@@ -414,40 +420,15 @@ void WorldGenerator::fillBufferBoxel( vec2i const& worldPos ) {
 		static_cast<float>(worldPos.x) * static_cast<float>(this->worldSize.x),
 		static_cast<float>(worldPos.y) * static_cast<float>(this->worldSize.y),
 	};
-	vec3ui			start = newWorld.firstVoxel(), curr = start, boxelSize(1U);
-	vec3ui const	endingVoxel(0U), wordlLimit = newWorld.getSize();
-	
-	do {	// start == {0,0,0} -> no voxels remain in the world
-		curr = start;
-		boxelSize.x = 1U, boxelSize.y = 1U, boxelSize.z = 1U;
-		// find longest line of consecutive voxels
-		for (curr.x = start.x + 1; curr.x < wordlLimit.x; curr.x++) {
-			if (newWorld.isVoxel(curr) == false)
-				break;
-			boxelSize.x++;
-		}
-		// find widest rectangle of voxels
-		for (curr.y = start.y + 1; curr.y < wordlLimit.y; curr.y++) {
-			for (curr.x = start.x; curr.x < start.x + boxelSize.x; curr.x++) {
-				if (newWorld.isVoxel(curr) == false)
-					break;
-			}
-			if (curr.x < start.x + boxelSize.x) break;
-			boxelSize.y++;
-		}
-		// find biggest rectangular prism of voxels
-		for (curr.z = start.z + 1; curr.z < wordlLimit.z; curr.z++) {
-			for (curr.y = start.y; curr.y < start.y + boxelSize.y; curr.y++) {
-				for (curr.x = start.x; curr.x < start.x + boxelSize.x; curr.x++) {
-					if (newWorld.isVoxel(curr) == false) break;
-				}
-				if (curr.x < start.x + boxelSize.x) break;
-			}
-			if ((curr.x < start.x + boxelSize.x) or (curr.y < start.y + boxelSize.y)) break;
-			boxelSize.z++;
-		}
-		// deactivate all the valid past voxels
-		// std::cout << "found boxel in: " << start << std::endl;
+
+	for (auto current3Dpos = newWorld.begin(); current3Dpos != newWorld.end(); ++current3Dpos) {
+		if (newWorld.isVoxel(*current3Dpos) == false)
+			continue;
+
+		vec3ui start = *current3Dpos;
+		// find the size of the boxel starting in current3Dpos
+		vec3ui boxelSize = newWorld.getBoxelSize(start);
+		// deactivate all the voxels contained in the boxel
 		newWorld.setVoxel(start, start + boxelSize, false);
 		// add the newly found boxel
 		vec3 centerBoxel{
@@ -459,9 +440,7 @@ void WorldGenerator::fillBufferBoxel( vec2i const& worldPos ) {
 		// check every vertex of the cube/voxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES)
 			this->builder.addVertex(voxelVertexes[index]);
-		// find next voxel
-		start = newWorld.nextVoxel(start);
-	} while (start != endingVoxel);
+	}
 }
 
 }

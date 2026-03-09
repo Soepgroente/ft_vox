@@ -99,10 +99,9 @@ void Vox::run( void )
 		ve::CameraSettings::projectionFar
 	);
 
-	ve::VulkanObject	gameObject = ve::VulkanObject::createVulkanObject();
-
-	this->world.initGenerator();
-	gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
+	this->world.init();
+	ve::VulkanObject gameObject = ve::VulkanObject::createVulkanObject();
+	gameObject.model			= ve::VulkanModel::createVulkanModel(this->vulkanDevice, this->world.getBuilder());
 
 	ve::FrameInfo info
 	{
@@ -125,7 +124,7 @@ void Vox::run( void )
 		this->rotateCamera();
 		// add chunks of maps if necessary
 		if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
-			info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
+			info.gameObject.model = ve::VulkanModel::createVulkanModel(this->vulkanDevice, this->world.getBuilder());
 
 		commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)

@@ -171,9 +171,8 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 	return center;
 }
 
-std::unique_ptr<VulkanModel> VulkanModel::createModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
-	std::unique_ptr<VulkanModel> model = std::make_unique<VulkanModel>(device, builder);
-	return model;
+std::unique_ptr<VulkanModel> VulkanModel::createVulkanModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
+	return std::make_unique<VulkanModel>(device, builder);
 }
 
 void	VulkanModel::Builder::addVertex( vec3 const& vertex ) noexcept {
