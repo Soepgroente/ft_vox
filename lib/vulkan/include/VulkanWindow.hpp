@@ -26,10 +26,10 @@ class VulkanWindow
 	
 	GLFWwindow*	getGLFWwindow() const noexcept { return window; }
 	void	createWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
+	void	resetWindowSize(int width, int height);
 
 	private:
 
-	static void	framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void	initWindow();
 
 	int		width;

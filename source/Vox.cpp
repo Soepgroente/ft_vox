@@ -21,7 +21,8 @@ Vox::Vox( void ) :
 	camera(Config::centerMap, ve::CameraSettings::cameraForward, Config::worldLimits),
 	world(vec3ui(Config::worldSize), Config::maxWorldsStored),
 	inputHandler(
-		[this](float width, float height) { this->rotateCameraFromCursorPos(width, height); }
+		[this](float width, float height) { this->rotateCameraFromCursorPos(width, height); },
+		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
 	)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
@@ -213,6 +214,16 @@ void Vox::rotateCameraFromCursorPos( float newX, float newY ) {
 	float yaw = (newX - oldX) * ve::CameraSettings::cameraSensitivity;
 	float pitch = (oldY - newY) * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
+}
+
+void Vox::resizeWindow( uint32_t width, uint32_t height ) {
+	this->vulkanWindow.resetWindowSize(width, height);
+	this->camera.setPerspectiveProjection(
+		radians(ve::CameraSettings::projectionFov),
+		this->vulkanWindow.getAspectRatio(),
+		ve::CameraSettings::projectionNear,
+		ve::CameraSettings::projectionFar
+	);
 }
 
 }	// namespace vox

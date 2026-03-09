@@ -60,6 +60,11 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 			handler->mouseCallback(posXf, posYf);
 		handler->setCursorPos(posXf, posYf);
 	});
+	// window resize callback
+	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int32_t w, int32_t h) {
+		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
+		handler->resizeCallback(w, h);
+	});
 }
 
 void InputHandler::reset()  noexcept
