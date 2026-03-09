@@ -208,6 +208,7 @@ VoxelGrid VoxelGrid::voxelGenerator6( vec3ui const& worldLimit ) {
 VoxelGrid::VoxelGrid( vec3ui const& size ) {
 	this->_size = size;
 	this->_grid = std::vector<bool>(this->_size.x * this->_size.y * this->_size.z, false);
+	gridData = std::vector<std::vector<ui8>>(this->_size.x, std::vector<ui8>(this->_size.z));
 }
 
 std::vector<bool>::reference VoxelGrid::operator[]( vec3ui const& pos ) {
@@ -483,5 +484,23 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVer
 	return builder;
 }
 
+VoxelGrid	VoxelGrid::voxelGenerator(const vec3ui& worldSize, ui32 seed, std::function<float(float, float, ui32)> noiseFunction)
+{
+	VoxelGrid grid(worldSize);
+	float scalar = Config::noiseScalar;
 
+	for (ui32 z = 0; z < worldSize.width; z++)
+	{
+		for (ui32 x = 0; x < worldSize.length; x++)
+		{
+			float noiseValue = noiseFunction(static_cast<float>(x) * scalar, static_cast<float>(z) * scalar, seed);
+
+			noiseValue = (noiseValue + 1.0f) / 2.0f;
+			grid.gridData[z][x] = static_cast<ui8>(std::round(noiseValue * worldSize.height));
+		}
+	}
+
+	return grid;
 }
+
+}	// namespace vox
