@@ -173,10 +173,6 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 
 std::unique_ptr<VulkanModel> VulkanModel::createModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
 	std::unique_ptr<VulkanModel> model = std::make_unique<VulkanModel>(device, builder);
-
-	// model->vertexCenter = model->calculateVertexCenter(builder.vertices);
-	// model->setBoundingBox(builder.vertices);
-	// model->setObjectCenter();
 	return model;
 }
 

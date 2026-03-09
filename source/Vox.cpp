@@ -18,8 +18,8 @@ struct GlobalUBO
 
 Vox::Vox( void ) : 
 	objModelPath("models/teapot.obj"),
-	camera(Config::centerGridPos, ve::CameraSettings::cameraForward, Config::gridLimits),
-	world(vec3ui(Config::gridSize), Config::maxGridStored)
+	camera(Config::centerMap, ve::CameraSettings::cameraForward, Config::worldLimits),
+	world(vec3ui(Config::worldSize), Config::maxWorldsStored)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -86,12 +86,10 @@ void Vox::run( void )
 	};
 
 	float	elapsedTime = 0.0f;
-	std::chrono::high_resolution_clock::time_point	currentTime, newTime, lastTime, lastTimeRunEnd;
+	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
+	currentTime = std::chrono::high_resolution_clock::now();
 	VkCommandBuffer		commandBuffer = nullptr;
 	size_t				frameCount = 0;
-	currentTime = std::chrono::high_resolution_clock::now();
-	lastTime = std::chrono::high_resolution_clock::now();
-	lastTimeRunEnd = std::chrono::high_resolution_clock::now();
 
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
@@ -103,7 +101,7 @@ void Vox::run( void )
 
 	ve::VulkanObject	gameObject = ve::VulkanObject::createVulkanObject();
 
-	this->world.initWorld();
+	this->world.initGenerator();
 	gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
 
 	ve::FrameInfo info
@@ -121,19 +119,13 @@ void Vox::run( void )
 		glfwPollEvents();
 		newTime = std::chrono::high_resolution_clock::now();
 		elapsedTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-		currentTime = newTime;
+		currentTime = std::chrono::high_resolution_clock::now();
 		// do game operations
 		this->moveCamera(elapsedTime);
 		this->rotateCamera();
 		// add chunks of maps if necessary
-		if (std::chrono::duration<float, std::chrono::seconds::period>(currentTime - lastTime).count() > 1) {
-			lastTime = std::chrono::high_resolution_clock::now();
-			if (this->world.checkSurroundings(this->camera.getCameraPos()) == true) {
-				info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
-				lastTimeRunEnd = std::chrono::high_resolution_clock::now();
-				std::cout << "time for grid spawn: " << std::chrono::duration<float, std::chrono::milliseconds::period>(lastTimeRunEnd - currentTime).count() << std::endl;
-			}
-		}
+		if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
+			info.gameObject.model = ve::VulkanModel::createModel(this->vulkanDevice, this->world.getBuilder());
 
 		commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
@@ -151,13 +143,13 @@ void Vox::run( void )
 			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
 			renderSystem.renderObject(info);
 
-			// newTime = std::chrono::high_resolution_clock::now();
-			// int32_t	fps = static_cast<int> (1.0f / elapsedTime);
-			// float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
-			// std::cout << "\033[2A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
+			newTime = std::chrono::high_resolution_clock::now();
+			int32_t	fps = static_cast<int> (1.0f / elapsedTime);
+			float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
+			std::cout << "\033[2A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
 
-			// playerPos = info.camera.getCameraPos();
-			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			vec3 playerPos = info.camera.getCameraPos();
+			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
 
 			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();
