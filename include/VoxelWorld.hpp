@@ -5,6 +5,7 @@
 #include <memory>
 #include <iostream>
 
+#include "Config.hpp"
 #include "Vulkan.hpp"
 
 
@@ -17,6 +18,10 @@ inline constexpr uint32_t W_HEIGHT = 16U;	// 256U
 inline constexpr float		VOXEL_EDGE_LEN = 1.0f;
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 8U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertexes per voxel
+
+using ui8 = uint8_t;
+using ui16 = uint16_t;
+using ui32 = uint32_t;
 
 // 3D rectangular prism with 3 dimensions for each side, is an agglomerate of voxels
 class Boxel {
@@ -74,6 +79,7 @@ inline constexpr std::array<uint32_t,INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 
 class VoxelGrid {
 	public:
+		VoxelGrid() = delete;
 		VoxelGrid( vec3ui const& );
 		~VoxelGrid( void ) = default;
 		VoxelGrid( VoxelGrid const& ) = default;
@@ -102,8 +108,11 @@ class VoxelGrid {
 		static VoxelGrid voxelGenerator5( vec3ui const& );
 		static VoxelGrid voxelGenerator6( vec3ui const& );
 
+		static VoxelGrid voxelGenerator(const vec3ui& worldSize, ui32 seed, std::function<float(float, float, ui32)> noiseFunction);
+
 	private:
 		vec3ui				_size;
+		std::vector<std::vector<ui8>>	gridData;
 		std::vector<bool>	_grid;
 };
 
@@ -129,5 +138,6 @@ class VoxelWorld {
 		bool		_debugMode;
 };
 
+float	perlinNoise(float x, float y, ui32 seed);
 
 }
