@@ -141,7 +141,9 @@ void Vox::run( void )
 
 void Vox::createObjects( void )
 {
-	world.createNewWorld(VoxelGrid::voxelGenerator3);
+	// world.createNewWorld(VoxelGrid::voxelGenerator3);
+	world.createRandomWorld();
+	
 	ve::VulkanModel::Builder			builder = world.generateBufferDataGreedy(false);
 
 	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);

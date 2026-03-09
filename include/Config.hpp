@@ -8,7 +8,7 @@ struct Config
 	static constexpr uint32_t	defaultWindowHeight = 1300;
 	static constexpr uint32_t	worldSize = 64;
 	
-	static constexpr float	movementSpeed = 10.0f;
+	static constexpr float	movementSpeed = 25.0f;
 	static constexpr float	lookSpeed = 75.0f;
 	static constexpr float	noiseScalar = 0.01f;
 };

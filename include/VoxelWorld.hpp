@@ -98,6 +98,7 @@ class VoxelGrid {
 		vec3ui			firstVoxel( void ) const;
 
 		std::vector<Voxel>	getVoxels( void );
+		std::vector<Voxel>	getVoxelsFromMap( void );
 		// spwans boxels, aka clusters of voxels, more optimized
 		std::vector<Boxel>	getBoxels( void );
 
@@ -108,12 +109,12 @@ class VoxelGrid {
 		static VoxelGrid voxelGenerator5( vec3ui const& );
 		static VoxelGrid voxelGenerator6( vec3ui const& );
 
-		static VoxelGrid voxelGenerator(const vec3ui& worldSize, ui32 seed, std::function<float(float, float, ui32)> noiseFunction);
+		static VoxelGrid voxelGenerator(const vec3ui& worldSize, ui32 seed, std::function<float(float, float, ui32&)> noiseFunction);
 
-	private:
-		vec3ui				_size;
-		std::vector<std::vector<ui8>>	gridData;
-		std::vector<bool>	_grid;
+		private:
+			vec3ui				_size;
+			std::vector<std::vector<ui8>>	gridData;
+			std::vector<bool>	_grid;
 };
 
 class VoxelWorld {
@@ -129,6 +130,7 @@ class VoxelWorld {
 		VoxelWorld& operator=( VoxelWorld&& ) = default;
 
 		void						createNewWorld( VoxelGrid (&)( vec3ui const& ) );
+		void						createRandomWorld();
 		ve::VulkanModel::Builder	generateBufferData( bool duplicateVertex = false );
 		ve::VulkanModel::Builder	generateBufferDataGreedy( bool duplicateVertex = false );
 
@@ -139,5 +141,6 @@ class VoxelWorld {
 };
 
 float	perlinNoise(float x, float y, ui32 seed);
+float	randomNoise(float, float, ui32& seed);
 
 }
