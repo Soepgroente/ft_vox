@@ -3,10 +3,10 @@
 
 namespace vox {
 
-	
 void	InputHandler::setCallbacks(GLFWwindow* window)
 {
 	glfwSetWindowUserPointer(window, this);
+	// keyboard key pression callback
 	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
 		(void)scancode;
@@ -27,7 +27,10 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 
 		if (handler->isKeyPressed(GLFW_KEY_T) == true)
 			handler->toggleCursorFocus(window);
+		else if (handler->isKeyPressed(GLFW_KEY_ESCAPE) == true)
+			handler->closeWindow(window);
 	});
+	// mouse key pression callback
 	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods)
 	{
 		(void)mods;
@@ -40,6 +43,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 			default: break;
 		}
 	});
+	// mouse scroll callback
 	glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset)
 	{
 		(void)xoffset;
@@ -47,7 +51,6 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 		(void)handler;
 		(void)window;
-		// Handle scroll input here if needed
 	});
 	// changed cursor position callback
 	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double posX, double posY) {
@@ -67,7 +70,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 	});
 }
 
-void InputHandler::reset()  noexcept
+void InputHandler::reset() noexcept
 {
 	keyboard.reset();
 	mouse.reset();
@@ -81,12 +84,16 @@ void InputHandler::getCursorPos( float &posX, float &posY ) noexcept {
 	this->mouse.getCursorPos(posX, posY);
 }
 
-void InputHandler::toggleCursorFocus( GLFWwindow* window) noexcept {
+void InputHandler::toggleCursorFocus( GLFWwindow* window ) noexcept {
 	this->cursorFocus = !this->cursorFocus; 
 	if (this->cursorFocus)
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	else
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+
+void InputHandler::closeWindow( GLFWwindow* window ) noexcept {
+	glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
 }	// namespace vox

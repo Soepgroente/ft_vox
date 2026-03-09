@@ -26,9 +26,6 @@ class Vox
 		void run( void );
 		void shutdown( void );
 
-		InputHandler const& getHandler( void ) const noexcept;
-		InputHandler&		getHandler( void ) noexcept;
-
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( float, float );
 		void resizeWindow( uint32_t, uint32_t );
