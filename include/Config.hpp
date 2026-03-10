@@ -10,6 +10,8 @@ struct Config
 {
 	static constexpr uint32_t	defaultWindowWidth = 1300;
 	static constexpr uint32_t	defaultWindowHeight = 1300;
+	static constexpr float		noiseScalar = 0.01f;
+	static constexpr uint32_t		seed = 0U;
 
 	static constexpr vec3ui	mapLimits{
 		16384U,
@@ -26,7 +28,7 @@ struct Config
 	static constexpr vec3		centerMap{		// NB this is ugly, z should depend on ground lvl
 		worldSize / 2.0f,
 		worldSize / 2.0f,
-		2.0f
+		200.0f
 	};
 
 	static constexpr uint32_t	maxWorldsStored = 20U;
