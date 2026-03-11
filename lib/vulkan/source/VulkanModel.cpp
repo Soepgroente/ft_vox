@@ -171,10 +171,6 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 	return center;
 }
 
-std::unique_ptr<VulkanModel> VulkanModel::createVulkanModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
-	return std::make_unique<VulkanModel>(device, builder);
-}
-
 void	VulkanModel::Builder::addVertex( vec3 const& vertex ) noexcept {
 	if (this->uniqueVertexes.find(vertex) != this->uniqueVertexes.end())
 		// there's already such vertex, add only the vertex index

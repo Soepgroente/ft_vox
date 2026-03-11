@@ -8,16 +8,28 @@
 
 namespace vox {
 
-std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& relativeOrigin, vec3ui const& dimension ) {
-	std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes;
+std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	std::vector<ve::VulkanModel::Vertex> voxelVertexes(VOXEL_VERTEXES.size());
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
-		voxelVertexes[i].x = (VOXEL_VERTEXES[i].x + 0.5f) * dimension.x + relativeOrigin.x;
-		voxelVertexes[i].y = (VOXEL_VERTEXES[i].y + 0.5f) * dimension.y + relativeOrigin.y;
-		voxelVertexes[i].z = (VOXEL_VERTEXES[i].z + 0.5f) * dimension.z + relativeOrigin.z;
+		voxelVertexes[i].pos.x = (VOXEL_VERTEXES[i].pos.x + 0.5f) * dimension.x + relativeOrigin.x;
+		voxelVertexes[i].pos.y = (VOXEL_VERTEXES[i].pos.y + 0.5f) * dimension.y + relativeOrigin.y;
+		voxelVertexes[i].pos.z = (VOXEL_VERTEXES[i].pos.z + 0.5f) * dimension.z + relativeOrigin.z;
+		voxelVertexes[i].normal = VOXEL_VERTEXES[i].normal;
+		voxelVertexes[i].color = VOXEL_VERTEXES[i].color;
+		voxelVertexes[i].textureUv = VOXEL_VERTEXES[i].textureUv;
 	}
 	return voxelVertexes;
 }
 
+std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative_old( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes;
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+		voxelVertexes[i].x = (VOXEL_VERTEXES_old[i].x + 0.5f) * dimension.x + relativeOrigin.x;
+		voxelVertexes[i].y = (VOXEL_VERTEXES_old[i].y + 0.5f) * dimension.y + relativeOrigin.y;
+		voxelVertexes[i].z = (VOXEL_VERTEXES_old[i].z + 0.5f) * dimension.z + relativeOrigin.z;
+	}
+	return voxelVertexes;
+}
 
 VoxelWorld::WorldIterator& VoxelWorld::WorldIterator::operator++( void ) {
 	this->pos3D.x++;
@@ -382,7 +394,7 @@ bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
 		this->history.add(worldPos);
 		if (this->mode == MODE_VOXEL_STATIC)
 			// every single voxel is loaded directly inside the buffer
-			this->fillBufferVoxel(worldPos);
+			this->fillBufferVoxel1(worldPos);
 		else if (this->mode == MODE_BOXEL)
 			// creates a temporary world of voxels, and then run greedy meshing algo
 			// to create boxels (aggregates with less vertexes), takes 2 ~ 3 ms to spawn the world
@@ -392,13 +404,14 @@ bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
 	return newWorldAdded;
 }
 
-void WorldGenerator::fillBufferVoxel( vec2i const& worldPos ) {
+void WorldGenerator::fillBufferVoxel1( vec2i const& worldPos ) {
 	vec2 relativeOrigin{
 		static_cast<float>(worldPos.x * static_cast<int32_t>(this->worldSize.x)),
 		static_cast<float>(worldPos.y * static_cast<int32_t>(this->worldSize.y))
 	};
 	vec3ui	index(0U);
-	// set floor
+	uint32_t globalIndex = 0U;
+
 	for(; index.y<this->worldSize.y; index.y++) {
 		for(index.x=0; index.x<this->worldSize.x; index.x++) {
 			vec3 centerVoxel{
@@ -406,11 +419,44 @@ void WorldGenerator::fillBufferVoxel( vec2i const& worldPos ) {
 				static_cast<float>(index.y) + relativeOrigin.y,
 				static_cast<float>(index.z)
 			};
-			std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative(centerVoxel);
-			// check every vertex of the cube/voxel to avoid duplicates
-			for (uint32_t index : VOXEL_VERTEX_INDEXES)
-				this->builder.addVertex(voxelVertexes[index]);
+			std::vector<ve::VulkanModel::Vertex> vertexes = getVertexRelative(centerVoxel);
+			this->builder.vertices.insert(this->builder.vertices.begin(), vertexes.begin(), vertexes.end());
+
+			for (uint32_t i = 0; i < 6; i++) {
+				uint32_t base = globalIndex + i * 4;
+				// first triangle
+				this->builder.indices.push_back(base + 0);
+				this->builder.indices.push_back(base + 1);
+				this->builder.indices.push_back(base + 2);
+				// second triangle
+				this->builder.indices.push_back(base + 0);
+				this->builder.indices.push_back(base + 2);
+				this->builder.indices.push_back(base + 3);
+			}
+			globalIndex += VERTEX_PER_VOXEL;
 		}
+	}
+}
+
+void WorldGenerator::fillBufferVoxel1( vec2i const& worldPos ) {
+	vec3 centerVoxel{
+		(this->worldSize.x - 1U) / 2.0f + static_cast<float>(worldPos.x * static_cast<int32_t>(this->worldSize.x)),
+		(this->worldSize.y - 1U) / 2.0f + static_cast<float>(worldPos.y * static_cast<int32_t>(this->worldSize.y)),
+		(this->worldSize.z - 1U) / 2.0f
+	};
+	std::vector<ve::VulkanModel::Vertex> vertexes = getVertexRelative(centerVoxel);
+	this->builder.vertices.insert(this->builder.vertices.begin(), vertexes.begin(), vertexes.end());
+
+	for (uint32_t i = 0; i < 6; i++) {
+		uint32_t base = i * 4;
+		// first triangle
+		this->builder.indices.push_back(base + 0);
+		this->builder.indices.push_back(base + 1);
+		this->builder.indices.push_back(base + 2);
+		// second triangle
+		this->builder.indices.push_back(base + 0);
+		this->builder.indices.push_back(base + 2);
+		this->builder.indices.push_back(base + 3);
 	}
 }
 
@@ -436,7 +482,7 @@ void WorldGenerator::fillBufferBoxel( vec2i const& worldPos ) {
 			static_cast<float>(start.y) + relativeOrigin.y,
 			static_cast<float>(start.z)
 		};
-		std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative(centerBoxel, boxelSize);
+		std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative_old(centerBoxel, boxelSize);
 		// check every vertex of the cube/voxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES)
 			this->builder.addVertex(voxelVertexes[index]);

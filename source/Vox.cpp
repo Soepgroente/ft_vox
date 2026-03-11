@@ -59,13 +59,8 @@ void Vox::run( void )
 		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	textures.reserve(5);
-	for (size_t i = 0; i < 5; i++)
-	{
-		ve::VulkanTexture texture("textures/derp" + std::to_string(i + 1) + ".jpeg", vulkanDevice);
-		textures.emplace_back(std::move(texture));
-	}
-	ve::VulkanTexture texture{"textures/derpy_cats.jpg", vulkanDevice};
+
+	ve::VulkanTexture texture{"textures/terrain_texture_mono.jpeg", vulkanDevice};
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
@@ -74,7 +69,7 @@ void Vox::run( void )
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = texture.getImageView();
-		imageInfo.sampler = texture. getSampler();
+		imageInfo.sampler = texture.getSampler();
 
 		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
 			.writeBuffer(0, &bufferInfo)
@@ -92,8 +87,8 @@ void Vox::run( void )
 	float	elapsedTime = 0.0f;
 	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
 	currentTime = std::chrono::high_resolution_clock::now();
-	VkCommandBuffer		commandBuffer = nullptr;
-	size_t				frameCount = 0;
+	VkCommandBuffer	commandBuffer = nullptr;
+	size_t			frameCount = 0;
 
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
@@ -105,7 +100,7 @@ void Vox::run( void )
 
 	this->world.init();
 	ve::VulkanObject gameObject = ve::VulkanObject::createVulkanObject();
-	gameObject.model			= ve::VulkanModel::createVulkanModel(this->vulkanDevice, this->world.getBuilder());
+	gameObject.model			= std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
 
 	ve::FrameInfo info
 	{
@@ -126,8 +121,8 @@ void Vox::run( void )
 		// do game operations
 		this->moveCamera(elapsedTime);
 		// add chunks of maps if necessary
-		if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
-			info.gameObject.model = ve::VulkanModel::createVulkanModel(this->vulkanDevice, this->world.getBuilder());
+		// if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
+		// 	info.gameObject.model = std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
 
 		commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)

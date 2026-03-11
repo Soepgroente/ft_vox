@@ -37,7 +37,6 @@ class Vox
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
 
 		std::string						objModelPath;
-		std::vector<ve::VulkanTexture>	textures;
 		ve::Camera						camera;
 		WorldGenerator					world;
 		InputHandler					inputHandler;
