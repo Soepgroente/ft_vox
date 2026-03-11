@@ -13,10 +13,44 @@
 
 namespace vox {
 
-inline constexpr uint32_t	VERTEX_PER_VOXEL = 8U;	// number of vertexes per voxel
+inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
+inline constexpr uint32_t	VERTEX_PER_VOXEL_old = 8U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
 
-inline constexpr std::array<vec3,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
+inline std::vector<ve::VulkanModel::Vertex> VOXEL_VERTEXES{
+    // face FRONT (z = +0.5)
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    //face BACK (z = -0.5)
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    // face LEFT (x = -0.5)
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    // face RIGHT (x = +0.5)
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    // face TOP (y = +0.5)
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    // face BOTTOM (y = -0.5)
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+};
+
+inline constexpr std::array<vec3,VERTEX_PER_VOXEL> VOXEL_VERTEXES_old{
 	vec3{-0.5f,  0.5f, -0.5f},	// front-top-left corner
 	vec3{ 0.5f,  0.5f, -0.5f},	// front-top-right corner
 	vec3{ 0.5f, -0.5f, -0.5f},	// front-bottom-right corner
@@ -27,7 +61,8 @@ inline constexpr std::array<vec3,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
 	vec3{-0.5f, -0.5f,  0.5f},	// back-bottom-left corner
 };
 
-std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
+std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
+std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative_old( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
 
 inline constexpr std::array<uint32_t,INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 	0U, 1U, 2U,		// front face
@@ -148,7 +183,8 @@ class WorldGenerator {
 		ve::VulkanModel::Builder&		getBuilder( void ) noexcept { return builder; };
 
 	private:
-		void	fillBufferVoxel( vec2i const& );
+		void	fillBufferVoxel1( vec2i const& );
+		void	fillBufferVoxel2( vec2i const& );
 		void	fillBufferBoxel( vec2i const& );
 
 		HistoryWorlds				history;
