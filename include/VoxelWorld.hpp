@@ -18,54 +18,71 @@ inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxe
 inline constexpr uint32_t	VERTEX_PER_VOXEL_old = 8U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
 
-inline std::vector<ve::VulkanModel::Vertex> VOXEL_VERTEXES{
+using VertexArray = std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL>;
+using IndexArray = std::array<uint32_t, INDEX_PER_VOXEL>;
+
+inline VertexArray VOXEL_VERTEXES{
     // face FRONT (z = +0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 0.0f }},
     //face BACK (z = -0.5)
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 0.0f }},
     // face LEFT (x = -0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 0.0f }},
     // face RIGHT (x = +0.5)
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 0.0f }},
     // face TOP (y = +0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 0.0f }},
     // face BOTTOM (y = -0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0), vec3(0), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2{ 0.0f, 0.0f }}
 };
 
-inline constexpr std::array<vec3,VERTEX_PER_VOXEL> VOXEL_VERTEXES_old{
-	vec3{-0.5f,  0.5f, -0.5f},	// front-top-left corner
-	vec3{ 0.5f,  0.5f, -0.5f},	// front-top-right corner
-	vec3{ 0.5f, -0.5f, -0.5f},	// front-bottom-right corner
-	vec3{-0.5f, -0.5f, -0.5f},	// front-bottom-left corner
-	vec3{-0.5f,  0.5f,  0.5f},	// back-top-left corner
-	vec3{ 0.5f,  0.5f,  0.5f},	// back-top-right corner
-	vec3{ 0.5f, -0.5f,  0.5f},	// back-bottom-right corner
-	vec3{-0.5f, -0.5f,  0.5f},	// back-bottom-left corner
+inline VertexArray VOXEL_VERTEXES_NO_TEXT{
+    // face FRONT (z = +0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// front-top-left corner
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// front-top-right corner
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// front-bottom-right corner
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// front-bottom-left corner
+    //face BACK (z = -0.5)
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// back-top-left corner
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// back-top-right corner
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)},	// back-bottom-right corner
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), ve::generateRandomColor(), vec2(0.0f)}		// back-bottom-left corner
 };
 
-std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
-std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative_old( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
+inline constexpr IndexArray VOXEL_VERTEX_INDEXES{
+	0U, 1U, 2U, 		// front face
+	0U, 2U, 3U, 		// front face
+	4U, 5U, 6U, 		// back face
+	4U, 6U, 7U, 		// back face
+	8U, 9U, 10U, 		// bottom face
+	8U, 10U, 11U, 		// bottom face
+	12U, 13U, 14U, 		// top face
+	12U, 14U, 15U, 		// top face
+	16U, 17U, 18U, 		// right face
+	16U, 18U, 19U, 		// right face
+	20U, 21U, 22U, 		// left face
+	20U, 22U, 23U		// left face
+};
 
-inline constexpr std::array<uint32_t,INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
+inline constexpr IndexArray VOXEL_VERTEX_INDEXES_NO_TEXT{
 	0U, 1U, 2U,		// front face
 	0U, 2U, 3U,		// front face
 	4U, 7U, 6U,		// back face
@@ -79,6 +96,11 @@ inline constexpr std::array<uint32_t,INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 	0U, 3U, 7U,		// left face
 	0U, 7U, 4U		// left face
 };
+
+VertexArray getVertexRelativeNoTextures( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
+VertexArray getVertexRelativeMonoTextures( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
+VertexArray getVertexRelativeAtlasTextures( vec3 const& = vec3(0.0f), vec3ui const& = vec3ui(1U) );
+IndexArray getIndexRelative( uint32_t );
 
 
 class VoxelWorld {

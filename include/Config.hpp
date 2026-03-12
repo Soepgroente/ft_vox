@@ -16,17 +16,18 @@ struct Config
 		16384U,
 		256U
 	};
+
 	static constexpr vec3	worldLimits{
 		-100000.0f,
-		-100000.0f,
-		1.5f
+		1.5f,
+		-100000.0f
 	};
 
 	static constexpr uint32_t	worldSize = 32U;
-	static constexpr vec3		centerMap{		// NB this is ugly, z should depend on ground lvl
+	static constexpr vec3		startingPos{		// NB this is ugly, y should depend on ground lvl
 		worldSize / 2.0f,
-		worldSize / 2.0f,
-		2.0f
+		2.0f,
+		worldSize / 2.0f
 	};
 
 	static constexpr uint32_t	maxWorldsStored = 20U;
