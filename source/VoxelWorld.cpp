@@ -3,13 +3,26 @@
 #include "Config.hpp"
 
 #include <map>
-
 #include <chrono>
+
 
 namespace vox {
 
-std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& relativeOrigin, vec3ui const& dimension ) {
-	std::vector<ve::VulkanModel::Vertex> voxelVertexes(VOXEL_VERTEXES.size());
+VertexArray getVertexRelativeNoTextures( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	VertexArray voxelVertexes;
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+		voxelVertexes[i].pos.x = (VOXEL_VERTEXES_NO_TEXT[i].pos.x + 0.5f) * dimension.x + relativeOrigin.x;
+		voxelVertexes[i].pos.y = (VOXEL_VERTEXES_NO_TEXT[i].pos.y + 0.5f) * dimension.y + relativeOrigin.y;
+		voxelVertexes[i].pos.z = (VOXEL_VERTEXES_NO_TEXT[i].pos.z + 0.5f) * dimension.z + relativeOrigin.z;
+		voxelVertexes[i].normal = VOXEL_VERTEXES[i].normal;
+		voxelVertexes[i].color = VOXEL_VERTEXES[i].color;
+		voxelVertexes[i].textureUv = VOXEL_VERTEXES[i].textureUv;
+	}
+	return voxelVertexes;
+}
+
+VertexArray getVertexRelativeMonoTextures( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	VertexArray voxelVertexes;
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
 		voxelVertexes[i].pos.x = (VOXEL_VERTEXES[i].pos.x + 0.5f) * dimension.x + relativeOrigin.x;
 		voxelVertexes[i].pos.y = (VOXEL_VERTEXES[i].pos.y + 0.5f) * dimension.y + relativeOrigin.y;
@@ -21,14 +34,71 @@ std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& relativeOrig
 	return voxelVertexes;
 }
 
-std::array<vec3,VERTEX_PER_VOXEL> getVertexRelative_old( vec3 const& relativeOrigin, vec3ui const& dimension ) {
-	std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes;
+VertexArray getVertexRelativeAtlasTextures( vec3 const& relativeOrigin, vec3ui const& dimension ) {
+	VertexArray voxelVertexes;
+
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
-		voxelVertexes[i].x = (VOXEL_VERTEXES_old[i].x + 0.5f) * dimension.x + relativeOrigin.x;
-		voxelVertexes[i].y = (VOXEL_VERTEXES_old[i].y + 0.5f) * dimension.y + relativeOrigin.y;
-		voxelVertexes[i].z = (VOXEL_VERTEXES_old[i].z + 0.5f) * dimension.z + relativeOrigin.z;
+		voxelVertexes[i].pos.x = (VOXEL_VERTEXES[i].pos.x + 0.5f) * dimension.x + relativeOrigin.x;
+		voxelVertexes[i].pos.y = (VOXEL_VERTEXES[i].pos.y + 0.5f) * dimension.y + relativeOrigin.y;
+		voxelVertexes[i].pos.z = (VOXEL_VERTEXES[i].pos.z + 0.5f) * dimension.z + relativeOrigin.z;
+		voxelVertexes[i].normal = VOXEL_VERTEXES[i].normal;
+		voxelVertexes[i].color = VOXEL_VERTEXES[i].color;
+		
 	}
+	const float PADDING = 0.002f;
+	// setup textures coors:
+	// reference: textures/terrain_texture-atlas.jpeg
+	const float W = 1.0f / 8.0f;  // width of a tile
+	const float H = 1.0f / 6.0f;  // height of a tile
+	// (0, 0) is top left
+	// depends on the atlas choosen
+	// std::array<vec2, 6> faces{
+	// 	vec2{ 1 * W, 2 * H },  // FRONT  → column 1, row 2
+	// 	vec2{ 1 * W, 0 * H },  // BACK   → column 1, row 0
+	// 	vec2{ 0 * W, 1 * H },  // LEFT   → column 0, row 1
+	// 	vec2{ 2 * W, 1 * H },  // RIGHT  → column 2, row 1
+	// 	vec2{ 1 * W, 1 * H },  // TOP    → column 1, row 1
+	// 	vec2{ 3 * W, 1 * H },  // BOTTOM → column 3, row 1
+	// };
+	// front face
+	voxelVertexes[0].textureUv = vec2{W + PADDING, 3 * H - PADDING};
+	voxelVertexes[1].textureUv = vec2{2 * W - PADDING, 3 * H - PADDING};
+	voxelVertexes[2].textureUv = vec2{2 * W - PADDING, 2 * H + PADDING};
+	voxelVertexes[3].textureUv = vec2{W + PADDING, 2 * H + PADDING};
+	// back face
+	voxelVertexes[4].textureUv = vec2{2 * W - PADDING, PADDING};
+	voxelVertexes[4 + 1].textureUv = vec2{W + PADDING, PADDING};
+	voxelVertexes[4 + 2].textureUv = vec2{W + PADDING, H - PADDING};
+	voxelVertexes[4 + 3].textureUv = vec2{2 * W - PADDING, H - PADDING};
+	// left face
+	voxelVertexes[8].textureUv = vec2{PADDING, H + PADDING};
+	voxelVertexes[8 + 1].textureUv = vec2{PADDING, 2 * H - PADDING};
+	voxelVertexes[8 + 2].textureUv = vec2{W - PADDING, 2 * H - PADDING};
+	voxelVertexes[8 + 3].textureUv = vec2{W - PADDING, H + PADDING};
+	// right face
+	voxelVertexes[12].textureUv = vec2{3 * W - PADDING, 2 * H - PADDING};
+	voxelVertexes[12 + 1].textureUv = vec2{3 * W - PADDING, H + PADDING};
+	voxelVertexes[12 + 2].textureUv = vec2{2 * W + PADDING, H + PADDING};
+	voxelVertexes[12 + 3].textureUv = vec2{2 * W + PADDING, 2 * H - PADDING};
+	// top face
+	voxelVertexes[16].textureUv = vec2{W + PADDING, 2 * H - PADDING};
+	voxelVertexes[16 + 1].textureUv = vec2{2 * W - PADDING, 2 * H - PADDING};
+	voxelVertexes[16 + 2].textureUv = vec2{2 * W - PADDING, H + PADDING};
+	voxelVertexes[16 + 3].textureUv = vec2{W + PADDING, H + PADDING};
+	// back face
+	voxelVertexes[20].textureUv = vec2{3 * W + PADDING, H + PADDING};
+	voxelVertexes[20 + 1].textureUv = vec2{3 * W + PADDING, 2 * H - PADDING};
+	voxelVertexes[20 + 2].textureUv = vec2{4 * W - PADDING, 2 * H - PADDING};
+	voxelVertexes[20 + 3].textureUv = vec2{4 * W - PADDING, H + PADDING};
+	
 	return voxelVertexes;
+}
+
+std::array<uint32_t, INDEX_PER_VOXEL> getIndexRelative( uint32_t start ) {
+	std::array<uint32_t, INDEX_PER_VOXEL> indexes;
+	for (uint32_t i=0; i<INDEX_PER_VOXEL; i++)
+		indexes[i] = VOXEL_VERTEX_INDEXES[i] + start;
+	return indexes;
 }
 
 VoxelWorld::WorldIterator& VoxelWorld::WorldIterator::operator++( void ) {
@@ -394,7 +464,7 @@ bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
 		this->history.add(worldPos);
 		if (this->mode == MODE_VOXEL_STATIC)
 			// every single voxel is loaded directly inside the buffer
-			this->fillBufferVoxel1(worldPos);
+			this->fillBufferVoxel2(worldPos);
 		else if (this->mode == MODE_BOXEL)
 			// creates a temporary world of voxels, and then run greedy meshing algo
 			// to create boxels (aggregates with less vertexes), takes 2 ~ 3 ms to spawn the world
@@ -409,55 +479,37 @@ void WorldGenerator::fillBufferVoxel1( vec2i const& worldPos ) {
 		static_cast<float>(worldPos.x * static_cast<int32_t>(this->worldSize.x)),
 		static_cast<float>(worldPos.y * static_cast<int32_t>(this->worldSize.y))
 	};
-	vec3ui	index(0U);
-	uint32_t globalIndex = 0U;
+	vec3ui		index(0U);
+	uint32_t	globalIndexCount = 0U;
 
-	for(; index.y<this->worldSize.y; index.y++) {
+	for(; index.z<this->worldSize.z; index.z++) {
 		for(index.x=0; index.x<this->worldSize.x; index.x++) {
 			vec3 centerVoxel{
 				static_cast<float>(index.x) + relativeOrigin.x,
-				static_cast<float>(index.y) + relativeOrigin.y,
-				static_cast<float>(index.z)
+				static_cast<float>(index.y),
+				static_cast<float>(index.z) + relativeOrigin.y,
 			};
-			std::vector<ve::VulkanModel::Vertex> vertexes = getVertexRelative(centerVoxel);
-			this->builder.vertices.insert(this->builder.vertices.begin(), vertexes.begin(), vertexes.end());
+			VertexArray vertexes = getVertexRelativeAtlasTextures(centerVoxel);
+			std::array<uint32_t, INDEX_PER_VOXEL> indexes = getIndexRelative(globalIndexCount);
 
-			for (uint32_t i = 0; i < 6; i++) {
-				uint32_t base = globalIndex + i * 4;
-				// first triangle
-				this->builder.indices.push_back(base + 0);
-				this->builder.indices.push_back(base + 1);
-				this->builder.indices.push_back(base + 2);
-				// second triangle
-				this->builder.indices.push_back(base + 0);
-				this->builder.indices.push_back(base + 2);
-				this->builder.indices.push_back(base + 3);
-			}
-			globalIndex += VERTEX_PER_VOXEL;
+			this->builder.vertices.insert(this->builder.vertices.begin(), vertexes.begin(), vertexes.end());
+			this->builder.indices.insert(this->builder.indices.begin(), indexes.begin(), indexes.end());
+			globalIndexCount += VERTEX_PER_VOXEL;
 		}
 	}
 }
 
-void WorldGenerator::fillBufferVoxel1( vec2i const& worldPos ) {
+void WorldGenerator::fillBufferVoxel2( vec2i const& worldPos ) {
 	vec3 centerVoxel{
 		(this->worldSize.x - 1U) / 2.0f + static_cast<float>(worldPos.x * static_cast<int32_t>(this->worldSize.x)),
-		(this->worldSize.y - 1U) / 2.0f + static_cast<float>(worldPos.y * static_cast<int32_t>(this->worldSize.y)),
-		(this->worldSize.z - 1U) / 2.0f
+		2.0f,
+		(this->worldSize.z - 1U) / 2.0f + static_cast<float>(worldPos.y * static_cast<int32_t>(this->worldSize.z)),
 	};
-	std::vector<ve::VulkanModel::Vertex> vertexes = getVertexRelative(centerVoxel);
-	this->builder.vertices.insert(this->builder.vertices.begin(), vertexes.begin(), vertexes.end());
+	VertexArray vertexes = getVertexRelativeAtlasTextures(centerVoxel);
+	std::array<uint32_t, INDEX_PER_VOXEL> indexes = getIndexRelative(0U);
 
-	for (uint32_t i = 0; i < 6; i++) {
-		uint32_t base = i * 4;
-		// first triangle
-		this->builder.indices.push_back(base + 0);
-		this->builder.indices.push_back(base + 1);
-		this->builder.indices.push_back(base + 2);
-		// second triangle
-		this->builder.indices.push_back(base + 0);
-		this->builder.indices.push_back(base + 2);
-		this->builder.indices.push_back(base + 3);
-	}
+	this->builder.vertices.insert(this->builder.vertices.begin(), vertexes.begin(), vertexes.end());
+	this->builder.indices.insert(this->builder.indices.begin(), indexes.begin(), indexes.end());
 }
 
 void WorldGenerator::fillBufferBoxel( vec2i const& worldPos ) {
@@ -482,7 +534,7 @@ void WorldGenerator::fillBufferBoxel( vec2i const& worldPos ) {
 			static_cast<float>(start.y) + relativeOrigin.y,
 			static_cast<float>(start.z)
 		};
-		std::array<vec3,VERTEX_PER_VOXEL> voxelVertexes = getVertexRelative_old(centerBoxel, boxelSize);
+		VertexArray voxelVertexes = getVertexRelativeNoTextures(centerBoxel, boxelSize);
 		// check every vertex of the cube/voxel to avoid duplicates
 		for (uint32_t index : VOXEL_VERTEX_INDEXES)
 			this->builder.addVertex(voxelVertexes[index]);

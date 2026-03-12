@@ -7,7 +7,6 @@
 
 namespace vox {
 
-
 struct GlobalUBO
 {
 	mat4				projectionView{1.0f};
@@ -18,7 +17,7 @@ struct GlobalUBO
 
 Vox::Vox( void ) : 
 	objModelPath("models/teapot.obj"),
-	camera(Config::centerMap, ve::CameraSettings::cameraForward, Config::worldLimits),
+	camera(Config::startingPos, ve::CameraSettings::cameraForward, Config::worldLimits),
 	world(vec3ui(Config::worldSize), Config::maxWorldsStored),
 	inputHandler(
 		[this](float width, float height) { this->rotateCameraFromCursorPos(width, height); },
@@ -60,7 +59,7 @@ void Vox::run( void )
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 
-	ve::VulkanTexture texture{"textures/terrain_texture_mono.jpeg", vulkanDevice};
+	ve::VulkanTexture texture{"textures/terrain_texture_atlas.jpeg", vulkanDevice};
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
