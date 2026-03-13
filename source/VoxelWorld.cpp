@@ -3,8 +3,8 @@
 
 namespace vox {
 
-VertexArray getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
-	VertexArray voxelVertexes;
+VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
+	VertexVector voxelVertexes(VERTEX_PER_VOXEL);
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
 		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + 0.5f + relativeOrigin.x;
@@ -17,8 +17,8 @@ VertexArray getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
 	return voxelVertexes;
 }
 
-VertexArray getVertexRelativeAtlasTexture( vec3 const& relativeOrigin ) {
-	VertexArray voxelVertexes = getVertexRelativeMonoTexture(relativeOrigin);
+VertexVector getVertexRelativeAtlasTexture( vec3 const& relativeOrigin ) {
+	VertexVector voxelVertexes = getVertexRelativeMonoTexture(relativeOrigin);
 
 	// according to file: textures/texture_dirt_atlas.jpeg
 	//  _______________
@@ -65,8 +65,8 @@ VertexArray getVertexRelativeAtlasTexture( vec3 const& relativeOrigin ) {
 	return voxelVertexes;
 }
 
-std::array<uint32_t, INDEX_PER_VOXEL> getIndexRelative( uint32_t start ) {
-	std::array<uint32_t, INDEX_PER_VOXEL> indexes;
+IndexVector getIndexRelative( uint32_t start ) {
+	IndexVector indexes(INDEX_PER_VOXEL);
 
 	for (uint32_t i=0; i<INDEX_PER_VOXEL; i++)
 		indexes[i] = start + VOXEL_VERTEX_INDEXES[i];
@@ -74,32 +74,30 @@ std::array<uint32_t, INDEX_PER_VOXEL> getIndexRelative( uint32_t start ) {
 }
 
 
-void WorldGenerator::HistoryWorlds::add(vec2i const& newPos) {
-	// drop the oldest position visited if the limit of 
-	// the total positions visited is reached
-	if (counter.size() == this->max) {
-		vec2i const& lastPosInHistory = history.front();
-		history.pop_front();
+World::World( vec3ui const& worldSize, vec3 const& localPos, uint32_t globalIndexCount ) : counter(0U) {
+	// trivial optimization, but at least worldSize^2 voxels are created, could be more
+	this->builder.vertices.reserve(worldSize.x * worldSize.z * VERTEX_PER_VOXEL);
+	this->builder.indices.reserve(worldSize.x * worldSize.z * INDEX_PER_VOXEL);
+	
+	// logic for how to generate the world is here
+	vec3ui index(0U);
+	for(; index.z<worldSize.z; index.z++) {
+		for(index.x=0; index.x<worldSize.x; index.x++) {
+			vec3 centerVoxel{
+				static_cast<float>(index.x) + localPos.x,
+				static_cast<float>(index.y) + localPos.y,
+				static_cast<float>(index.z) + localPos.z,
+			};
+			VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
+			this->builder.vertices.insert(this->builder.vertices.end(), voxelVertexes.begin(), voxelVertexes.end());
 
-		auto it = counter.find(lastPosInHistory);
-		if (--(it->second) == 0)
-			counter.erase(it);
-		// NB it should also remove the world from GPU and reload model, NBB till an option?
+			IndexVector voxelIndexes = getIndexRelative(globalIndexCount);
+			this->builder.indices.insert(this->builder.indices.end(), voxelIndexes.begin(), voxelIndexes.end());
+			globalIndexCount += voxelVertexes.size();
+		}
 	}
-	history.push_back(newPos);
-	++counter[newPos];
 }
 
-bool WorldGenerator::HistoryWorlds::hasVisited(vec2i const& pos) const {
-	return this->counter.find(pos) != this->counter.end();
-}
-
-void WorldGenerator::init( vec3 const& playerPos ) {
-	this->builder.emptyData();
-
-	vec2i currentWorldPos = this->worldPosFromLocalPos(playerPos);
-	this->addeNewWorld(currentWorldPos);
-}
 
 bool WorldGenerator::spawnCloseByWorlds( vec3 const& playerPos ) {
 	vec2i currentWorldPos = this->worldPosFromLocalPos(playerPos);
@@ -125,43 +123,48 @@ bool WorldGenerator::spawnCloseByWorlds( vec3 const& playerPos ) {
 	return realoadData;
 }
 
-bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
-	bool newWorldAdded = this->history.hasVisited(worldPos) == false;
-	if (newWorldAdded) {
-		this->history.add(worldPos);
-		this->fillBufferPlainTerrain(worldPos);
-	}
-	return newWorldAdded;
-}
-
 size_t WorldGenerator::getMemoryUsed( void ) const noexcept {
 	size_t size = 0U;
-	size += this->builder.vertices.size() * sizeof(ve::VulkanModel::Vertex);
-	size += this->builder.indices.size() * sizeof(uint32_t);
+	size += this->totVoxels * VERTEX_PER_VOXEL * sizeof(ve::VulkanModel::Vertex);
+	size += this->totVoxels * INDEX_PER_VOXEL * sizeof(uint32_t);
 	return size;
 }
 
-void WorldGenerator::fillBufferPlainTerrain( vec2i const& worldPos ) {
-	vec3	localPos = this->localPosFromWorldPos(worldPos);
-	vec3ui	index(0U);
-	// trivial optimization, but at least worldSize^2 voxels are created, could be more
-	this->builder.vertices.reserve(this->builder.vertices.size() + this->worldSize.x * this->worldSize.z * VERTEX_PER_VOXEL);
-	this->builder.indices.reserve(this->builder.indices.size() + this->worldSize.x * this->worldSize.z * VERTEX_PER_VOXEL);
+std::unique_ptr<ve::VulkanModel> WorldGenerator::createNewModel( ve::VulkanDevice& device ) {
+	std::vector<ve::VulkanModel::Builder*> builders;
+	builders.reserve(this->worlds.size());
 
-	for(; index.z<this->worldSize.z; index.z++) {
-		for(index.x=0; index.x<this->worldSize.x; index.x++) {
-			vec3 centerVoxel{
-				static_cast<float>(index.x) + localPos.x,
-				static_cast<float>(index.y) + localPos.y,
-				static_cast<float>(index.z) + localPos.z,
-			};
-			
-			VertexArray	vertexes = getVertexRelativeAtlasTexture(centerVoxel);
-			IndexArray	indexes = getIndexRelative(this->builder.getCurrentIndex());
+	for (auto const& [pos , _] : this->worlds)
+		builders.push_back(&this->worlds[pos].getBuilder());
 
-			this->builder.vertices.insert(this->builder.vertices.end(), vertexes.begin(), vertexes.end());
-			this->builder.indices.insert(this->builder.indices.end(), indexes.begin(), indexes.end());
+	return std::make_unique<ve::VulkanModel>(device, builders);
+}
+
+bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
+	if (this->worlds.find(worldPos) == this->worlds.end()) {
+		// drop the oldest position visited if the limit of 
+		// the total positions visited is reached
+		if (this->worlds.size() == MAX_WORLDS) {
+			vec2i const& lastPosInHistory = history.front();
+			history.pop_front();
+
+			auto it = this->worlds.find(lastPosInHistory);
+			if (it->second.getCounter() == 1)
+				this->worlds.erase(it);
+			else
+				it->second.decreaseCounter();
 		}
+		// add world position to history
+		history.push_back(worldPos);
+		// create new world
+		vec3 relativeOrigin = this->localPosFromWorldPos(worldPos);
+		uint32_t globalIndex = this->totVoxels * VERTEX_PER_VOXEL;
+		this->worlds.emplace(worldPos, World(this->worldSize, relativeOrigin, globalIndex));
+		this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
+		return true;
+	} else {
+		this->worlds[worldPos].increaseCounter();
+		return false;
 	}
 }
 

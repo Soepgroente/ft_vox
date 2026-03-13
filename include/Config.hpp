@@ -29,8 +29,6 @@ struct Config
 		worldSize / 2.0f + 0.5f
 	};
 
-	static constexpr uint32_t	maxWorldsStored = 20U;
-
 	static constexpr float	movementSpeed = 10.0f;
 	static constexpr float	lookSpeed = 75.0f;
 

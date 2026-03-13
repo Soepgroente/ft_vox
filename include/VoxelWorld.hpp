@@ -13,44 +13,56 @@ namespace vox {
 
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
+// 1 voxel corresponds to:
+// vertexes = 24 (vertexes per voxel) * 44 (bytes per vertex) = 1056 b = 1.031 KiB
+// indexes = 36 (indexes per voxel) * 4 (bytes per index [uint]) = 144 b
+// total = 1200 b = 1.171 KiB
+//
+// 32 * 32 voxels correspond to:
+// vertexes = 32 * 32 * 1056 b = 1081344 b = 1056 KiB = 1.031 MiB
+// indexes = 32 * 32 * 144 b = 147456 b = 144 KiB
+// total = 1228800 b = 1200 KiB = 1.171 MiB
+//
+// to have a limit around 150 MiB, 2*17 = 128 voxels are required
+// vertexes = 128 * 32 * 32 * 1056 b = 138412032 b = 135168 KiB = 132 MiB
+// indexes = 128 * 32 * 32 * 144 b = 18874368 b = 18432 KiB = 18 MiB
+// total = 157286400 b = 153600 KiB = 150 MiB
+inline constexpr uint32_t	MAX_WORLDS = 128U;
 
-using VertexArray = std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL>;
-using IndexArray = std::array<uint32_t, INDEX_PER_VOXEL>;
-
-inline VertexArray VOXEL_VERTEXES{
+inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
     // face FRONT (z = +0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 0.0f }},
     //face BACK (z = -0.5)
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 0.0f }},
     // face LEFT (x = -0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 0.0f }},
     // face RIGHT (x = +0.5)
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 0.0f }},
     // face TOP (y = +0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 0.0f }},
     // face BOTTOM (y = -0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, ve::generateRandomColor(), vec3(0.0f), vec2{ 0.0f, 0.0f }}
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 1.0f }},
+    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 1.0f, 0.0f }},
+    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec3(0.0f), vec2{ 0.0f, 0.0f }}
 };
 
-inline constexpr IndexArray VOXEL_VERTEX_INDEXES{
+inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 	0U, 1U, 2U, 		// front face
 	0U, 2U, 3U, 		// front face
 	4U, 5U, 6U, 		// back face
@@ -65,62 +77,69 @@ inline constexpr IndexArray VOXEL_VERTEX_INDEXES{
 	20U, 22U, 23U		// bottom face
 };
 
-VertexArray	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
-VertexArray	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
-IndexArray	getIndexRelative( uint32_t = 0U );
+using VertexVector = std::vector<ve::VulkanModel::Vertex>;
+using IndexVector = std::vector<uint32_t>;
+
+VertexVector	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
+VertexVector	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
+IndexVector		getIndexRelative( uint32_t = 0U );
+
+
+class World {
+	public:
+		explicit World( vec3ui const&, vec3 const&, uint32_t );
+		World( void ) = default;
+		~World( void ) noexcept = default;
+		World( World const& ) = delete;
+		World( World&& ) = default;
+		World& operator=( World const& ) = delete;
+		World& operator=( World&& ) = default;
+
+		uint32_t						getVertexSize( void ) const noexcept { return this->builder.vertices.size(); }
+		uint32_t						getIndexSize( void ) const noexcept { return this->builder.indices.size(); }
+		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return this->builder; };
+		ve::VulkanModel::Builder&		getBuilder( void ) noexcept { return this->builder; };
+
+		void		increaseCounter( void ) noexcept { this->counter++; };
+		void		decreaseCounter( void ) noexcept { this->counter--; };
+		uint32_t	getCounter( void ) const noexcept { return this->counter; };
+
+	private:
+		ve::VulkanModel::Builder	builder;
+		// counter is the amount of time that world has been visitied
+		// when it reaches 0 (decreased inside WorldGenerator::addeNewWorld() ) the world is removed
+		uint32_t					counter;
+};
 
 
 class WorldGenerator {
 	public:
-		class HistoryWorlds {
-			// a world with position (x, y) becomes (x * sizeX, 0, y * sizeZ) in local space 
-			public:
-				explicit HistoryWorlds( uint32_t max ) : max(max) {};
-				~HistoryWorlds( void ) noexcept = default;
-				HistoryWorlds( HistoryWorlds const& ) = delete;
-				HistoryWorlds( HistoryWorlds&& ) = delete;
-				HistoryWorlds& operator=( HistoryWorlds const& ) = delete;
-				HistoryWorlds& operator=( HistoryWorlds&& ) = delete;
-
-				void add(vec2i const& newPos);
-				bool hasVisited(vec2i const& pos) const;
-
-			private:
-				uint32_t							max;		// max number of positions stored
-				std::deque<vec2i>					history;	// using FIFO for storing position history
-				std::unordered_map<vec2i,uint32_t>	counter;	// using unord. map for fast lookup 
-		};
-
-		explicit WorldGenerator( vec3ui const& worldSize, uint32_t maxWorldsStored ) : 
-			history(maxWorldsStored), 
-			worldSize(worldSize) {};
+		explicit WorldGenerator( vec3ui const& worldSize ) : 
+			worldSize(worldSize),
+			totVoxels(0U) {};
 		~WorldGenerator( void ) = default;
 		WorldGenerator( WorldGenerator const& ) = delete;
 		WorldGenerator( WorldGenerator&& ) = delete;
 		WorldGenerator& operator=( WorldGenerator const& ) = delete;
 		WorldGenerator& operator=( WorldGenerator&& ) = delete;
 
-		void	init( vec3 const& );
 		bool	spawnCloseByWorlds( vec3 const& );
-		bool	addeNewWorld( vec2i const& );
 		size_t	getMemoryUsed( void ) const noexcept;
 
-		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return builder; };
-		ve::VulkanModel::Builder&		getBuilder( void ) noexcept { return builder; };
+		std::unique_ptr<ve::VulkanModel>	createNewModel( ve::VulkanDevice& );
 
 	private:
-		void	fillBufferPlainTerrain( vec2i const& );
+		bool	addeNewWorld( vec2i const& );
+
 		// worlds are stored with 2D XY position,
 		// local positions are stored in XYZ (its Z is the Y of the world pos)
 		vec2i	worldPosFromLocalPos( vec3 const& ) const noexcept;
 		vec3	localPosFromWorldPos( vec2i const& ) const noexcept;
 
-		HistoryWorlds				history;
-		vec3ui						worldSize;
-		ve::VulkanModel::Builder	builder;
+		vec3ui							worldSize;	// 3D dimension of every world
+		std::deque<vec2i>				history;	// using FIFO for storing position history
+		std::unordered_map<vec2i,World>	worlds;		// using unord. map for fast lookup 
+		uint32_t						totVoxels;
 };
-
-float	perlinNoise(float x, float y, ui32 seed);
-float	randomNoise(float, float, ui32& seed);
 
 }	// namespace vox
