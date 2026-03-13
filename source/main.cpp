@@ -1,6 +1,5 @@
 #include "Vox.hpp"
 
-#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 
@@ -11,7 +10,6 @@ int	main( void )
 	try
 	{
 		app.run();
-		app.shutdown();
 	}
 	catch (const std::exception& e)
 	{

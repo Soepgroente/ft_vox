@@ -1,7 +1,6 @@
 #pragma once
-#include "Vulkan.hpp"
 
-#include <limits>
+#include "Vectors.hpp"
 
 
 namespace vox {
@@ -17,7 +16,7 @@ struct Config
 		256U
 	};
 
-	static constexpr vec3	worldLimits{
+	static constexpr vec3	cameraLimitsMov{
 		-100000.0f,
 		1.5f,
 		-100000.0f
@@ -25,9 +24,9 @@ struct Config
 
 	static constexpr uint32_t	worldSize = 32U;
 	static constexpr vec3		startingPos{		// NB this is ugly, y should depend on ground lvl
-		worldSize / 2.0f,
-		2.0f,
-		worldSize / 2.0f
+		worldSize / 2.0f + 0.5f,
+		1.5f,
+		worldSize / 2.0f + 0.5f
 	};
 
 	static constexpr uint32_t	maxWorldsStored = 20U;
@@ -37,6 +36,9 @@ struct Config
 
 	static constexpr char const	vertShaderPath[] = "build/basic.vert.spv";
 	static constexpr char const	fragShaderPath[] = "build/basic.frag.spv";
+
+	static constexpr char const	texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
+	static constexpr char const	texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
 };
 
 } // namespace vox

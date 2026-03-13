@@ -25,7 +25,7 @@ layout(push_constant) uniform PushConstants
 
 void main()
 {
-	outColor = texture(texSampler, fragTexCoord * 2.0);
+	outColor = texture(texSampler, fragTexCoord);
 	//outColor = vec4(fragColor, 0.0f);
 	// vec3 directionToLight = ubo.lightPosition - fragPosWorld;
 	// float attenuation = 1.0 / dot(directionToLight, directionToLight);

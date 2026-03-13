@@ -63,14 +63,9 @@ class VulkanModel
 			std::vector<Vertex>		vertices{};
 			std::vector<uint32_t>	indices{};
 
-			void	loadModel(const std::string& filepath);
-			void	addVertex( vec3 const& ) noexcept;
-			void	addVertex( Vertex const& ) noexcept;
-			void	emptyData( void ) noexcept;
-
-		private:
-			std::unordered_map<vec3,uint32_t>	uniqueVertexes;
-			uint32_t							currentIndex = 0U;
+			void		loadModel(const std::string& filepath);
+			void		emptyData( void ) noexcept;
+			uint32_t	getCurrentIndex( void ) const noexcept { return this->vertices.size(); }
 	};
 
 	VulkanModel() = delete;

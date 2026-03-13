@@ -1,5 +1,6 @@
 #include "KeyboardInput.hpp"
 
+
 namespace vox {
 
 KeyboardInput::KeyboardInput() noexcept {

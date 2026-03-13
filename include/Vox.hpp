@@ -1,15 +1,13 @@
 #pragma once
 
-#include "Vectors.hpp"
 #include "Vulkan.hpp"
-#include "InputHandler.hpp"
-#include "VoxelWorld.hpp"
+#include "Vectors.hpp"
 #include "Config.hpp"
+#include "VoxelWorld.hpp"
+#include "InputHandler.hpp"
 
-#include <array>
-#include <cmath>
-#include <memory>
-#include <vector>
+#include <cstdint>
+
 
 namespace vox {
 
@@ -24,7 +22,6 @@ class Vox
 		Vox& operator=( Vox&& ) = delete;
 
 		void run( void );
-		void shutdown( void );
 
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( float, float );
@@ -36,11 +33,9 @@ class Vox
 		ve::VulkanRenderer	vulkanRenderer{vulkanWindow, vulkanDevice};
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
 
-		std::string						objModelPath;
-		ve::Camera						camera;
-		WorldGenerator					world;
-		InputHandler					inputHandler;
+		ve::Camera		camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov};
+		WorldGenerator	world{vec3ui(Config::worldSize), Config::maxWorldsStored};
+		InputHandler	inputHandler;
 };
 
-
-}
+}	// namespace vox

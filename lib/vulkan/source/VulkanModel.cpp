@@ -171,46 +171,17 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 	return center;
 }
 
-void	VulkanModel::Builder::addVertex( vec3 const& vertex ) noexcept {
-	if (this->uniqueVertexes.find(vertex) != this->uniqueVertexes.end())
-		// there's already such vertex, add only the vertex index
-		this->indices.push_back(this->uniqueVertexes[vertex]);
-	else {
-		this->uniqueVertexes[vertex] = this->currentIndex;
-		// new vertex, add it and its vertex index
-		this->vertices.push_back(ve::VulkanModel::Vertex{
-			vertex,
-			ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
-			vec3{0.0f, 0.0f, 0.0f},
-			vec2{0.0f, 0.0f}
-		});
-		this->indices.push_back(this->currentIndex++);
-	}
-}
-
-void	VulkanModel::Builder::addVertex( Vertex const& vertex ) noexcept {
-	if (this->uniqueVertexes.find(vertex.pos) != this->uniqueVertexes.end())
-		// there's already such vertex, add only the vertex index
-		this->indices.push_back(this->uniqueVertexes[vertex.pos]);
-	else {
-		this->uniqueVertexes[vertex.pos] = this->currentIndex;
-		// new vertex, add it and its vertex index
-		this->vertices.push_back(vertex);
-		this->indices.push_back(this->currentIndex++);
-	}
-}
 
 void	VulkanModel::Builder::emptyData( void ) noexcept {
 	this->vertices.clear();
 	this->indices.clear();
-	this->uniqueVertexes.clear();
-	this->currentIndex = 0U;
 }
 
 void	VulkanModel::Builder::loadModel(const std::string &filepath)
 {
 	std::vector<ObjInfo>		objs = parseOBJFile(filepath);
 	std::unordered_map<Vertex, uint32_t>	uniqueVertices{};
+	uint32_t 								currentIndex = 0U;
 
 	vertices.clear();
 	indices.clear();
@@ -266,7 +237,15 @@ void	VulkanModel::Builder::loadModel(const std::string &filepath)
 							vertex.normal = obj.normals[norm[ti]];
 						}
 						vertex.color = generateRandomColor();
-						addVertex(vertex);
+						if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
+							uniqueVertices[vertex] = currentIndex;
+							// new vertex, add it and its vertex index
+							this->vertices.push_back(vertex);
+							this->indices.push_back(currentIndex++);
+						} else {
+							// there's already such vertex, add only the vertex index
+							this->indices.push_back(uniqueVertices[vertex]);
+						}
 					}
 				}
 			}
