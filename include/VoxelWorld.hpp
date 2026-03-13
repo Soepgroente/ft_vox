@@ -103,6 +103,7 @@ class WorldGenerator {
 		void	init( vec3 const& );
 		bool	spawnCloseByWorlds( vec3 const& );
 		bool	addeNewWorld( vec2i const& );
+		size_t	getMemoryUsed( void ) const noexcept;
 
 		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return builder; };
 		ve::VulkanModel::Builder&		getBuilder( void ) noexcept { return builder; };
