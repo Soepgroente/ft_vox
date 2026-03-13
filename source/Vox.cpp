@@ -93,10 +93,10 @@ void Vox::run( void )
 		ve::CameraSettings::projectionFar
 	);
 
-	this->world.init(this->camera.getCameraPos());
 	ve::VulkanObject gameObject = ve::VulkanObject::createVulkanObject();
-	gameObject.model			= std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
-	this->world.getMemoryUsed();
+	this->world.spawnCloseByWorlds(this->camera.getCameraPos());
+	gameObject.model = this->world.createNewModel(vulkanDevice);
+
 	ve::FrameInfo info
 	{
 		0,
@@ -117,7 +117,7 @@ void Vox::run( void )
 		this->moveCamera(elapsedTime);
 		// add chunks of maps if necessary
 		if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
-			info.gameObject.model = std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
+			gameObject.model = this->world.createNewModel(vulkanDevice);
 
 		commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)

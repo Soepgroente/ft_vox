@@ -7,7 +7,7 @@
 
 namespace ve {
 
-VulkanModel::VulkanModel(VulkanDevice& device, const VulkanModel::Builder& builder) : vulkanDevice{device}
+VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder) : vulkanDevice{device}
 {
 	createVertexBuffers(builder.vertices);
 	createIndexBuffers(builder.indices);
@@ -15,8 +15,19 @@ VulkanModel::VulkanModel(VulkanDevice& device, const VulkanModel::Builder& build
 	indexCount = static_cast<uint32_t>(builder.indices.size());
 }
 
-VulkanModel::~VulkanModel()
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Builder*>& builders) : vulkanDevice{device}
 {
+	this->vertexCount = 0U;
+	this->indexCount = 0U;
+	for (Builder* builder : builders) {
+		this->vertexCount += builder->vertices.size();
+		this->indexCount += builder->indices.size();
+	}
+	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
+	assert(this->indexCount >= 3 && "Face indexes not provided");
+	this->hasIndexBuffer = true;
+
+	this->createVertexIndexBuffers(builders);
 }
 
 void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
@@ -81,6 +92,60 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
+}
+
+void	VulkanModel::createVertexIndexBuffers(const std::vector<Builder*>& builders)
+{
+	uint32_t		vertexSize = sizeof(Vertex);
+	VulkanBuffer	stagingBufferVertex(
+		vulkanDevice,
+		vertexSize,
+		this->vertexCount,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+	stagingBufferVertex.map();
+
+	uint32_t		indexSize = sizeof(uint32_t);
+	VulkanBuffer	stagingBufferIndex(
+		vulkanDevice,
+		indexSize,
+		this->indexCount,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+	stagingBufferIndex.map();
+
+	uint32_t offsetVertex = 0U;
+	uint32_t offsetIndex = 0U;
+	for (Builder* builder : builders) {
+		// insert vertexes from builder to staging buffer 1
+		uint32_t sizeData = builder->vertices.size() * vertexSize;
+		stagingBufferVertex.writeToBuffer((void*)builder->vertices.data(), sizeData, offsetVertex);
+		offsetVertex += sizeData;
+		// insert indexes from builder to staging buffer 2
+		sizeData = builder->indices.size() * indexSize;
+		stagingBufferIndex.writeToBuffer((void*)builder->indices.data(), sizeData, offsetIndex);
+		offsetIndex += sizeData;
+	}
+
+	vertexBuffer = std::make_unique<VulkanBuffer>(
+		vulkanDevice,
+		vertexSize,
+		this->vertexCount,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+	vulkanDevice.copyBuffer(stagingBufferVertex.getBuffer(), vertexBuffer->getBuffer(), this->vertexCount * vertexSize);
+
+	indexBuffer = std::make_unique<VulkanBuffer>(
+		vulkanDevice,
+		indexSize,
+		this->indexCount,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+	vulkanDevice.copyBuffer(stagingBufferIndex.getBuffer(), indexBuffer->getBuffer(), this->indexCount * indexSize);
 }
 
 void	VulkanModel::bind(VkCommandBuffer commandBuffer)

@@ -20,10 +20,10 @@ class vec2
 		};
 	};
 
-	vec2() : x(0.0f), y(0.0f) {}
+	constexpr vec2() : x(0.0f), y(0.0f) {}
 	constexpr explicit vec2(float val) : x(val), y(val) {}
-	vec2(float x, float y) : x(x), y(y) {}
-	vec2(const vec2& other) : x(other.x), y(other.y) {}
+	constexpr vec2(float x, float y) : x(x), y(y) {}
+	constexpr vec2(const vec2& other) : x(other.x), y(other.y) {}
 	vec2&	operator=(const vec2& other);
 	~vec2() = default;
 

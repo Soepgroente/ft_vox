@@ -63,14 +63,14 @@ class VulkanModel
 			std::vector<Vertex>		vertices{};
 			std::vector<uint32_t>	indices{};
 
-			void		loadModel(const std::string& filepath);
-			void		emptyData( void ) noexcept;
-			uint32_t	getCurrentIndex( void ) const noexcept { return this->vertices.size(); }
+			void loadModel(const std::string& filepath);
+			void emptyData( void ) noexcept;
 	};
 
 	VulkanModel() = delete;
-	VulkanModel(VulkanDevice& vulkanDevice,	const VulkanModel::Builder& builder);
-	~VulkanModel();
+	VulkanModel(VulkanDevice& vulkanDevice, const Builder& builder);
+	VulkanModel(VulkanDevice& vulkanDevice, const std::vector<Builder*>& builders);
+	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
 	VulkanModel& operator=(const VulkanModel&) = delete;
@@ -105,6 +105,7 @@ class VulkanModel
 	
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createIndexBuffers(const std::vector<uint32_t>& indices);
+	void	createVertexIndexBuffers(const std::vector<Builder*>& builders);
 	
 	static vec3	calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept;
 };
