@@ -20,7 +20,7 @@ VertexArray getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
 VertexArray getVertexRelativeAtlasTexture( vec3 const& relativeOrigin ) {
 	VertexArray voxelVertexes = getVertexRelativeMonoTexture(relativeOrigin);
 
-	// according file: textures/texture_dirt_atlas.jpeg
+	// according to file: textures/texture_dirt_atlas.jpeg
 	//  _______________
 	// |   | B |   |   |	
 	// |___|___|___|___|
@@ -132,6 +132,13 @@ bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
 		this->fillBufferPlainTerrain(worldPos);
 	}
 	return newWorldAdded;
+}
+
+size_t WorldGenerator::getMemoryUsed( void ) const noexcept {
+	size_t size = 0U;
+	size += this->builder.vertices.size() * sizeof(ve::VulkanModel::Vertex);
+	size += this->builder.indices.size() * sizeof(uint32_t);
+	return size;
 }
 
 void WorldGenerator::fillBufferPlainTerrain( vec2i const& worldPos ) {

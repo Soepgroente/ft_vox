@@ -96,7 +96,7 @@ void Vox::run( void )
 	this->world.init(this->camera.getCameraPos());
 	ve::VulkanObject gameObject = ve::VulkanObject::createVulkanObject();
 	gameObject.model			= std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
-
+	this->world.getMemoryUsed();
 	ve::FrameInfo info
 	{
 		0,
