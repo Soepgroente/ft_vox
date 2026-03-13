@@ -1,8 +1,7 @@
 #include "Vox.hpp"
+#include "Utils.hpp"
 
 #include <chrono>
-#include <random>
-#include <cmath>
 
 
 namespace vox {
@@ -16,9 +15,6 @@ struct GlobalUBO
 };
 
 Vox::Vox( void ) : 
-	objModelPath("models/teapot.obj"),
-	camera(Config::startingPos, ve::CameraSettings::cameraForward, Config::worldLimits),
-	world(vec3ui(Config::worldSize), Config::maxWorldsStored),
 	inputHandler(
 		[this](float width, float height) { this->rotateCameraFromCursorPos(width, height); },
 		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
@@ -59,7 +55,7 @@ void Vox::run( void )
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 
-	ve::VulkanTexture texture{"textures/terrain_texture_atlas.jpeg", vulkanDevice};
+	ve::VulkanTexture texture{Config::texture2VoxelPath, vulkanDevice};
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
@@ -97,7 +93,7 @@ void Vox::run( void )
 		ve::CameraSettings::projectionFar
 	);
 
-	this->world.init();
+	this->world.init(this->camera.getCameraPos());
 	ve::VulkanObject gameObject = ve::VulkanObject::createVulkanObject();
 	gameObject.model			= std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
 
@@ -120,8 +116,8 @@ void Vox::run( void )
 		// do game operations
 		this->moveCamera(elapsedTime);
 		// add chunks of maps if necessary
-		// if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
-		// 	info.gameObject.model = std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
+		if (this->world.spawnCloseByWorlds(this->camera.getCameraPos()) == true)
+			info.gameObject.model = std::make_unique<ve::VulkanModel>(this->vulkanDevice, this->world.getBuilder());
 
 		commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
@@ -142,10 +138,11 @@ void Vox::run( void )
 			newTime = std::chrono::high_resolution_clock::now();
 			int32_t	fps = static_cast<int> (1.0f / elapsedTime);
 			float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
-			std::cout << "\033[2A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
+			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
 
 			vec3 playerPos = info.camera.getCameraPos();
 			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->world.getMemoryUsed()) << std::endl;
 
 			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();
@@ -155,10 +152,6 @@ void Vox::run( void )
 	}
 
 	vkDeviceWaitIdle(vulkanDevice.device());
-}
-
-void Vox::shutdown( void )
-{
 }
 
 void Vox::moveCamera( float deltaTime ) {

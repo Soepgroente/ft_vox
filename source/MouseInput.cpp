@@ -1,5 +1,6 @@
 #include "MouseInput.hpp"
 
+
 namespace vox {
 
 void	MouseInput::reset() noexcept
