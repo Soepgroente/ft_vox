@@ -1,4 +1,5 @@
 #include "VoxelWorld.hpp"
+#include "Utils.hpp"
 
 
 namespace vox {
@@ -73,13 +74,8 @@ IndexVector getIndexRelative( uint32_t start ) {
 	return indexes;
 }
 
-
-World::World( vec3ui const& worldSize, vec3 const& localPos, uint32_t globalIndexCount ) : counter(0U) {
-	// trivial optimization, but at least worldSize^2 voxels are created, could be more
-	this->builder.vertices.reserve(worldSize.x * worldSize.z * VERTEX_PER_VOXEL);
-	this->builder.indices.reserve(worldSize.x * worldSize.z * INDEX_PER_VOXEL);
-	
-	// logic for how to generate the world is here
+// NB initialize with relative pos (not v3)
+World::World( vec3ui const& worldSize, vec3 const& localPos ) {
 	vec3ui index(0U);
 	for(; index.z<worldSize.z; index.z++) {
 		for(index.x=0; index.x<worldSize.x; index.x++) {
@@ -89,18 +85,21 @@ World::World( vec3ui const& worldSize, vec3 const& localPos, uint32_t globalInde
 				static_cast<float>(index.z) + localPos.z,
 			};
 			VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
-			this->builder.vertices.insert(this->builder.vertices.end(), voxelVertexes.begin(), voxelVertexes.end());
-
-			IndexVector voxelIndexes = getIndexRelative(globalIndexCount);
-			this->builder.indices.insert(this->builder.indices.end(), voxelIndexes.begin(), voxelIndexes.end());
-			globalIndexCount += voxelVertexes.size();
+			this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
 		}
 	}
 }
 
+void WorldGenerator::init( vec3 const& start ) {
+	this->currentWorldPos = vec2i{-100, -100};
+	this->spawnCloseByWorlds(start);
+}
 
-bool WorldGenerator::spawnCloseByWorlds( vec3 const& playerPos ) {
-	vec2i currentWorldPos = this->worldPosFromLocalPos(playerPos);
+bool WorldGenerator::spawnCloseByWorlds( vec3 const& start ) {
+	vec2i playerPos = this->worldPosFromLocalPos(start);
+	if (playerPos == this->currentWorldPos)
+		return false;
+	this->currentWorldPos = playerPos;
 	// add a world, if not existent already, in each of these 9 quadrants
 	//  __ __ __
 	// |NW|N |NE|
@@ -111,19 +110,19 @@ bool WorldGenerator::spawnCloseByWorlds( vec3 const& playerPos ) {
 	// |__|__|__|
 	//
 	bool realoadData = false;
-	realoadData |= this->addeNewWorld(currentWorldPos);										// M
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x, currentWorldPos.y + 1});		// N
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x + 1, currentWorldPos.y + 1});	// N-E
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x + 1, currentWorldPos.y});		// E
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x + 1, currentWorldPos.y - 1});	// S-E
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x, currentWorldPos.y - 1});		// S
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x - 1, currentWorldPos.y - 1});	// S-W
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x - 1, currentWorldPos.y});		// W
-	realoadData |= this->addeNewWorld(vec2i{currentWorldPos.x - 1, currentWorldPos.y + 1});	// N-W
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x - 1, playerPos.y - 1});
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x, playerPos.y - 1});
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x + 1, playerPos.y - 1});
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x - 1, playerPos.y});
+	realoadData |= this->addeNewWorld(playerPos);
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x + 1, playerPos.y});
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x - 1, playerPos.y + 1});
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x, playerPos.y + 1});
+	realoadData |= this->addeNewWorld(vec2i{playerPos.x + 1, playerPos.y + 1});
 	return realoadData;
 }
 
-size_t WorldGenerator::getMemoryUsed( void ) const noexcept {
+size_t WorldGenerator::getMemoryUsed( void ) noexcept {
 	size_t size = 0U;
 	size += this->totVoxels * VERTEX_PER_VOXEL * sizeof(ve::VulkanModel::Vertex);
 	size += this->totVoxels * INDEX_PER_VOXEL * sizeof(uint32_t);
@@ -131,41 +130,40 @@ size_t WorldGenerator::getMemoryUsed( void ) const noexcept {
 }
 
 std::unique_ptr<ve::VulkanModel> WorldGenerator::createNewModel( ve::VulkanDevice& device ) {
-	std::vector<ve::VulkanModel::Builder*> builders;
-	builders.reserve(this->worlds.size());
-
+	std::vector<VertexVector*>	vertexes(this->worlds.size());
+	uint32_t i = 0U;
 	for (auto const& [pos , _] : this->worlds)
-		builders.push_back(&this->worlds[pos].getBuilder());
-
-	return std::make_unique<ve::VulkanModel>(device, builders);
+		vertexes[i++] = &this->worlds[pos].getVertexes();
+	return std::make_unique<ve::VulkanModel>(device, vertexes, VOXEL_VERTEX_INDEXES);
 }
 
 bool WorldGenerator::addeNewWorld( vec2i const& worldPos ) {
-	if (this->worlds.find(worldPos) == this->worlds.end()) {
-		// drop the oldest position visited if the limit of 
-		// the total positions visited is reached
-		if (this->worlds.size() == MAX_WORLDS) {
-			vec2i const& lastPosInHistory = history.front();
-			history.pop_front();
-
-			auto it = this->worlds.find(lastPosInHistory);
-			if (it->second.getCounter() == 1)
-				this->worlds.erase(it);
-			else
-				it->second.decreaseCounter();
-		}
-		// add world position to history
-		history.push_back(worldPos);
-		// create new world
-		vec3 relativeOrigin = this->localPosFromWorldPos(worldPos);
-		uint32_t globalIndex = this->totVoxels * VERTEX_PER_VOXEL;
-		this->worlds.emplace(worldPos, World(this->worldSize, relativeOrigin, globalIndex));
-		this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
-		return true;
-	} else {
-		this->worlds[worldPos].increaseCounter();
+	if (this->worlds.find(worldPos) != this->worlds.end())
 		return false;
+
+	vec3 relativeOrigin = this->localPosFromWorldPos(worldPos);
+	this->worlds.emplace(worldPos, World(this->worldSize, relativeOrigin));
+	this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
+
+	if (this->worlds.size() > MAX_WORLDS) {
+		vec2i furthestWorld = this->findFurthestWorld();
+		this->totVoxels -= this->worlds[furthestWorld].getVertexSize() / VERTEX_PER_VOXEL;
+		this->worlds.erase(furthestWorld);
 	}
+	return true;
+}
+
+vec2i WorldGenerator::findFurthestWorld( void ) noexcept {
+	vec2i furthestWorld = this->currentWorldPos;
+	uint32_t furthestDist = 0U, dist = 0U;
+	for (auto& [pos, _] : this->worlds) {
+		dist = std::abs(pos.x - this->currentWorldPos.x) + std::abs(pos.y - this->currentWorldPos.y);
+		if (dist > furthestDist) {
+			furthestWorld = pos;
+			furthestDist = dist;
+		}
+	}
+	return furthestWorld;
 }
 
 vec2i WorldGenerator::worldPosFromLocalPos( vec3 const& localPos ) const noexcept {
