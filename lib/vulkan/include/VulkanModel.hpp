@@ -14,6 +14,9 @@
 
 namespace ve {
 
+inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
+inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
+
 struct	BoundingBox
 {
 	vec3	min;
@@ -68,8 +71,9 @@ class VulkanModel
 	};
 
 	VulkanModel() = delete;
-	VulkanModel(VulkanDevice& vulkanDevice, const Builder& builder);
-	VulkanModel(VulkanDevice& vulkanDevice, const std::vector<Builder*>& builders);
+	VulkanModel(VulkanDevice& device, const Builder& builder);
+	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
@@ -102,10 +106,10 @@ class VulkanModel
 	BoundingBox		boundingBox;
 	
 	void	setObjectCenter() noexcept;
-	
+
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createIndexBuffers(const std::vector<uint32_t>& indices);
-	void	createVertexIndexBuffers(const std::vector<Builder*>& builders);
+	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex>*>& vertexes, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
 	
 	static vec3	calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept;
 };

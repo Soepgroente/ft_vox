@@ -94,7 +94,7 @@ void Vox::run( void )
 	);
 
 	ve::VulkanObject gameObject = ve::VulkanObject::createVulkanObject();
-	this->world.spawnCloseByWorlds(this->camera.getCameraPos());
+	this->world.init(this->camera.getCameraPos());
 	gameObject.model = this->world.createNewModel(vulkanDevice);
 
 	ve::FrameInfo info

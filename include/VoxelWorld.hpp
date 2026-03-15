@@ -87,7 +87,7 @@ IndexVector		getIndexRelative( uint32_t = 0U );
 
 class World {
 	public:
-		explicit World( vec3ui const&, vec3 const&, uint32_t );
+		explicit World( vec3ui const&, vec3 const& );
 		World( void ) = default;
 		~World( void ) noexcept = default;
 		World( World const& ) = delete;
@@ -95,41 +95,37 @@ class World {
 		World& operator=( World const& ) = delete;
 		World& operator=( World&& ) = default;
 
-		uint32_t						getVertexSize( void ) const noexcept { return this->builder.vertices.size(); }
-		uint32_t						getIndexSize( void ) const noexcept { return this->builder.indices.size(); }
-		ve::VulkanModel::Builder const&	getBuilder( void ) const noexcept { return this->builder; };
-		ve::VulkanModel::Builder&		getBuilder( void ) noexcept { return this->builder; };
-
-		void		increaseCounter( void ) noexcept { this->counter++; };
-		void		decreaseCounter( void ) noexcept { this->counter--; };
-		uint32_t	getCounter( void ) const noexcept { return this->counter; };
+		VertexVector const&	getVertexes( void ) const { return this->vertexes; };
+		VertexVector&		getVertexes( void ) { return this->vertexes; };
+		IndexVector			getIndexes( u_int32_t start ) const { return getIndexRelative(start); };
+		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
 
 	private:
-		ve::VulkanModel::Builder	builder;
-		// counter is the amount of time that world has been visitied
-		// when it reaches 0 (decreased inside WorldGenerator::addeNewWorld() ) the world is removed
-		uint32_t					counter;
+		VertexVector vertexes;
 };
 
 
 class WorldGenerator {
 	public:
-		explicit WorldGenerator( vec3ui const& worldSize ) : 
+		explicit WorldGenerator( uint32_t worldSize ) : 
 			worldSize(worldSize),
-			totVoxels(0U) {};
+			totVoxels(0U),
+			currentWorldPos(0U) {};
 		~WorldGenerator( void ) = default;
 		WorldGenerator( WorldGenerator const& ) = delete;
 		WorldGenerator( WorldGenerator&& ) = delete;
 		WorldGenerator& operator=( WorldGenerator const& ) = delete;
 		WorldGenerator& operator=( WorldGenerator&& ) = delete;
 
+		void	init( vec3 const& );
 		bool	spawnCloseByWorlds( vec3 const& );
-		size_t	getMemoryUsed( void ) const noexcept;
+		size_t	getMemoryUsed( void ) noexcept;
 
 		std::unique_ptr<ve::VulkanModel>	createNewModel( ve::VulkanDevice& );
 
 	private:
 		bool	addeNewWorld( vec2i const& );
+		vec2i	findFurthestWorld( void ) noexcept;
 
 		// worlds are stored with 2D XY position,
 		// local positions are stored in XYZ (its Z is the Y of the world pos)
@@ -137,9 +133,11 @@ class WorldGenerator {
 		vec3	localPosFromWorldPos( vec2i const& ) const noexcept;
 
 		vec3ui							worldSize;	// 3D dimension of every world
-		std::deque<vec2i>				history;	// using FIFO for storing position history
+		uint32_t						totVoxels;	// total voxel generated in every world
+		// NB convert vec2i into vec3i
 		std::unordered_map<vec2i,World>	worlds;		// using unord. map for fast lookup 
-		uint32_t						totVoxels;
+		vec2i							currentWorldPos;
+
 };
 
 }	// namespace vox

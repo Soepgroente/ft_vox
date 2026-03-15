@@ -34,7 +34,7 @@ class Vox
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
 
 		ve::Camera		camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov};
-		WorldGenerator	world{vec3ui(Config::worldSize)};
+		WorldGenerator	world{Config::worldSize};
 		InputHandler	inputHandler;
 };
 
