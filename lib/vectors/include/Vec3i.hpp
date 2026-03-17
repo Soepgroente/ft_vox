@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <cstdint>
+#include <cmath>
 
 class vec3i
 {
@@ -42,9 +43,14 @@ class vec3i
 	int&		operator[](int index) noexcept { return data[index]; }
 	const int&	operator[](int index) const noexcept { return data[index]; }
 	
-	vec3i	clone() const noexcept { return vec3i(x, y, z); }
+	vec3i		clone() const noexcept { return vec3i(x, y, z); }
+	float		length() const noexcept { return std::sqrt(x * x + y * y + z * z); }
+	uint32_t	length1D() const noexcept { return std::abs(x) + std::abs(y) + std::abs(z); }
 	
 	static vec3i	zero() noexcept { return vec3i(0.0f, 0.0f, 0.0f); }
+	static float	distance(const vec3i& a, const vec3i& b) noexcept { return (b - a).length(); }
+	// 1D distance or Manhattan distance
+	static uint32_t	distance1D(const vec3i& v1, const vec3i& v2) noexcept {return (v1 - v2).length1D(); }
 
 	friend vec3i	operator-(const vec3i& v) noexcept { return vec3i(-v.x, -v.y, -v.z); }
 
