@@ -107,17 +107,17 @@ class World {
 };
 
 
-class WorldGenerator {
+class WorldNavigator {
 	public:
-		explicit WorldGenerator( uint32_t worldSize ) : 
+		explicit WorldNavigator( uint32_t worldSize ) : 
 			worldSize(worldSize),
 			totVoxels(0U),
 			currentWorldPos(0U) {};
-		~WorldGenerator( void ) = default;
-		WorldGenerator( WorldGenerator const& ) = delete;
-		WorldGenerator( WorldGenerator&& ) = delete;
-		WorldGenerator& operator=( WorldGenerator const& ) = delete;
-		WorldGenerator& operator=( WorldGenerator&& ) = delete;
+		~WorldNavigator( void ) = default;
+		WorldNavigator( WorldNavigator const& ) = delete;
+		WorldNavigator( WorldNavigator&& ) = delete;
+		WorldNavigator& operator=( WorldNavigator const& ) = delete;
+		WorldNavigator& operator=( WorldNavigator&& ) = delete;
 
 		void	init( vec3 const& );
 		bool	spawnCloseByWorlds( vec3 const& );

@@ -3,7 +3,7 @@
 #include "Vulkan.hpp"
 #include "Vectors.hpp"
 #include "Config.hpp"
-#include "VoxelWorld.hpp"
+#include "World.hpp"
 #include "InputHandler.hpp"
 
 #include <cstdint>
@@ -34,7 +34,7 @@ class Vox
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
 
 		ve::Camera		camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov};
-		WorldGenerator	world{Config::worldSize};
+		WorldNavigator	world{Config::worldSize};
 		InputHandler	inputHandler;
 };
 

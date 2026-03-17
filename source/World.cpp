@@ -1,4 +1,4 @@
-#include "VoxelWorld.hpp"
+#include "World.hpp"
 #include "Utils.hpp"
 
 
@@ -96,12 +96,12 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 }
 
 
-void WorldGenerator::init( vec3 const& start ) {
+void WorldNavigator::init( vec3 const& start ) {
 	this->currentWorldPos = vec3i{-100, -100, -100};
 	this->spawnCloseByWorlds(start);
 }
 
-bool WorldGenerator::spawnCloseByWorlds( vec3 const& start ) {
+bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	vec3i playerPos = this->worldPosFromLocalPos(start);
 	if (playerPos == this->currentWorldPos)
 		return false;
@@ -128,14 +128,14 @@ bool WorldGenerator::spawnCloseByWorlds( vec3 const& start ) {
 	return realoadData;
 }
 
-size_t WorldGenerator::getMemoryUsed( void ) noexcept {
+size_t WorldNavigator::getMemoryUsed( void ) noexcept {
 	size_t size = 0U;
 	size += this->totVoxels * VERTEX_PER_VOXEL * sizeof(ve::VulkanModel::Vertex);
 	size += this->totVoxels * INDEX_PER_VOXEL * sizeof(uint32_t);
 	return size;
 }
 
-std::unique_ptr<ve::VulkanModel> WorldGenerator::createNewModel( ve::VulkanDevice& device ) {
+std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevice& device ) {
 	std::vector<VertexVector*>	vertexes(this->worlds.size());
 	uint32_t i = 0U;
 	for (auto const& [pos , _] : this->worlds)
@@ -143,7 +143,7 @@ std::unique_ptr<ve::VulkanModel> WorldGenerator::createNewModel( ve::VulkanDevic
 	return std::make_unique<ve::VulkanModel>(device, vertexes, VOXEL_VERTEX_INDEXES);
 }
 
-bool WorldGenerator::addeNewWorld( vec3i const& worldPos ) {
+bool WorldNavigator::addeNewWorld( vec3i const& worldPos ) {
 	if (this->worlds.find(worldPos) != this->worlds.end())
 		return false;
 
@@ -160,7 +160,7 @@ bool WorldGenerator::addeNewWorld( vec3i const& worldPos ) {
 
 // NB next step is to add as a weight the delta (time creation - current time) and combine it with
 // this distance to find the world to drop 
-vec3i WorldGenerator::findFurthestWorld( void ) noexcept {
+vec3i WorldNavigator::findFurthestWorld( void ) noexcept {
 	vec3i furthestWorld = this->currentWorldPos;
 	uint32_t furthestDist = 0U, dist = 0U;
 	for (auto& [pos, _] : this->worlds) {
@@ -173,7 +173,7 @@ vec3i WorldGenerator::findFurthestWorld( void ) noexcept {
 	return furthestWorld;
 }
 
-vec3i WorldGenerator::worldPosFromLocalPos( vec3 const& localPos ) const noexcept {
+vec3i WorldNavigator::worldPosFromLocalPos( vec3 const& localPos ) const noexcept {
 	vec3i WorldPos{
 		static_cast<int32_t>(localPos.x) / static_cast<int32_t>(this->worldSize.x),
 		static_cast<int32_t>(localPos.y) / static_cast<int32_t>(this->worldSize.y),
