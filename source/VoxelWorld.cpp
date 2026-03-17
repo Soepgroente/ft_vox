@@ -164,7 +164,7 @@ vec3i WorldGenerator::findFurthestWorld( void ) noexcept {
 	vec3i furthestWorld = this->currentWorldPos;
 	uint32_t furthestDist = 0U, dist = 0U;
 	for (auto& [pos, _] : this->worlds) {
-		dist = std::abs(pos.x - this->currentWorldPos.x) + std::abs(pos.y - this->currentWorldPos.y) + std::abs(pos.z - this->currentWorldPos.z);
+		dist = vec3i::distance1D(pos, this->currentWorldPos);
 		if (dist > furthestDist) {
 			furthestWorld = pos;
 			furthestDist = dist;
