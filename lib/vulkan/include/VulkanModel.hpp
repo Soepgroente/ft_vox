@@ -30,7 +30,6 @@ class VulkanModel
 	struct Vertex
 	{
 		vec3	pos;
-		vec3	color;
 		vec3	normal;
 		vec2	textureUv;
 
@@ -40,7 +39,6 @@ class VulkanModel
 		bool operator==(const Vertex& other) const noexcept
 		{
 			return	pos == other.pos &&
-					color == other.color &&
 					normal == other.normal &&
 					textureUv == other.textureUv;
 		}
@@ -52,8 +50,6 @@ class VulkanModel
 		{
 			if (pos != other.pos)
 				return pos < other.pos;
-			if (color != other.color)
-				return color < other.color;
 			if (normal != other.normal)
 				return normal < other.normal;
 			return textureUv < other.textureUv;
@@ -125,7 +121,7 @@ struct hash<ve::VulkanModel::Vertex>
 	{
 		size_t seed = 0;
 
-		ve::hashCombine(seed, vertex.pos, vertex.color, vertex.normal, vertex.textureUv);
+		ve::hashCombine(seed, vertex.pos, vertex.normal, vertex.textureUv);
 		return seed;
 	}
 };
