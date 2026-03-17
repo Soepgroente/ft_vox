@@ -213,9 +213,9 @@ std::vector<VkVertexInputAttributeDescription>	VulkanModel::Vertex::getAttribute
 	attributeDescriptions.push_back(
 		VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)}
 	);
-	attributeDescriptions.push_back(
-		VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}
-	);
+	// attributeDescriptions.push_back(
+	// 	VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}
+	// );
 	attributeDescriptions.push_back(
 		VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}
 	);
@@ -323,7 +323,7 @@ void	VulkanModel::Builder::loadModel(const std::string &filepath)
 						{
 							vertex.normal = obj.normals[norm[ti]];
 						}
-						vertex.color = generateRandomColor();
+						// vertex.color = generateRandomColor();
 						if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
 							uniqueVertices[vertex] = currentIndex;
 							// new vertex, add it and its vertex index

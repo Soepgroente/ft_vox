@@ -11,7 +11,6 @@ VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
 		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + 0.5f + relativeOrigin.x;
 		voxelVertexes[i].pos.y = VOXEL_VERTEXES[i].pos.y + 0.5f + relativeOrigin.y;
 		voxelVertexes[i].pos.z = VOXEL_VERTEXES[i].pos.z + 0.5f + relativeOrigin.z;
-		voxelVertexes[i].color = VOXEL_VERTEXES[i].color;
 		voxelVertexes[i].normal = VOXEL_VERTEXES[i].normal;
 		voxelVertexes[i].textureUv = VOXEL_VERTEXES[i].textureUv;
 	}
