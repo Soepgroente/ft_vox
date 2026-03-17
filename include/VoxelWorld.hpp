@@ -6,13 +6,13 @@
 #include <cstdint>
 #include <unordered_map>
 #include <array>
-#include <deque>
 
 
 namespace vox {
 
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
+
 // 1 voxel corresponds to:
 // vertexes = 24 (vertexes per voxel) * 44 (bytes per vertex) = 1056 b = 1.031 KiB
 // indexes = 36 (indexes per voxel) * 4 (bytes per index [uint]) = 144 b
@@ -87,7 +87,7 @@ IndexVector		getIndexRelative( uint32_t = 0U );
 
 class World {
 	public:
-		explicit World( vec3ui const&, vec3 const& );
+		explicit World( vec3i const&, vec3ui const& );
 		World( void ) = default;
 		~World( void ) noexcept = default;
 		World( World const& ) = delete;
@@ -101,7 +101,9 @@ class World {
 		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
 
 	private:
-		VertexVector vertexes;
+		vec3i			worldPos;
+		vec3ui			worldSize;
+		VertexVector	vertexes;
 };
 
 
@@ -124,20 +126,14 @@ class WorldGenerator {
 		std::unique_ptr<ve::VulkanModel>	createNewModel( ve::VulkanDevice& );
 
 	private:
-		bool	addeNewWorld( vec2i const& );
-		vec2i	findFurthestWorld( void ) noexcept;
-
-		// worlds are stored with 2D XY position,
-		// local positions are stored in XYZ (its Z is the Y of the world pos)
-		vec2i	worldPosFromLocalPos( vec3 const& ) const noexcept;
-		vec3	localPosFromWorldPos( vec2i const& ) const noexcept;
+		bool	addeNewWorld( vec3i const& );
+		vec3i	findFurthestWorld( void ) noexcept;
+		vec3i	worldPosFromLocalPos( vec3 const& ) const noexcept;
 
 		vec3ui							worldSize;	// 3D dimension of every world
 		uint32_t						totVoxels;	// total voxel generated in every world
-		// NB convert vec2i into vec3i
-		std::unordered_map<vec2i,World>	worlds;		// using unord. map for fast lookup 
-		vec2i							currentWorldPos;
-
+		std::unordered_map<vec3i,World>	worlds;		// using unord. map for fast lookup 
+		vec3i							currentWorldPos;
 };
 
 }	// namespace vox
