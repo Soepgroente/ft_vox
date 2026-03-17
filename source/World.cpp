@@ -1,6 +1,8 @@
 #include "World.hpp"
 #include "Utils.hpp"
 
+#include <chrono>
+
 
 namespace vox {
 
@@ -8,9 +10,9 @@ VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
 	VertexVector voxelVertexes(VERTEX_PER_VOXEL);
 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
-		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + 0.5f + relativeOrigin.x;
-		voxelVertexes[i].pos.y = VOXEL_VERTEXES[i].pos.y + 0.5f + relativeOrigin.y;
-		voxelVertexes[i].pos.z = VOXEL_VERTEXES[i].pos.z + 0.5f + relativeOrigin.z;
+		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
+		voxelVertexes[i].pos.y = VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
+		voxelVertexes[i].pos.z = VOXEL_VERTEXES[i].pos.z + VOXEL_SIZE * 0.5f + relativeOrigin.z;
 		voxelVertexes[i].normal = VOXEL_VERTEXES[i].normal;
 		voxelVertexes[i].textureUv = VOXEL_VERTEXES[i].textureUv;
 	}
@@ -92,18 +94,24 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 			this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
 		}
 	}
+	this->updateLastAccess();
 }
 
-
-void WorldNavigator::init( vec3 const& start ) {
-	this->currentWorldPos = vec3i{-100, -100, -100};
-	this->spawnCloseByWorlds(start);
+float World::getWeight( vec3i const& origin ) const noexcept {
+	// NB horizontal distance would be much more important than vertical distance
+	uint32_t distance = vec3i::distance1D(this->worldPos, origin);
+	std::chrono::_V2::system_clock::time_point now = std::chrono::high_resolution_clock::now();
+	uint32_t deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(now - this->lastAccess).count();
+	return World::ALPHA * distance + World::BETA * deltaTime;
 }
+
+void World::updateLastAccess( void ) noexcept {
+	this->lastAccess = std::chrono::high_resolution_clock::now();
+}
+
 
 bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
-	vec3i playerPos = this->worldPosFromLocalPos(start);
-	if (playerPos == this->currentWorldPos)
-		return false;
+	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
 	// add a world, if not existent already, in each of these 9 quadrants
 	//  __ __ __
@@ -134,6 +142,11 @@ size_t WorldNavigator::getMemoryUsed( void ) noexcept {
 	return size;
 }
 
+bool WorldNavigator::borderCrossed( vec3 const& currentPos ) const noexcept {
+	vec3i playerPos = this->worldPosFromPlayerPos(currentPos);
+	return playerPos != this->currentWorldPos;
+}
+
 std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevice& device ) {
 	std::vector<VertexVector*>	vertexes(this->worlds.size());
 	uint32_t i = 0U;
@@ -143,27 +156,27 @@ std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevic
 }
 
 bool WorldNavigator::addeNewWorld( vec3i const& worldPos ) {
-	if (this->worlds.find(worldPos) != this->worlds.end())
+	if (this->worlds.find(worldPos) != this->worlds.end()) {
+		this->worlds[worldPos].updateLastAccess();
 		return false;
-
-	this->worlds.emplace(worldPos, World(worldPos, this->worldSize));
-	this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
-
-	if (this->worlds.size() > MAX_WORLDS) {
-		vec3i furthestWorld = this->findFurthestWorld();
-		this->totVoxels -= this->worlds[furthestWorld].getVertexSize() / VERTEX_PER_VOXEL;
-		this->worlds.erase(furthestWorld);
+	} else {
+		this->worlds.emplace(worldPos, World(worldPos, this->worldSize));
+		this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
+	
+		if (this->worlds.size() > MAX_WORLDS) {
+			vec3i furthestWorld = this->findFurthestWorld();
+			this->totVoxels -= this->worlds[furthestWorld].getVertexSize() / VERTEX_PER_VOXEL;
+			this->worlds.erase(furthestWorld);
+		}
+		return true;
 	}
-	return true;
 }
 
-// NB next step is to add as a weight the delta (time creation - current time) and combine it with
-// this distance to find the world to drop 
 vec3i WorldNavigator::findFurthestWorld( void ) noexcept {
 	vec3i furthestWorld = this->currentWorldPos;
-	uint32_t furthestDist = 0U, dist = 0U;
-	for (auto& [pos, _] : this->worlds) {
-		dist = vec3i::distance1D(pos, this->currentWorldPos);
+	float furthestDist = 0.0f, dist = 0.0f;
+	for (auto& [pos, world] : this->worlds) {
+		dist = world.getWeight(this->currentWorldPos);
 		if (dist > furthestDist) {
 			furthestWorld = pos;
 			furthestDist = dist;
@@ -172,7 +185,7 @@ vec3i WorldNavigator::findFurthestWorld( void ) noexcept {
 	return furthestWorld;
 }
 
-vec3i WorldNavigator::worldPosFromLocalPos( vec3 const& localPos ) const noexcept {
+vec3i WorldNavigator::worldPosFromPlayerPos( vec3 const& localPos ) const noexcept {
 	vec3i WorldPos{
 		static_cast<int32_t>(localPos.x) / static_cast<int32_t>(this->worldSize.x),
 		static_cast<int32_t>(localPos.y) / static_cast<int32_t>(this->worldSize.y),

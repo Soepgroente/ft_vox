@@ -37,7 +37,7 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Ver
 	this->indexCount = 0U;
 	for (std::vector<Vertex>* worldVertexes : vertices) {
 		this->vertexCount += worldVertexes->size();
-		// voxel has always 24 vertexes and 36 indexes, with this proportion, given
+		// a voxel has always 24 vertexes and 36 indexes, with this proportion, given
 		// an amount of voxels, the total number of indexes is: nVoxels * nIndexPerVoxel / nVertexPerVoxel
 		this->indexCount += (worldVertexes->size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
 	}
