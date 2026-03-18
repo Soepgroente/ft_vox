@@ -24,18 +24,19 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertic
 }
 
 /**
- * Load data in GPU, combining chunks of vertex data and building index data on the spot
+ * Load data in GPU, combining together the 
+ * chunks of vertexes and building indexed data on the spot
  *
  * @param device VulkanDevice instance
  * @param vertices vector of pointers, each one points to a chunk of voxels, each voxel has 24 vertexes ( type Vertex )
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
 {
 	this->vertexCount = 0U;
 	this->indexCount = 0U;
-	for (std::vector<Vertex>* worldVertexes : vertices) {
+	for (std::vector<Vertex> const* worldVertexes : vertices) {
 		this->vertexCount += worldVertexes->size();
 		// a voxel has always 24 vertexes and 36 indexes, with this proportion, given
 		// an amount of voxels, the total number of indexes is: nVoxels * nIndexPerVoxel / nVertexPerVoxel
@@ -110,7 +111,7 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
 }
 
-void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
+void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
 {
 	uint32_t		vertexSize = sizeof(Vertex);
 	VulkanBuffer	stagingBufferVertex(
@@ -137,7 +138,7 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 
 	uint32_t offsetVertex = 0U;		// careful: this is a bytes offset
 	uint32_t offsetIndex = 0U;		// careful: this is an element (uints) offset
-	for (std::vector<Vertex>* worldVertexes : vertices) {
+	for (std::vector<Vertex> const* worldVertexes : vertices) {
 		uint32_t sizeData = worldVertexes->size() * vertexSize;
 		// insert vertexes of this chunk in staging buffer
 		stagingBufferVertex.writeToBuffer((void*)worldVertexes->data(), sizeData, offsetVertex);

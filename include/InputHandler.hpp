@@ -12,7 +12,8 @@ class InputHandler
 {
 	public:
 
-	InputHandler(std::function<void(float, float)> mouseCb, std::function<void(int32_t, int32_t)> resizeCb) noexcept : 
+	InputHandler(std::function<void(float, float)> mouseCb, std::function<void(int32_t, int32_t)> resizeCb) noexcept :
+		fpsMode(false),
 		mouseCallback(mouseCb),
 		resizeCallback(resizeCb) {};
 	~InputHandler() noexcept = default;
@@ -28,15 +29,15 @@ class InputHandler
 	bool	isMouseButtonPressed(int button) const { return mouse.buttonsPressed[button]; }
 	bool	isMouseButtonReleased(int button) const { return mouse.buttonsReleased[button]; }
 	void	setCursorPos( float, float ) noexcept;
-	void	getCursorPos( float&, float& ) noexcept;
-	void	toggleCursorFocus( GLFWwindow* ) noexcept;
-	void	closeWindow( GLFWwindow* ) noexcept;
+	void	getCursorPos( float&, float& ) const noexcept;
+	void	toggleFpsMode( GLFWwindow* ) noexcept;
+	void	closeWindow( GLFWwindow* ) const noexcept;
 
 	private:
 
 	KeyboardInput	keyboard;
 	MouseInput		mouse;
-	bool			cursorFocus = false;
+	bool			fpsMode;
 
 	std::function<void(float, float)>		mouseCallback;
 	std::function<void(int32_t, int32_t)>	resizeCallback;

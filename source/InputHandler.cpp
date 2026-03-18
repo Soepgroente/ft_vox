@@ -3,6 +3,14 @@
 
 namespace vox {
 
+
+/*
+ * Set up callbacks for input, currently used: 1. callback for key T (toggle fps mode)
+ * and ESC (window closing), 2. mouse capture for camera rotation (only when fps mode is
+ * active), 3. resizing the window
+ *
+ * @param window GLFW window listening to the events
+ */
 void	InputHandler::setCallbacks(GLFWwindow* window)
 {
 	glfwSetWindowUserPointer(window, this);
@@ -26,7 +34,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		}
 
 		if (handler->isKeyPressed(GLFW_KEY_T) == true)
-			handler->toggleCursorFocus(window);
+			handler->toggleFpsMode(window);
 		else if (handler->isKeyPressed(GLFW_KEY_ESCAPE) == true)
 			handler->closeWindow(window);
 	});
@@ -59,7 +67,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 		float posXf = static_cast<float>(posX);
 		float posYf = static_cast<float>(posY);
-		if (handler->cursorFocus == true)
+		if (handler->fpsMode == true)
 			handler->mouseCallback(posXf, posYf);
 		handler->setCursorPos(posXf, posYf);
 	});
@@ -70,29 +78,56 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 	});
 }
 
+/*
+ * Zero the input listeners
+ */
 void InputHandler::reset() noexcept
 {
 	keyboard.reset();
 	mouse.reset();
 }
 
+/*
+ * Update the cursor position stored in the member InputHandler::mouse
+ *
+ * @param posX new cursor x position (relative to the monitor: (0;0) -> top-left corner)
+ *
+ * @param posY new cursor y position (relative to the monitor: (0;0) -> top-left corner)
+ */
 void InputHandler::setCursorPos( float posX, float posY ) noexcept {
 	this->mouse.setCursorPos(posX, posY);
 }
 
-void InputHandler::getCursorPos( float &posX, float &posY ) noexcept {
+/*
+ * Fetch the cursor position stored in the member InputHandler::mouse
+ *
+ * @param posX will store the current x cursor position (relative 
+ * to the monitor: (0;0) -> top-left corner)
+ *
+ * @param posY will store the current y cursor position (relative 
+ * to the monitor: (0;0) -> top-left corner)
+ */
+void InputHandler::getCursorPos( float &posX, float &posY ) const noexcept {
 	this->mouse.getCursorPos(posX, posY);
 }
 
-void InputHandler::toggleCursorFocus( GLFWwindow* window ) noexcept {
-	this->cursorFocus = !this->cursorFocus; 
-	if (this->cursorFocus)
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	else
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+/*
+ * Toggle fps mode, by enabling/disabling the cursor, it the mode is active the camera
+ * rotates according to the cursor position
+ *
+ * @param window GLFW window that handles the cursor
+ */
+void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept {
+	this->fpsMode = !this->fpsMode; 
+	glfwSetInputMode(window, GLFW_CURSOR, this->fpsMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-void InputHandler::closeWindow( GLFWwindow* window ) noexcept {
+/*
+ * Close the GLFW window
+ *
+ * @param window GLFW window to be closed
+ */
+void InputHandler::closeWindow( GLFWwindow* window ) const noexcept {
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 

@@ -69,7 +69,7 @@ class VulkanModel
 	VulkanModel() = delete;
 	VulkanModel(VulkanDevice& device, const Builder& builder);
 	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
-	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
@@ -105,7 +105,7 @@ class VulkanModel
 
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createIndexBuffers(const std::vector<uint32_t>& indices);
-	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex>*>& vertexes, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertexes, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
 	
 	static vec3	calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept;
 };

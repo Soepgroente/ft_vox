@@ -21,6 +21,7 @@ class Vox
 		Vox& operator=( Vox const& ) = delete;
 		Vox& operator=( Vox&& ) = delete;
 
+		void initialize( void );
 		void run( void );
 
 		void moveCamera( float );
@@ -28,13 +29,13 @@ class Vox
 		void resizeWindow( uint32_t, uint32_t );
 
 	private:
-		ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};
-		ve::VulkanDevice	vulkanDevice{vulkanWindow};
-		ve::VulkanRenderer	vulkanRenderer{vulkanWindow, vulkanDevice};
-		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
+		ve::VulkanWindow							vulkanWindow;
+		ve::VulkanDevice							vulkanDevice;
+		ve::VulkanRenderer							vulkanRenderer;
+		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool;
 
-		ve::Camera		camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov};
-		WorldNavigator	navigator{Config::worldSize};
+		ve::Camera		camera;
+		WorldNavigator	navigator;
 		InputHandler	inputHandler;
 };
 
