@@ -65,11 +65,10 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		if (glfwGetWindowAttrib(window, GLFW_FOCUSED) == false)
 			return;
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
-		float posXf = static_cast<float>(posX);
-		float posYf = static_cast<float>(posY);
+		vec2 cursorPos{ static_cast<float>(posX), static_cast<float>(posY)};
 		if (handler->fpsMode == true)
-			handler->mouseCallback(posXf, posYf);
-		handler->setCursorPos(posXf, posYf);
+			handler->mouseCallback(cursorPos);
+		handler->setCursorPos(cursorPos);
 	});
 	// window resize callback
 	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int32_t w, int32_t h) {
@@ -88,36 +87,13 @@ void InputHandler::reset() noexcept
 }
 
 /*
- * Update the cursor position stored in the member InputHandler::mouse
- *
- * @param posX new cursor x position (relative to the monitor: (0;0) -> top-left corner)
- *
- * @param posY new cursor y position (relative to the monitor: (0;0) -> top-left corner)
- */
-void InputHandler::setCursorPos( float posX, float posY ) noexcept {
-	this->mouse.setCursorPos(posX, posY);
-}
-
-/*
- * Fetch the cursor position stored in the member InputHandler::mouse
- *
- * @param posX will store the current x cursor position (relative 
- * to the monitor: (0;0) -> top-left corner)
- *
- * @param posY will store the current y cursor position (relative 
- * to the monitor: (0;0) -> top-left corner)
- */
-void InputHandler::getCursorPos( float &posX, float &posY ) const noexcept {
-	this->mouse.getCursorPos(posX, posY);
-}
-
-/*
  * Toggle fps mode, by enabling/disabling the cursor, it the mode is active the camera
  * rotates according to the cursor position
  *
  * @param window GLFW window that handles the cursor
  */
-void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept {
+void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept
+{
 	this->fpsMode = !this->fpsMode; 
 	glfwSetInputMode(window, GLFW_CURSOR, this->fpsMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
@@ -127,7 +103,8 @@ void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept {
  *
  * @param window GLFW window to be closed
  */
-void InputHandler::closeWindow( GLFWwindow* window ) const noexcept {
+void InputHandler::closeWindow( GLFWwindow* window ) const noexcept
+{
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
