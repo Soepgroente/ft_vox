@@ -14,7 +14,16 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-Vox::Vox( void ) : 
+/*
+ * Create the engine of the game
+ */
+Vox::Vox( void ) :
+	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"},
+	vulkanDevice{vulkanWindow},
+	vulkanRenderer{vulkanWindow, vulkanDevice},
+	globalDescriptorPool{},
+	camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
+	navigator{Config::worldSize},
 	inputHandler(
 		[this](float width, float height) { this->rotateCameraFromCursorPos(width, height); },
 		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
@@ -28,8 +37,10 @@ Vox::Vox( void ) :
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 }
 
-Vox::~Vox( void )
-{
+/*
+ * destructor
+ */
+Vox::~Vox( void ) {
 	globalDescriptorPool.reset();
 }
 
@@ -101,7 +112,7 @@ void Vox::run( void )
 	{
 		0,
 		this->camera,
-		commandBuffer,
+		nullptr,
 		nullptr,
 		gameObject,
 	};
@@ -157,6 +168,11 @@ void Vox::run( void )
 	vkDeviceWaitIdle(vulkanDevice.device());
 }
 
+/*
+ * Handle camera transformation in case of keys W-A-S-D or up-left-bottom-right (arrow) keys are pressed
+ *
+ * @param deltaTime to normalize the transformation, so that it doesn't depend on the fps
+ */
 void Vox::moveCamera( float deltaTime ) {
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
 		this->camera.moveForward(deltaTime * Config::movementSpeed);
@@ -189,6 +205,15 @@ void Vox::moveCamera( float deltaTime ) {
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
 }
 
+/*
+ * Handle camera rotation my cursor movement
+ *
+ * @param newX x position (relative to the monitor) of the cursor ( (0;0): top-left corner)
+ *
+ * @param newY y position (relative to the monitor) of the cursor ( (0;0): top-left corner)
+ *
+ * @return a vector of 36 uin32_t starting from the offset value
+ */
 void Vox::rotateCameraFromCursorPos( float newX, float newY ) {
 	float oldX, oldY;
 	this->inputHandler.getCursorPos(oldX, oldY);
@@ -198,6 +223,14 @@ void Vox::rotateCameraFromCursorPos( float newX, float newY ) {
 	this->camera.rotate(pitch, yaw, 0.0f);
 }
 
+/*
+ * When a resize of the window happens, updates Vulkan and recalcolate projection matrix 
+ * (since ration w/h changed)
+ *
+ * @param width new width
+ *
+ * @param height new height
+ */
 void Vox::resizeWindow( uint32_t width, uint32_t height ) {
 	this->vulkanWindow.resetWindowSize(width, height);
 	this->camera.setPerspectiveProjection(

@@ -14,7 +14,9 @@ class KeyboardInput
 	KeyboardInput() noexcept;
 	~KeyboardInput() noexcept = default;
 	KeyboardInput(const KeyboardInput& other) = delete;
+	KeyboardInput(KeyboardInput&& other) = delete;
 	KeyboardInput& operator=(const KeyboardInput& other) = delete;
+	KeyboardInput& operator=(KeyboardInput&& other) = delete;
 
 	void	reset() noexcept;
 
