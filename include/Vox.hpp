@@ -26,25 +26,20 @@ class Vox
 		void run( void );
 		void shutdown( void );
 
-		InputHandler const& getHandler( void ) const noexcept;
-		InputHandler&		getHandler( void ) noexcept;
-
 		void moveCamera( float );
-		void rotateCamera( void );
+		void rotateCameraFromCursorPos( float, float );
+		void resizeWindow( uint32_t, uint32_t );
 
 	private:
-		void	createObjects( void );
-
 		ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};
 		ve::VulkanDevice	vulkanDevice{vulkanWindow};
 		ve::VulkanRenderer	vulkanRenderer{vulkanWindow, vulkanDevice};
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
 
 		std::string						objModelPath;
-		ve::Camera						camera;
-		ve::VulkanObject::Map			objects;
 		std::vector<ve::VulkanTexture>	textures;
-		VoxelWorld						world;
+		ve::Camera						camera;
+		WorldGenerator					world;
 		InputHandler					inputHandler;
 };
 

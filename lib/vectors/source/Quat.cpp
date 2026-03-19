@@ -84,6 +84,28 @@ quat	quat::fastNormalized() const noexcept
 	return this->clone().fastNormalize();
 }
 
+mat4 quat::getMatrix() const
+{
+    float x2  = x + x;
+    float y2  = y + y;
+    float z2  = z + z;
+    float xx2 = x * x2;
+    float xy2 = x * y2;
+    float xz2 = x * z2;
+    float yy2 = y * y2;
+    float yz2 = y * z2;
+    float zz2 = z * z2;
+    float sx2 = w * x2;
+    float sy2 = w * y2;
+    float sz2 = w * z2;
+
+    // build 4x4 matrix (column-major) and return
+    return mat4{{1 - (yy2 + zz2),  xy2 + sz2,        xz2 - sy2,        0}, // column 0
+				{xy2 - sz2,        1 - (xx2 + zz2),  yz2 + sx2,        0}, // column 1
+				{xz2 + sy2,        yz2 - sx2,        1 - (xx2 + yy2),  0}, // column 2
+				{0,                0,                0,                1}};// column 3
+}
+
 quat	quat::product(const quat& a, const quat& b) noexcept
 {
 	return quat(

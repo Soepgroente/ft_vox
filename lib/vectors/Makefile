@@ -10,7 +10,6 @@ INCLUDES	:=	-Iinclude \
 				-I/opt/homebrew/include \
 				-I./vulkan
 
-
 TEST_EXEC	:=	testmath
 
 SRCS		:=	$(shell find $(SRC_DIR) -maxdepth 1 -type f -name '*.cpp')

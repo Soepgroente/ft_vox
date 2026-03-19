@@ -59,10 +59,18 @@ class VulkanModel
 
 	struct Builder
 	{
-		std::vector<Vertex>		vertices{};
-		std::vector<uint32_t>	indices{};
+		public:
+			std::vector<Vertex>		vertices{};
+			std::vector<uint32_t>	indices{};
 
-		void	loadModel(const std::string& filepath);
+			void	loadModel(const std::string& filepath);
+			void	addVertex( vec3 const& ) noexcept;
+			void	addVertex( Vertex const& ) noexcept;
+			void	emptyData( void ) noexcept;
+
+		private:
+			std::unordered_map<vec3,uint32_t>	uniqueVertexes;
+			uint32_t							currentIndex = 0U;
 	};
 
 	VulkanModel() = delete;
@@ -80,7 +88,7 @@ class VulkanModel
 	const vec3&	getVertexCenter() const noexcept { return vertexCenter; }
 	const vec3&	getBoundingCenter() const noexcept { return boundingCenter; }
 	const BoundingBox&	getBoundingBox() const noexcept { return boundingBox; }
-	static std::unique_ptr<VulkanModel>	createModel(VulkanDevice&, ve::VulkanModel::Builder const&);
+	static std::unique_ptr<VulkanModel>	createVulkanModel(VulkanDevice&, ve::VulkanModel::Builder const&);
 
 	private:
 	

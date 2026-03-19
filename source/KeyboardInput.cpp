@@ -2,13 +2,12 @@
 
 namespace vox {
 
-KeyboardInput::KeyboardInput()
-{
-	reset();
+KeyboardInput::KeyboardInput() noexcept {
+	this->reset();
 	keysPressed.fill(false);
 }
 
-void	KeyboardInput::reset()
+void	KeyboardInput::reset() noexcept
 {
 	keyStates.fill(false);
 	keysReleased.fill(false);

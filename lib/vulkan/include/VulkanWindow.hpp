@@ -18,7 +18,7 @@ class VulkanWindow
 	VulkanWindow& operator=(const VulkanWindow&) = delete;
 	~VulkanWindow();
 
-	bool	shouldClose() const noexcept { return glfwWindowShouldClose(window) || glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS; }	// NB move to InputHandler
+	bool	shouldClose() const noexcept { return glfwWindowShouldClose(window); }
 	bool	wasWindowResized() const noexcept { return resized; }
 	void	resetWindowResizedFlag() noexcept { resized = false; }
 	float	getAspectRatio() const noexcept { return static_cast<float>(width) / static_cast<float>(height); }
@@ -26,10 +26,10 @@ class VulkanWindow
 	
 	GLFWwindow*	getGLFWwindow() const noexcept { return window; }
 	void	createWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
+	void	resetWindowSize(int width, int height);
 
 	private:
 
-	static void	framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void	initWindow();
 
 	int		width;

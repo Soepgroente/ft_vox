@@ -8,13 +8,10 @@ namespace ve {
 struct FrameInfo
 {
 	int					frameIndex;
-	float				frameTime;
 	Camera&				camera;
 	VkCommandBuffer		commandBuffer;
 	VkDescriptorSet		globalDescriptorSet;
-	VulkanObject::Map&	gameObjects;
-	uint32_t			useTexture{0};
-	bool				rotateModel{false};
+	VulkanObject&		gameObject;
 };
 
 }	// namespace ve

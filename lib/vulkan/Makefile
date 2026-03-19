@@ -1,3 +1,4 @@
+# Makefile for Vulkan library
 CC				:=	c++
 BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
@@ -14,7 +15,7 @@ INCLUDE			:=	-Iinclude \
 SOURCES			:=	$(shell find $(SRC_DIR) -type f -name '*.cpp')
 
 BUILD_DIR	:=  build
-TARGET			:=	$(BUILD_DIR)/libvk.a
+TARGET		:=	$(BUILD_DIR)/libvk.a
 
 OBJ_DIR		:=	$(BUILD_DIR)/obj
 DEPS_DIR	:=  $(BUILD_DIR)/deps

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Vec2.hpp"
+#include "Vec2i.hpp"
+#include "Vec2ui.hpp"
 #include "Vec3.hpp"
 #include "Vec3i.hpp"
 #include "Vec3ui.hpp"
