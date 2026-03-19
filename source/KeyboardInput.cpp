@@ -1,14 +1,22 @@
 #include "KeyboardInput.hpp"
 
+
 namespace vox {
 
-KeyboardInput::KeyboardInput()
+
+/*
+ * Zero all data
+ */
+KeyboardInput::KeyboardInput() noexcept
 {
-	reset();
+	this->reset();
 	keysPressed.fill(false);
 }
 
-void	KeyboardInput::reset()
+/*
+ * Zero all data
+ */
+void	KeyboardInput::reset() noexcept
 {
 	keyStates.fill(false);
 	keysReleased.fill(false);

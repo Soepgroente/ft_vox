@@ -1,5 +1,4 @@
 #include "Camera.hpp"
-#include "Vectors.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -30,8 +29,7 @@ void	Camera::setPerspectiveProjection(float fovy, float aspect, float near, floa
 	};
 }
 
-void	Camera::setViewMatrix( void ) noexcept
-{
+void	Camera::setViewMatrix( void ) noexcept {
 	vec3 cameraTarget = this->_position + this->_forward;		// position that the camera is watching
 	this->_cameraForward = (cameraTarget - this->_position).normalize();
 	this->_cameraLeft = vec3::cross(this->_cameraForward, this->__up).normalize();
@@ -57,50 +55,107 @@ const mat4&	Camera::getViewMatrix( bool recalculate ) noexcept {
 	return this->viewMatrix;
 }
 
+vec3 const& Camera::getCameraPos( void ) noexcept {
+	return this->_position;
+}
+
 void Camera::moveForward( float delta ) noexcept {
-	this->_position += this->_cameraForward * delta;
+	vec3 progression = this->_position + this->_cameraForward * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveBackward( float delta ) noexcept {
-	this->_position -= this->_cameraForward * delta;
+	vec3 progression = this->_position - this->_cameraForward * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveRight( float delta ) noexcept {
-	this->_position += this->_cameraLeft * delta;
+	vec3 progression = this->_position + this->_cameraLeft * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveLeft( float delta ) noexcept {
-	this->_position -= this->_cameraLeft * delta;
+	vec3 progression = this->_position - this->_cameraLeft * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveUp( float delta ) noexcept {
-	this->_position += this->_cameraUp * delta;
+	vec3 progression = this->_position + this->__up * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::moveDown( float delta ) noexcept {
-	this->_position -= this->_cameraUp * delta;
+	vec3 progression = this->_position - this->__up * delta;
+	if (progression.x < this->_limits.x)
+		progression.x = this->_limits.x;
+	if (progression.y < this->_limits.y)
+		progression.y = this->_limits.y;
+	if (progression.z < this->_limits.z)
+		progression.z = this->_limits.z;
+	this->_position = progression;
 }
 
 void Camera::rotate( float pitch, float yaw, float roll ) noexcept {
-	pitch = radians(pitch / 2.0f);		// vertical rotation: cameraLeft is the axis
-	yaw = radians(yaw / 2.0f);			// horizontal rotation: up is the axis
-	roll = radians(roll / 2.0f);		// frontal rotation: z is the axis
+	if (this->_currentPitch + pitch > 89.0f) {
+		pitch = 89.0f - this->_currentPitch;
+		this->_currentPitch = 89.0f;
+	} else if (this->_currentPitch + pitch < -89.0f) {
+		pitch = -89.0f - this->_currentPitch;
+		this->_currentPitch = -89.0f;
+	} else
+		this->_currentPitch += pitch;
 
-	quat qPitch(pitch, this->_cameraLeft);
+	yaw = radians(yaw / 2.0f);
+	pitch = radians(pitch / 2.0f);
+	roll = radians(roll / 2.0f);
+
 	quat qYaw(-yaw, this->__up);
-	quat qRoll(roll, this->_forward);
+	quat qPitch(pitch, this->_cameraLeft);
+	quat qRoll(roll, this->_cameraForward);
 
-	quat q = quat::product(qPitch, quat::product(qYaw, qRoll)).normalize();		// rotation order: roll -> yaw -> pitch
 	quat qForward{0.0f, this->_forward.x, this->_forward.y, this->_forward.z};
-	quat qForwardRotated = quat::product(quat::product(q, qForward), q.conjugated());
+	// apply yaw rotation, forward rotates horizontally
+	quat qForwardRotated = quat::product(quat::product(qYaw, qForward), qYaw.conjugated());
+	// apply pitch rotation, forward rotates vertically
+	qForwardRotated = quat::product(quat::product(qPitch, qForwardRotated), qPitch.conjugated());
 	this->_forward = qForwardRotated.normalized().vector();
 
-	if (roll != 0.0f) {		// with a roll rotation the world up has to be changed
+	if (roll != 0.0f) {
+		// apply roll rotation, (global) up rotates
 		quat qUp{0.0f, this->__up.x, this->__up.y, this->__up.z};
-		quat qUpRotated = quat::product(quat::product(q, qUp), q.conjugated());
+		quat qUpRotated = quat::product(quat::product(qRoll, qUp), qRoll.conjugated());
 		this->__up = qUpRotated.normalized().vector();
 	}
 }
-
 
 }	// namespace ve

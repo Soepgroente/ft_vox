@@ -2,10 +2,8 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-#include <vector>
-#include <functional>
 #include <array>
+
 
 namespace vox {
 
@@ -13,12 +11,14 @@ class KeyboardInput
 {
 	public:
 
-	KeyboardInput();
-	~KeyboardInput() = default;
+	KeyboardInput() noexcept;
+	~KeyboardInput() noexcept = default;
 	KeyboardInput(const KeyboardInput& other) = delete;
+	KeyboardInput(KeyboardInput&& other) = delete;
 	KeyboardInput& operator=(const KeyboardInput& other) = delete;
+	KeyboardInput& operator=(KeyboardInput&& other) = delete;
 
-	void	reset();
+	void	reset() noexcept;
 
 	static constexpr int maxKeys = GLFW_KEY_LAST + 1;
 

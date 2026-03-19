@@ -1,11 +1,11 @@
 #version 450
 
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 color;
+// layout(location = 1) in vec3 color;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec2 uv;
 
-layout(location = 0) flat out vec3 fragColor;
+// layout(location = 0) flat out vec3 fragColor;
 // layout(location = 1) out vec3 fragPosWorld;
 // layout(location = 2) out vec3 fragNormalWorld;
 layout(location = 3) out vec2 fragTexCoord;
@@ -22,7 +22,6 @@ layout(push_constant) uniform PushConstants
 {
 	mat4	modelMatrix;
 	mat4	normalMatrix;
-	uint	useTexture;
 }	push;
 
 void main()
@@ -32,6 +31,6 @@ void main()
 
 //	fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
 //	fragPosWorld = worldPostion.xyz;
-	fragColor = color;
+//	fragColor = color;
 	fragTexCoord = uv;
 }

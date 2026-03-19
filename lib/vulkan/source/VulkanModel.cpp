@@ -7,7 +7,7 @@
 
 namespace ve {
 
-VulkanModel::VulkanModel(VulkanDevice& device, const VulkanModel::Builder& builder) : vulkanDevice{device}
+VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder) : vulkanDevice{device}
 {
 	createVertexBuffers(builder.vertices);
 	createIndexBuffers(builder.indices);
@@ -15,8 +15,36 @@ VulkanModel::VulkanModel(VulkanDevice& device, const VulkanModel::Builder& build
 	indexCount = static_cast<uint32_t>(builder.indices.size());
 }
 
-VulkanModel::~VulkanModel()
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : vulkanDevice{device}
 {
+	createVertexBuffers(vertices);
+	createIndexBuffers(indices);
+	vertexCount = static_cast<uint32_t>(vertices.size());
+	indexCount = static_cast<uint32_t>(indices.size());
+}
+
+/**
+ * Load data in GPU, combining together the 
+ * chunks of vertexes and building indexed data on the spot
+ *
+ * @param device VulkanDevice instance
+ * @param vertices vector of pointers, each one points to a chunk of voxels, each voxel has 24 vertexes ( type Vertex )
+ * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
+ *
+ */
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
+{
+	this->vertexCount = 0U;
+	this->indexCount = 0U;
+	for (std::vector<Vertex> const* worldVertexes : vertices) {
+		this->vertexCount += worldVertexes->size();
+		// a voxel has always 24 vertexes and 36 indexes, with this proportion, given
+		// an amount of voxels, the total number of indexes is: nVoxels * nIndexPerVoxel / nVertexPerVoxel
+		this->indexCount += (worldVertexes->size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
+	}
+	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
+	this->hasIndexBuffer = true;
+	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
 
 void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
@@ -37,7 +65,7 @@ void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 	);
 
 	stagingBuffer.map();
-	stagingBuffer.writeToBuffer((void*)vertices.data());
+	stagingBuffer.writeToBuffer(static_cast<const void*>(vertices.data()));
 
 	vertexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,
@@ -71,7 +99,7 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 	);
 
 	stagingBuffer.map();
-	stagingBuffer.writeToBuffer((void*)indices.data());
+	stagingBuffer.writeToBuffer(static_cast<const void*>(indices.data()));
 
 	indexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,
@@ -81,6 +109,66 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 	);
 	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
+}
+
+void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
+{
+	uint32_t		vertexSize = sizeof(Vertex);
+	VulkanBuffer	stagingBufferVertex(
+		vulkanDevice,
+		vertexSize,
+		this->vertexCount,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+	stagingBufferVertex.map();
+
+	uint32_t		indexSize = sizeof(uint32_t);
+	VulkanBuffer	stagingBufferIndex(
+		vulkanDevice,
+		indexSize,
+		this->indexCount,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+	stagingBufferIndex.map();
+	// the face index data doesn't 'exist' yet because the indexes depend
+	// on the vertexes already inserted, each one is manually written inside the staging buffer
+	uint32_t* stagingIndexPtr = static_cast<uint32_t*>(stagingBufferIndex.getMappedMemory());
+
+	uint32_t offsetVertex = 0U;		// careful: this is a bytes offset
+	uint32_t offsetIndex = 0U;		// careful: this is an element (uints) offset
+	for (std::vector<Vertex> const* worldVertexes : vertices) {
+		uint32_t sizeData = worldVertexes->size() * vertexSize;
+		// insert vertexes of this chunk in staging buffer
+		stagingBufferVertex.writeToBuffer(static_cast<const void*>(worldVertexes->data()), sizeData, offsetVertex);
+		uint32_t nVoxels = worldVertexes->size() / VERTEX_PER_VOXEL;
+		// for every voxel load its face indexes, offsetIndex represents all the vertexes already inserted
+		for (uint32_t i = 0; i<nVoxels; i++) {
+			for (uint32_t index : indexesVoxel)
+				*stagingIndexPtr++ = index + offsetIndex;
+			offsetIndex += VERTEX_PER_VOXEL;
+		}
+		offsetVertex += sizeData;
+	}
+
+	vertexBuffer = std::make_unique<VulkanBuffer>(
+		vulkanDevice,
+		vertexSize,
+		this->vertexCount,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+	vulkanDevice.copyBuffer(stagingBufferVertex.getBuffer(), vertexBuffer->getBuffer(), this->vertexCount * vertexSize);
+
+	indexBuffer = std::make_unique<VulkanBuffer>(
+		vulkanDevice,
+		indexSize,
+		this->indexCount,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+	vulkanDevice.copyBuffer(stagingBufferIndex.getBuffer(), indexBuffer->getBuffer(), this->indexCount * indexSize);
 }
 
 void	VulkanModel::bind(VkCommandBuffer commandBuffer)
@@ -126,9 +214,9 @@ std::vector<VkVertexInputAttributeDescription>	VulkanModel::Vertex::getAttribute
 	attributeDescriptions.push_back(
 		VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)}
 	);
-	attributeDescriptions.push_back(
-		VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}
-	);
+	// attributeDescriptions.push_back(
+	// 	VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}
+	// );
 	attributeDescriptions.push_back(
 		VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}
 	);
@@ -171,19 +259,17 @@ vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noe
 	return center;
 }
 
-std::unique_ptr<VulkanModel> VulkanModel::createModel(VulkanDevice& device, ve::VulkanModel::Builder const& builder) {
-	std::unique_ptr<VulkanModel> model = std::make_unique<VulkanModel>(device, builder);
 
-	model->vertexCenter = model->calculateVertexCenter(builder.vertices);
-	model->setBoundingBox(builder.vertices);
-	model->setObjectCenter();
-	return model;
+void	VulkanModel::Builder::emptyData( void ) noexcept {
+	this->vertices.clear();
+	this->indices.clear();
 }
 
 void	VulkanModel::Builder::loadModel(const std::string &filepath)
 {
 	std::vector<ObjInfo>		objs = parseOBJFile(filepath);
 	std::unordered_map<Vertex, uint32_t>	uniqueVertices{};
+	uint32_t 								currentIndex = 0U;
 
 	vertices.clear();
 	indices.clear();
@@ -238,13 +324,16 @@ void	VulkanModel::Builder::loadModel(const std::string &filepath)
 						{
 							vertex.normal = obj.normals[norm[ti]];
 						}
-						vertex.color = generateRandomColor();
-						if (uniqueVertices.count(vertex) == 0)
-						{
-							uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-							vertices.push_back(vertex);
+						// vertex.color = generateRandomColor();
+						if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
+							uniqueVertices[vertex] = currentIndex;
+							// new vertex, add it and its vertex index
+							this->vertices.push_back(vertex);
+							this->indices.push_back(currentIndex++);
+						} else {
+							// there's already such vertex, add only the vertex index
+							this->indices.push_back(uniqueVertices[vertex]);
 						}
-						indices.push_back(uniqueVertices[vertex]);
 					}
 				}
 			}

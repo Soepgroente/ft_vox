@@ -1,16 +1,13 @@
 #pragma once
 
-#include "Vectors.hpp"
 #include "Vulkan.hpp"
-#include "InputHandler.hpp"
-#include "VoxelWorld.hpp"
+#include "Vectors.hpp"
 #include "Config.hpp"
+#include "World.hpp"
 #include "InputHandler.hpp"
 
-#include <array>
-#include <cmath>
-#include <memory>
-#include <vector>
+#include <cstdint>
+
 
 namespace vox {
 
@@ -18,36 +15,27 @@ class Vox
 {
 	public:
 		Vox( void );
-		~Vox( void );
+		~Vox( void ) noexcept;
 		Vox( Vox const& ) = delete;
 		Vox( Vox&& ) = delete;
 		Vox& operator=( Vox const& ) = delete;
 		Vox& operator=( Vox&& ) = delete;
 
 		void run( void );
-		void shutdown( void );
-
-		InputHandler const& getHandler( void ) const noexcept;
-		InputHandler&		getHandler( void ) noexcept;
 
 		void moveCamera( float );
-		void rotateCamera( void );
+		void rotateCameraFromCursorPos( vec2 const& );
+		void resizeWindow( uint32_t, uint32_t );
 
 	private:
-		void	createObjects( void );
+		ve::VulkanWindow							vulkanWindow;
+		ve::VulkanDevice							vulkanDevice;
+		ve::VulkanRenderer							vulkanRenderer;
+		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool;
 
-		ve::VulkanWindow	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"};
-		ve::VulkanDevice	vulkanDevice{vulkanWindow};
-		ve::VulkanRenderer	vulkanRenderer{vulkanWindow, vulkanDevice};
-		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool{};
-
-		std::string						objModelPath;
-		ve::Camera						camera;
-		ve::VulkanObject::Map			objects;
-		std::vector<ve::VulkanTexture>	textures;
-		VoxelWorld						world;
-		InputHandler					inputHandler;
+		ve::Camera		camera;
+		WorldNavigator	navigator;
+		InputHandler	inputHandler;
 };
 
-
-}
+}	// namespace vox

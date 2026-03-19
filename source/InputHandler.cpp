@@ -1,12 +1,20 @@
 #include "InputHandler.hpp"
-#include <cstring>
+
 
 namespace vox {
 
-	
+
+/*
+ * Set up callbacks for input, currently used: 1. callback for key T (toggle fps mode)
+ * and ESC (window closing), 2. mouse capture for camera rotation (only when fps mode is
+ * active), 3. resizing the window
+ *
+ * @param window GLFW window listening to the events
+ */
 void	InputHandler::setCallbacks(GLFWwindow* window)
 {
 	glfwSetWindowUserPointer(window, this);
+	// keyboard key pression callback
 	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
 		(void)scancode;
@@ -26,8 +34,11 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		}
 
 		if (handler->isKeyPressed(GLFW_KEY_T) == true)
-			handler->toggleCursorFocus(window);
+			handler->toggleFpsMode(window);
+		else if (handler->isKeyPressed(GLFW_KEY_ESCAPE) == true)
+			handler->closeWindow(window);
 	});
+	// mouse key pression callback
 	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods)
 	{
 		(void)mods;
@@ -40,6 +51,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 			default: break;
 		}
 	});
+	// mouse scroll callback
 	glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset)
 	{
 		(void)xoffset;
@@ -47,37 +59,53 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 		(void)handler;
 		(void)window;
-		// Handle scroll input here if needed
 	});
+	// changed cursor position callback
 	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double posX, double posY) {
 		if (glfwGetWindowAttrib(window, GLFW_FOCUSED) == false)
 			return;
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
-		handler->setCursorPos(static_cast<float>(posX), static_cast<float>(posY));
+		vec2 cursorPos{ static_cast<float>(posX), static_cast<float>(posY)};
+		if (handler->fpsMode == true)
+			handler->mouseCallback(cursorPos);
+		handler->setCursorPos(cursorPos);
+	});
+	// window resize callback
+	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int32_t w, int32_t h) {
+		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
+		handler->resizeCallback(w, h);
 	});
 }
 
-void InputHandler::reset()
+/*
+ * Zero the input listeners
+ */
+void InputHandler::reset() noexcept
 {
 	keyboard.reset();
 	mouse.reset();
 }
 
-void InputHandler::setCursorPos( float posX, float posY ) {
-	this->mouse.setCursorPos(posX, posY);
+/*
+ * Toggle fps mode, by enabling/disabling the cursor, it the mode is active the camera
+ * rotates according to the cursor position
+ *
+ * @param window GLFW window that handles the cursor
+ */
+void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept
+{
+	this->fpsMode = !this->fpsMode; 
+	glfwSetInputMode(window, GLFW_CURSOR, this->fpsMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-bool InputHandler::cursorPositionHasChanged( float& deltaX, float& deltaY ) noexcept {
-	// if mouse is not focused do not update the change in the cursor pos
-	if (this->cursorFocus == false)
-		return false;
-	return this->mouse.cursorPositionHasChanged(deltaX, deltaY);
+/*
+ * Close the GLFW window
+ *
+ * @param window GLFW window to be closed
+ */
+void InputHandler::closeWindow( GLFWwindow* window ) const noexcept
+{
+	glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
-
-void InputHandler::toggleCursorFocus( GLFWwindow* window) noexcept {
-	this->cursorFocus = !this->cursorFocus; 
-	glfwSetInputMode(window, GLFW_CURSOR, this->cursorFocus ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
-}
-
 
 }	// namespace vox

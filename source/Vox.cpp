@@ -1,10 +1,10 @@
 #include "Vox.hpp"
+#include "Utils.hpp"
 
 #include <chrono>
-#include <random>
+
 
 namespace vox {
-
 
 struct GlobalUBO
 {
@@ -14,29 +14,53 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-Vox::Vox( void ) : 
-	objModelPath("models/teapot.obj"),
-	camera(vec3{0.0f, 0.0f, ve::CameraSettings::cameraDistance}),
-	world(vec3ui{Config::worldSize, Config::worldSize, Config::worldSize}, true)
+/*
+ * Create the engine of the game
+ */
+Vox::Vox( void ) :
+	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"},
+	vulkanDevice{vulkanWindow},
+	vulkanRenderer{vulkanWindow, vulkanDevice},
+	globalDescriptorPool{},
+	camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
+	navigator{Config::worldSize},
+	inputHandler(
+		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
+		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
+	)
 {
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.build();
-	inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 
-	createObjects();
+	this->camera.setViewMatrix();
+	this->camera.setPerspectiveProjection(
+		radians(ve::CameraSettings::projectionFov),
+		this->vulkanWindow.getAspectRatio(),
+		ve::CameraSettings::projectionNear,
+		ve::CameraSettings::projectionFar
+	);
+	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 }
 
-Vox::~Vox( void )
-{
+/*
+ * destructor
+ */
+Vox::~Vox( void ) noexcept {
 	globalDescriptorPool.reset();
 }
 
-void Vox::run( void )
-{
-    std::vector<std::unique_ptr<ve::VulkanBuffer>>	uboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+/*
+ * Run the rendering loop
+ *
+ * @param start the starting value of the face indexes
+ *
+ * @return a vector of 36 uin32_t starting from the offset value
+ */
+void Vox::run( void ) {
+	std::vector<std::unique_ptr<ve::VulkanBuffer>>	uboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < uboBuffers.size(); i++)
 	{
@@ -55,7 +79,8 @@ void Vox::run( void )
 		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	ve::VulkanTexture texture{"textures/derpy_cats.jpg", vulkanDevice};
+
+	ve::VulkanTexture texture{Config::texture2VoxelPath, vulkanDevice};
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
@@ -64,116 +89,95 @@ void Vox::run( void )
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = texture.getImageView();
-		imageInfo.sampler = texture. getSampler();
+		imageInfo.sampler = texture.getSampler();
 
 		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
 			.writeBuffer(0, &bufferInfo)
 			.writeImage(1, &imageInfo)
 			.build(globalDescriptorSets[i]);
 	}
-	ve::VulkanRenderSystem	renderSystem{vulkanDevice, vulkanRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
-
-	float aspectRatio = this->vulkanWindow.getAspectRatio();
-	camera.setViewMatrix();
-	camera.setPerspectiveProjection(
-		radians(ve::CameraSettings::projectionFov),
-		aspectRatio,
-		ve::CameraSettings::projectionNear,
-		ve::CameraSettings::projectionFar
-	);
-
-	float	elapsedTime = 0.0f;
-	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
-	VkCommandBuffer		commandBuffer = nullptr;
-	size_t				frameCount = 0;
-	currentTime = std::chrono::high_resolution_clock::now();
-
-	ve::FrameInfo	info
-	{
-		0,
-		elapsedTime,
-		camera,
-		commandBuffer,
-		nullptr,
-		objects,
-		false,
-		false
+	ve::VulkanRenderSystem	renderSystem{
+		vulkanDevice,
+		vulkanRenderer.getSwapChainRenderPass(),
+		globalSetLayout->getDescriptorSetLayout(),
+		Config::vertShaderPath,
+		Config::fragShaderPath
 	};
 
+	size_t	frameCount = 0;
+	float	elapsedTime = 0.0f;
+	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
+	currentTime = std::chrono::high_resolution_clock::now();
+
+	ve::FrameInfo info
+	{
+		0,
+		this->camera,
+		nullptr,
+		nullptr,
+		ve::VulkanObject::createVulkanObject(),
+	};
+
+	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+
+	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
 		newTime = std::chrono::high_resolution_clock::now();
 		elapsedTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-		currentTime = newTime;
+		currentTime = std::chrono::high_resolution_clock::now();
+		// do game operations
 		this->moveCamera(elapsedTime);
-		this->rotateCamera();
+		// add chunks of maps if necessary
+		if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
+			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+			if (newDataCreated)
+				info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+		}
 
-		commandBuffer = vulkanRenderer.beginFrame();
-
-		if (commandBuffer != nullptr)
+		info.commandBuffer = vulkanRenderer.beginFrame();
+		if (info.commandBuffer != nullptr)
 		{
 			int frameIndex = vulkanRenderer.getCurrentFrameIndex();
 			GlobalUBO	ubo{};
 
 			info.frameIndex = frameIndex;
-			info.commandBuffer = commandBuffer;
 			info.globalDescriptorSet = globalDescriptorSets[frameIndex];
-			ubo.projectionView = camera.getProjectionMatrix() * camera.getViewMatrix();
+			ubo.projectionView = this->camera.getProjectionMatrix() * this->camera.getViewMatrix();
 			uboBuffers[frameIndex]->writeToBuffer(&ubo);
 			uboBuffers[frameIndex]->flush();
 
-			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
-			renderSystem.renderObjects(info);
+			vulkanRenderer.beginSwapChainRenderPass(info.commandBuffer);
+			renderSystem.renderObject(info);
 
 			newTime = std::chrono::high_resolution_clock::now();
-			std::cout << "\rFrames per second: " << static_cast<int> (1.0f / elapsedTime) << ", Frame time: ";
-			std::cout << std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count() << "ms " << std::flush;		
+			int32_t	fps = static_cast<int> (1.0f / elapsedTime);
+			float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
+			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
 
-			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
+			vec3 playerPos = info.camera.getCameraPos();
+			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
+
+			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
 		}
 		this->inputHandler.reset();
 		frameCount++;
 	}
+
 	vkDeviceWaitIdle(vulkanDevice.device());
 }
 
-void Vox::createObjects( void )
-{
-	// world.createNewWorld(VoxelGrid::voxelGenerator3);
-	world.createRandomWorld();
-	
-	ve::VulkanModel::Builder			builder = world.generateBufferDataGreedy(false);
-
-	std::shared_ptr<ve::VulkanModel>	model = ve::VulkanModel::createModel(vulkanDevice, builder);
-	ve::VulkanObject 					object = ve::VulkanObject::createVulkanObject();
-
-	object.model = std::move(model);
-	object.color = {1.0f, 0.4f, 0.2f};
-	object.transform.translation = object.model->getBoundingCenter().inverted();
-
-	objects.emplace(object.getID(), std::move(object));
-	textures.reserve(5);
-	for (size_t i = 0; i < 5; i++)
-	{
-		ve::VulkanTexture texture("textures/derp" + std::to_string(i + 1) + ".jpeg", vulkanDevice);
-		textures.emplace_back(std::move(texture));
-	}
-}
-
-void Vox::shutdown( void )
-{
-}
-
-InputHandler const& Vox::getHandler( void ) const noexcept {
-	return this->inputHandler;
-}
-
-InputHandler& Vox::getHandler( void ) noexcept {
-	return this->inputHandler;
-}
-
+/*
+ * Handle camera transformation in case of keys W-A-S-D or up-left-bottom-right (arrow) keys are pressed
+ *
+ * @param deltaTime to normalize the transformation, so that it doesn't depend on the fps
+ * 
+ * @note camera rotation using a key will be removed in the final version
+ */
 void Vox::moveCamera( float deltaTime ) {
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
 		this->camera.moveForward(deltaTime * Config::movementSpeed);
@@ -206,19 +210,39 @@ void Vox::moveCamera( float deltaTime ) {
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
 }
 
-void Vox::rotateCamera( void ) {
-	float deltaX, deltaY;
-	if (this->inputHandler.cursorPositionHasChanged(deltaX, deltaY) == false)
-		return;
+/*
+ * Handle camera rotation my cursor movement
+ *
+ * @param newX x position (relative to the monitor) of the cursor ( (0;0): top-left corner)
+ *
+ * @param newY y position (relative to the monitor) of the cursor ( (0;0): top-left corner)
+ *
+ * @return a vector of 36 uin32_t starting from the offset value
+ */
+void Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
+	vec2 const& oldPos = this->inputHandler.getCursorPos();
 
-	float yaw = deltaX * ve::CameraSettings::cameraSensitivity;
-	float pitch = -deltaY * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
-
-	if (pitch > 89.0f)
-		pitch =  89.0f;
-	else if(pitch < -89.0f)
-		pitch = -89.0f;
+	float yaw = (currPos.x - oldPos.x) * ve::CameraSettings::cameraSensitivity;
+	float pitch = (oldPos.y - currPos.y) * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
+}
+
+/*
+ * When a resize of the window happens, updates Vulkan and recalcolate projection matrix 
+ * (since ration w/h changed)
+ *
+ * @param width new width
+ *
+ * @param height new height
+ */
+void Vox::resizeWindow( uint32_t width, uint32_t height ) {
+	this->vulkanWindow.resetWindowSize(width, height);
+	this->camera.setPerspectiveProjection(
+		radians(ve::CameraSettings::projectionFov),
+		this->vulkanWindow.getAspectRatio(),
+		ve::CameraSettings::projectionNear,
+		ve::CameraSettings::projectionFar
+	);
 }
 
 }	// namespace vox
