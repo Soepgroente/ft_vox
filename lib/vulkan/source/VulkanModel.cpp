@@ -65,7 +65,7 @@ void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 	);
 
 	stagingBuffer.map();
-	stagingBuffer.writeToBuffer((void*)vertices.data());
+	stagingBuffer.writeToBuffer(static_cast<const void*>(vertices.data()));
 
 	vertexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,
@@ -99,7 +99,7 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 	);
 
 	stagingBuffer.map();
-	stagingBuffer.writeToBuffer((void*)indices.data());
+	stagingBuffer.writeToBuffer(static_cast<const void*>(indices.data()));
 
 	indexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,
@@ -141,7 +141,7 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 	for (std::vector<Vertex> const* worldVertexes : vertices) {
 		uint32_t sizeData = worldVertexes->size() * vertexSize;
 		// insert vertexes of this chunk in staging buffer
-		stagingBufferVertex.writeToBuffer((void*)worldVertexes->data(), sizeData, offsetVertex);
+		stagingBufferVertex.writeToBuffer(static_cast<const void*>(worldVertexes->data()), sizeData, offsetVertex);
 		uint32_t nVoxels = worldVertexes->size() / VERTEX_PER_VOXEL;
 		// for every voxel load its face indexes, offsetIndex represents all the vertexes already inserted
 		for (uint32_t i = 0; i<nVoxels; i++) {
