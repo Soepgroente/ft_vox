@@ -1,8 +1,16 @@
 #include "InputHandler.hpp"
-#include <cstring>
+
 
 namespace vox {
 
+
+/*
+ * Set up callbacks for input, currently used: 1. callback for key T (toggle fps mode)
+ * and ESC (window closing), 2. mouse capture for camera rotation (only when fps mode is
+ * active), 3. resizing the window
+ *
+ * @param window GLFW window listening to the events
+ */
 void	InputHandler::setCallbacks(GLFWwindow* window)
 {
 	glfwSetWindowUserPointer(window, this);
@@ -26,7 +34,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		}
 
 		if (handler->isKeyPressed(GLFW_KEY_T) == true)
-			handler->toggleCursorFocus(window);
+			handler->toggleFpsMode(window);
 		else if (handler->isKeyPressed(GLFW_KEY_ESCAPE) == true)
 			handler->closeWindow(window);
 	});
@@ -57,11 +65,10 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		if (glfwGetWindowAttrib(window, GLFW_FOCUSED) == false)
 			return;
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
-		float posXf = static_cast<float>(posX);
-		float posYf = static_cast<float>(posY);
-		if (handler->cursorFocus == true)
-			handler->mouseCallback(posXf, posYf);
-		handler->setCursorPos(posXf, posYf);
+		vec2 cursorPos{ static_cast<float>(posX), static_cast<float>(posY)};
+		if (handler->fpsMode == true)
+			handler->mouseCallback(cursorPos);
+		handler->setCursorPos(cursorPos);
 	});
 	// window resize callback
 	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int32_t w, int32_t h) {
@@ -70,26 +77,34 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 	});
 }
 
+/*
+ * Zero the input listeners
+ */
 void InputHandler::reset() noexcept
 {
 	keyboard.reset();
 	mouse.reset();
 }
 
-void InputHandler::setCursorPos( float posX, float posY ) noexcept {
-	this->mouse.setCursorPos(posX, posY);
+/*
+ * Toggle fps mode, by enabling/disabling the cursor, it the mode is active the camera
+ * rotates according to the cursor position
+ *
+ * @param window GLFW window that handles the cursor
+ */
+void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept
+{
+	this->fpsMode = !this->fpsMode; 
+	glfwSetInputMode(window, GLFW_CURSOR, this->fpsMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-void InputHandler::getCursorPos( float &posX, float &posY ) noexcept {
-	this->mouse.getCursorPos(posX, posY);
-}
-
-void InputHandler::toggleCursorFocus( GLFWwindow* window ) noexcept {
-	this->cursorFocus = !this->cursorFocus; 
-	glfwSetInputMode(window, GLFW_CURSOR, this->cursorFocus ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
-}
-
-void InputHandler::closeWindow( GLFWwindow* window ) noexcept {
+/*
+ * Close the GLFW window
+ *
+ * @param window GLFW window to be closed
+ */
+void InputHandler::closeWindow( GLFWwindow* window ) const noexcept
+{
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 

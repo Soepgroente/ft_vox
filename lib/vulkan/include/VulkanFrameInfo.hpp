@@ -11,7 +11,7 @@ struct FrameInfo
 	Camera&				camera;
 	VkCommandBuffer		commandBuffer;
 	VkDescriptorSet		globalDescriptorSet;
-	VulkanObject&		gameObject;
+	VulkanObject		gameObject;
 };
 
 }	// namespace ve

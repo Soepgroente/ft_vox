@@ -1,8 +1,36 @@
-#include "Vox.hpp"
-#include <random>
-#include <chrono>
+#include "Utils.hpp"
+
+#include <sstream>
+#include <iomanip>
+
 
 namespace vox {
 
+/*
+ * Formats bytes by converting an amount of bytes in KiB (if amount > 1024), MiB (if amount > 1024 * 1024) ...
+ *
+ * @param bytes bytes quantity
+ *
+ * @return string that representes the bytes in a more readable way
+ */
+std::string formatBytes( size_t bytes ) {
+	constexpr size_t KB = 1024UL;
+	constexpr size_t MB = 1024UL * KB;
+	constexpr size_t GB = 1024UL * MB;
+
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(3);
+
+	if (bytes >= GB)
+		oss << static_cast<double>(bytes) / GB << " GiB";
+	else if (bytes >= MB)
+		oss << static_cast<double>(bytes) / MB << " MiB";
+	else if (bytes >= KB)
+		oss << static_cast<double>(bytes) / KB << " KiB";
+	else
+		oss << bytes << " B";
+
+	return oss.str();
+}
 
 }	// namespace vox

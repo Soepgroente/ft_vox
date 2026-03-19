@@ -2,12 +2,8 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-#include <vector>
 #include <array>
-#include <functional>
 
-#include "Vulkan.hpp"
 
 namespace vox {
 
@@ -18,7 +14,9 @@ class KeyboardInput
 	KeyboardInput() noexcept;
 	~KeyboardInput() noexcept = default;
 	KeyboardInput(const KeyboardInput& other) = delete;
+	KeyboardInput(KeyboardInput&& other) = delete;
 	KeyboardInput& operator=(const KeyboardInput& other) = delete;
+	KeyboardInput& operator=(KeyboardInput&& other) = delete;
 
 	void	reset() noexcept;
 

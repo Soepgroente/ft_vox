@@ -1,12 +1,10 @@
 #pragma once
+
+#include "Vectors.hpp"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-#include <vector>
 #include <array>
-#include <cmath>
-
-#include "Vulkan.hpp"
 
 
 namespace vox {
@@ -15,14 +13,16 @@ class MouseInput
 {
 	public:
 
-	MouseInput() noexcept { this->reset(); };
+	MouseInput() noexcept : cursorPos(0.0f) { this->reset(); };
 	~MouseInput() noexcept = default;
 	MouseInput(const MouseInput& other) = delete;
+	MouseInput(MouseInput&& other) = delete;
 	MouseInput& operator=(const MouseInput& other) = delete;
+	MouseInput& operator=(MouseInput&& other) = delete;
 
-	void	reset() noexcept;
-	void	setCursorPos( float, float ) noexcept;
-	void	getCursorPos( float&, float& ) noexcept;
+	void		reset() noexcept;
+	void		setCursorPos(vec2 const& newPos) noexcept { this->cursorPos = newPos; };
+	vec2 const&	getCursorPos() const noexcept { return this->cursorPos; };
 
 	static constexpr int maxButtons = GLFW_MOUSE_BUTTON_LAST + 1;
 
@@ -30,8 +30,7 @@ class MouseInput
 	std::array<bool, maxButtons>	buttonsPressed;
 	std::array<bool, maxButtons>	buttonsReleased;
 
-	float	posX = 0.0f;;
-	float	posY = 0.0f;;
+	vec2 cursorPos;
 };
 
 }	// namespace vox
