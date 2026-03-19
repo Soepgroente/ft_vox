@@ -119,16 +119,33 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 		static_cast<float>(this->worldPos.y) * static_cast<float>(this->worldSize.y),
 		static_cast<float>(this->worldPos.z) * static_cast<float>(this->worldSize.z)
 	};
-	vec3ui index(0U);
-	for(; index.z<worldSize.z; index.z++) {
-		for(index.x=0; index.x<worldSize.x; index.x++) {
-			vec3 centerVoxel{
-				static_cast<float>(index.x) + relativePos.x,
-				static_cast<float>(index.y) + relativePos.y,
-				static_cast<float>(index.z) + relativePos.z,
-			};
-			VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
-			this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
+
+	static ui32 seed = 0;
+	// std::cout << "World size: " << worldSize << std::endl;
+	// std::cout << "World position: " << worldPos << std::endl;
+	// std::cout << "Relative position: " << relativePos << std::endl;
+	(void)relativePos;
+	for (ui32 z = 0; z < worldSize.z; z++)
+	{
+		for (ui32 x = 0; x < worldSize.x; x++)
+		{
+			// float noiseValue = perlin(
+			// 	relativePos.x + static_cast<float>(x),
+			// 	relativePos.y,
+			// 	relativePos.z + static_cast<float>(z));
+			float noiseValue = randomNoise(x, z, seed);
+			// std::cout << "Noise value: " << noiseValue << std::endl;
+			float heightValue = noiseValue * static_cast<float>(worldSize.y);
+			for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
+			{
+				vec3 centerVoxel{
+					static_cast<float>(x + relativePos.x),
+					static_cast<float>(y),
+					static_cast<float>(z + relativePos.z)
+				};
+				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
+				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
+			}
 		}
 	}
 	this->updateLastAccess();

@@ -124,7 +124,7 @@ class World {
 class WorldNavigator {
 	public:
 		explicit WorldNavigator( uint32_t worldSize ) : 
-			worldSize(worldSize),
+			worldSize(worldSize, 256, worldSize),
 			totVoxels(0U),
 			currentWorldPos(0U) {};
 		~WorldNavigator( void ) = default;
@@ -151,5 +151,8 @@ class WorldNavigator {
 		std::unordered_map<vec3i,World>	worlds;
 		vec3i							currentWorldPos;	// last position known of the player
 };
+
+float	perlin(float x, float y, float z);
+float	randomNoise(float, float, ui32& seed);
 
 }	// namespace vox
