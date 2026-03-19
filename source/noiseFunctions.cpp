@@ -137,7 +137,7 @@ static float lerp(float a, float b, float x)
 
 float	perlin(float x, float y, float z)
 {
-	if(repeat > 0)
+	if (repeat > 0)
 	{
 		x = std::fmod(x, repeat);
 		y = std::fmod(y, repeat);
@@ -181,7 +181,7 @@ float	perlin(float x, float y, float z)
 				u);
 	y2 = lerp (x1, x2, v);
 	
-	return (lerp (y1, y2, w)+1)/2;						// For convenience we bound it to 0 - 1 (theoretical min/max before is -1 - 1)
+	return (lerp (y1, y2, w) + 1) / 2;						// For convenience we bound it to 0 - 1 (theoretical min/max before is -1 - 1)
 }
 
 float	octavePerlin(float x, float y, float z, int octaves, float persistence)
@@ -190,7 +190,8 @@ float	octavePerlin(float x, float y, float z, int octaves, float persistence)
 	float	frequency = 1;
 	float	amplitude = 1;
 	float	maxValue = 0;			// Used for normalizing result to 0.0 - 1.0
-	for(int i = 0; i < octaves; i++)
+
+	for (int i = 0; i < octaves; i++)
 	{
 		total += perlin(x * frequency, y * frequency, z * frequency) * amplitude;
 		
