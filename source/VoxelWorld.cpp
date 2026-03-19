@@ -6,6 +6,7 @@
 
 namespace vox {
 
+float	perlin(float x, float y, float z);
 
 vec3 Boxel::getCenter( void ) const noexcept {
 	return vec3{ 
@@ -344,7 +345,7 @@ std::vector<Voxel>	VoxelGrid::getVoxelsFromMap( void ) {
 
 void	VoxelWorld::createRandomWorld()
 {
-	this->_grid = VoxelGrid::voxelGenerator(vec3ui{Config::worldSize, 256, Config::worldSize}, 0, randomNoise);
+	this->_grid = VoxelGrid::voxelGenerator(vec3ui{Config::worldSize, 256, Config::worldSize}, 0, perlin);
 }
 
 std::vector<Boxel> VoxelGrid::getBoxels( void ) {
@@ -480,12 +481,12 @@ ve::VulkanModel::Builder VoxelWorld::generateBufferDataGreedy( bool duplicateVer
 				builder.indices.push_back(uniqueVertexes[voxelVertexes[index]]);
 			else {
 				uniqueVertexes[voxelVertexes[index]] = indexCount;
-				std::cout << "color: " << voxelVertexes[index].z / 255.0f << std::endl;
-				std::cout << "vertex: " << voxelVertexes[index] << std::endl;
+				// std::cout << "color: " << voxelVertexes[index].z / 255.0f << std::endl;
+				// std::cout << "vertex: " << voxelVertexes[index] << std::endl;
 				// new vertex, add it and its vertex index
 				builder.vertices.push_back(ve::VulkanModel::Vertex{
 					voxelVertexes[index],
-					vec3{std::pow(voxelVertexes[index].z / 255.0f, 2.0f)},		// NB until color is random Vertex type can't be use as a key inside the unord. map
+					ve::generateRandomColor(),		// NB until color is random Vertex type can't be use as a key inside the unord. map
 					vec3{0.0f, 0.0f, 0.0f},
 					vec2{0.0f, 0.0f}
 				});
@@ -523,8 +524,8 @@ VoxelGrid	VoxelGrid::voxelGenerator(const vec3ui& worldSize, ui32 seed, const st
 		{
 			float noiseValue = noiseFunction(static_cast<float>(x) * scalar, static_cast<float>(z) * scalar, seed);
 
-			// noiseValue = (noiseValue + 1.0f) / 2.0f;
-			// std::cout << "Noise value for (" << x << ", " << z << "): " << noiseValue << std::endl;
+			noiseValue = (noiseValue + 1.0f) / 2.0f;
+			std::cout << "Noise value for (" << x << ", " << z << "): " << noiseValue << std::endl;
 			grid.gridData[z][x] = static_cast<ui8>(std::roundf(noiseValue * 255.0f));
 		}
 	}
