@@ -80,7 +80,7 @@ void VulkanBuffer::unmap()
  * @param offset (Optional) Byte offset from beginning of mapped region
  *
  */
-void	VulkanBuffer::writeToBuffer(void *data, VkDeviceSize size, VkDeviceSize offset)
+void	VulkanBuffer::writeToBuffer(const void *data, VkDeviceSize size, VkDeviceSize offset)
 {
 	assert(mapped && "Cannot copy to unmapped buffer");
 
@@ -160,7 +160,7 @@ VkDescriptorBufferInfo	VulkanBuffer::descriptorInfo(VkDeviceSize size, VkDeviceS
  * @param index Used in offset calculation
  *
  */
-void	VulkanBuffer::writeToIndex(void *data, int index)
+void	VulkanBuffer::writeToIndex(const void *data, int index)
 {
 	writeToBuffer(data, instanceSize, index * alignmentSize);
 }

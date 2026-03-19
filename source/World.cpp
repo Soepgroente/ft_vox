@@ -250,7 +250,7 @@ bool WorldNavigator::addeNewWorld( vec3i const& worldPos ) {
 	} else {
 		this->worlds.emplace(worldPos, World(worldPos, this->worldSize));
 		this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
-	
+
 		if (this->worlds.size() > MAX_WORLDS) {
 			vec3i furthestWorld = this->findFurthestWorld();
 			this->totVoxels -= this->worlds[furthestWorld].getVertexSize() / VERTEX_PER_VOXEL;
