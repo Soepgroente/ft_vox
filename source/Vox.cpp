@@ -14,7 +14,7 @@ struct GlobalUBO
 	alignas(16)	vec4	lightColor{1.0f};
 };
 
-/*
+/**
  * Create the engine of the game
  */
 Vox::Vox( void ) :
@@ -45,14 +45,14 @@ Vox::Vox( void ) :
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 }
 
-/*
+/**
  * destructor
  */
 Vox::~Vox( void ) noexcept {
 	globalDescriptorPool.reset();
 }
 
-/*
+/**
  * Run the rendering loop
  *
  * @param start the starting value of the face indexes
@@ -171,7 +171,7 @@ void Vox::run( void ) {
 	vkDeviceWaitIdle(vulkanDevice.device());
 }
 
-/*
+/**
  * Handle camera transformation in case of keys W-A-S-D or up-left-bottom-right (arrow) keys are pressed
  *
  * @param deltaTime to normalize the transformation, so that it doesn't depend on the fps
@@ -210,7 +210,7 @@ void Vox::moveCamera( float deltaTime ) {
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
 }
 
-/*
+/**
  * Handle camera rotation my cursor movement
  *
  * @param newX x position (relative to the monitor) of the cursor ( (0;0): top-left corner)
@@ -227,7 +227,7 @@ void Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
 	this->camera.rotate(pitch, yaw, 0.0f);
 }
 
-/*
+/**
  * When a resize of the window happens, updates Vulkan and recalcolate projection matrix 
  * (since ration w/h changed)
  *
