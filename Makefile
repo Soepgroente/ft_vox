@@ -1,6 +1,6 @@
 TARGET			:=	ft_vox
 CC				:=	c++
-BASE_CPPFLAGS	:=	-std=c++20 -Wall -Wextra -Werror
+BASE_CPPFLAGS	:=	-std=c++23 -Wall -Wextra -Werror
 RELEASE_FLAGS	:=	-DNDEBUG -flto -O3 -march=native -fno-math-errno
 DEBUG_FLAGS		:=	-g -fsanitize=address
 CPPFLAGS		:=	$(BASE_CPPFLAGS)

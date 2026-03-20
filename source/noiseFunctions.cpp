@@ -143,7 +143,6 @@ float	perlin(float x, float y, float z)
 		y = std::fmod(y, repeat);
 		z = std::fmod(z, repeat);
 	}
-	
 	int xi = (int)x & 255;								// Calculate the "unit cube" that the point asked will be located in
 	int yi = (int)y & 255;								// The left bound is ( |_x_|,|_y_|,|_z_| ) and the right bound is that
 	int zi = (int)z & 255;								// plus 1.  Next we calculate the location (from 0.0 to 1.0) in that cube.

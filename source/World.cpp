@@ -1,8 +1,12 @@
 #include "World.hpp"
-#include "Utils.hpp"
+#include "Config.hpp"
+#include "Vox.hpp"
+#include "Stopwatch.hpp"
 
 #include <chrono>
-
+#include <mutex>
+#include <atomic>
+#include <thread>
 
 namespace vox {
 
@@ -129,23 +133,28 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 	{
 		for (ui32 x = 0; x < worldSize.x; x++)
 		{
-			// float noiseValue = perlin(
-			// 	relativePos.x + static_cast<float>(x),
-			// 	relativePos.y,
-			// 	relativePos.z + static_cast<float>(z));
-			float noiseValue = randomNoise(x, z, seed);
-			// std::cout << "Noise value: " << noiseValue << std::endl;
-			float heightValue = noiseValue * static_cast<float>(worldSize.y);
-			for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
-			{
+			float noiseValue = perlin(
+				(relativePos.x + static_cast<float>(x)) * Config::noiseScalar,
+				(relativePos.z + static_cast<float>(z)) * Config::noiseScalar,
+				static_cast<float>(seed));
+			// float noiseValue = randomNoise(x, z, seed);
+			// if (x == 5)
+			// {
+			// 	std::cout << "Noise value: " << noiseValue << std::endl;
+			// 	std::cout << "x: " << relativePos.x + static_cast<float>(x) << std::endl;
+			// 	std::cout << "z: " << relativePos.z + static_cast<float>(z) << std::endl;
+			// }
+			float heightValue = (noiseValue + 1.0f) * 0.5f * static_cast<float>(worldSize.y);
+			// for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
+			// {
 				vec3 centerVoxel{
 					static_cast<float>(x + relativePos.x),
-					static_cast<float>(y),
+					static_cast<float>(heightValue - 0.5f),
 					static_cast<float>(z + relativePos.z)
 				};
 				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
 				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
-			}
+			// }
 		}
 	}
 	this->updateLastAccess();
@@ -193,21 +202,78 @@ void World::updateLastAccess( void ) noexcept {
  *
  * @return true/false if some new chunks are actually generated
  */
-bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
+/* bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
+	Stopwatch timer;
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
 
-	bool realoadData = false;
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z - 1});
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z - 1});
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z});
-	realoadData |= this->addeNewWorld(playerPos);
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z});
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z + 1});
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
-	realoadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
-	return realoadData;
+	timer.start();
+	bool reloadData = false;
+
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z});
+	reloadData |= this->addeNewWorld(playerPos);
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z});
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
+
+	timer.stop();
+
+	std::cout << timer;
+	return reloadData;
+} */
+
+
+bool WorldNavigator::spawnCloseByWorlds(vec3 const& start)
+{
+	Stopwatch timer;
+	timer.start();
+	vec3i playerPos = this->worldPosFromPlayerPos(start);
+	this->currentWorldPos = playerPos;
+
+	std::atomic<bool> reloadData{false};
+
+	std::vector<vec3i> positions = {
+		{playerPos.x - 1, playerPos.y, playerPos.z - 1},
+		{playerPos.x,     playerPos.y, playerPos.z - 1},
+		{playerPos.x + 1, playerPos.y, playerPos.z - 1},
+		{playerPos.x - 1, playerPos.y, playerPos.z},
+		{playerPos.x,     playerPos.y, playerPos.z},
+		{playerPos.x + 1, playerPos.y, playerPos.z},
+		{playerPos.x - 1, playerPos.y, playerPos.z + 1},
+		{playerPos.x,     playerPos.y, playerPos.z + 1},
+		{playerPos.x + 1, playerPos.y, playerPos.z + 1},
+	};
+
+	Vox::workerThreads.clear();
+	Vox::workerThreads.reserve(positions.size());
+
+	for (vec3i pos : positions)
+	{
+		Vox::workerThreads.emplace_back([this, pos, &reloadData]
+		{
+			bool r = this->addeNewWorld(pos);
+			if (r == true)
+			{
+				reloadData.store(true, std::memory_order_relaxed);
+			}
+		});
+	}
+
+	for (std::thread& thread : Vox::workerThreads)
+	{
+		if (thread.joinable() == true)
+		{
+			thread.join();
+		}
+	}
+
+	timer.stop();
+	std::cout << timer;
+	return reloadData.load(std::memory_order_relaxed);
 }
 
 /**
