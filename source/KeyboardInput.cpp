@@ -4,7 +4,7 @@
 namespace vox {
 
 
-/*
+/**
  * Zero all data
  */
 KeyboardInput::KeyboardInput() noexcept
@@ -13,7 +13,7 @@ KeyboardInput::KeyboardInput() noexcept
 	keysPressed.fill(false);
 }
 
-/*
+/**
  * Zero all data
  */
 void	KeyboardInput::reset() noexcept

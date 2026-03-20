@@ -6,7 +6,7 @@
 
 namespace vox {
 
-/*
+/**
  * Formats bytes by converting an amount of bytes in KiB (if amount > 1024), MiB (if amount > 1024 * 1024) ...
  *
  * @param bytes bytes quantity
