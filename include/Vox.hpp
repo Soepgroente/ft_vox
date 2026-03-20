@@ -7,9 +7,12 @@
 #include "InputHandler.hpp"
 
 #include <cstdint>
+#include <thread>
 
 
 namespace vox {
+
+using ui32 = uint32_t;
 
 class Vox
 {
@@ -26,6 +29,8 @@ class Vox
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( uint32_t, uint32_t );
+
+		static std::vector<std::thread>	workerThreads;
 
 	private:
 		ve::VulkanWindow							vulkanWindow;

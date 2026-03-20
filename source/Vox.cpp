@@ -6,6 +6,8 @@
 
 namespace vox {
 
+std::vector<std::thread> Vox::workerThreads{};
+
 struct GlobalUBO
 {
 	mat4				projectionView{1.0f};
@@ -29,6 +31,7 @@ Vox::Vox( void ) :
 		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
 	)
 {
+	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -153,13 +156,13 @@ void Vox::run( void ) {
 			renderSystem.renderObject(info);
 
 			newTime = std::chrono::high_resolution_clock::now();
-			int32_t	fps = static_cast<int> (1.0f / elapsedTime);
-			float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
-			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
+			// int32_t	fps = static_cast<int> (1.0f / elapsedTime);
+			// float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
+			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
 
-			vec3 playerPos = info.camera.getCameraPos();
-			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
+			// vec3 playerPos = info.camera.getCameraPos();
+			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			// std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
 
 			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
