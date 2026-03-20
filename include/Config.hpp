@@ -29,7 +29,7 @@ struct Config
 		worldSize / 2.0f + 0.5f
 	};
 
-	static constexpr float	movementSpeed = 10.0f;
+	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;
 
 	static constexpr char const	vertShaderPath[] = "build/basic.vert.spv";
