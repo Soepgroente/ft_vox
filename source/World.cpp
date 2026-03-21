@@ -184,7 +184,7 @@ float World::getWeight( vec3i const& origin ) const noexcept {
  * When the chunk/world is visited, updates the the last access time
  */
 void World::updateLastAccess( void ) noexcept {
-	this->lastAccess = std::chrono::high_resolution_clock::now();
+	this->lastAccess = Clock::now();
 }
 
 
