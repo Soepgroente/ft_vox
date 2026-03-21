@@ -116,7 +116,7 @@ class World {
 		vec3i										worldPos;
 		vec3ui										worldSize;
 		VertexVector								vertexes;
-		std::chrono::_V2::system_clock::time_point	lastAccess;
+		std::chrono::steady_clock::time_point		lastAccess;
 
 };
 

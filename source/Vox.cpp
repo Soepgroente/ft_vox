@@ -107,7 +107,7 @@ void Vox::run( void ) {
 		Config::fragShaderPath
 	};
 
-	size_t	frameCount = 0;
+	// size_t	frameCount = 0;
 	float	elapsedTime = 0.0f;
 	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
 	currentTime = std::chrono::high_resolution_clock::now();
@@ -168,7 +168,7 @@ void Vox::run( void ) {
 			vulkanRenderer.endFrame();
 		}
 		this->inputHandler.reset();
-		frameCount++;
+		// frameCount++;
 	}
 
 	vkDeviceWaitIdle(vulkanDevice.device());
