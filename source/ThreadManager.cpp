@@ -1,8 +1,11 @@
 #include "ThreadManager.hpp"
+#include <iostream>
 
 ThreadManager::ThreadManager() : shouldRun(true), activeWorkers(0)
 {
 	int workers = std::max(std::thread::hardware_concurrency() - 1, 1U);
+
+	std::cout << "Created " << workers << " worker threads" << std::endl;
 	workerThreads.reserve(workers);
 	for (int i = 0; i < workers; i++)
 	{
@@ -27,6 +30,11 @@ void ThreadManager::joinWorkerThreads()
 	workerThreads.clear();
 }
 
+/*	All worker threads are in this loop, waiting to be notified in cv.wait.
+	If a thread gets activated, it takes the first job in the queue and executes it. 
+	After finishing, it checks if there are still jobs to do, and if not, it notifies the main thread that is waiting for idle state in idleCv.wait.
+*/
+
 void	ThreadManager::workerLoop()
 {
 	while (true)
@@ -35,9 +43,9 @@ void	ThreadManager::workerLoop()
 		{
 			std::unique_lock<std::mutex> lock(mutex);
 
-			cv.wait(lock, [this] { return shouldRun == true || jobs.empty() == false; });
+			cv.wait(lock, [this] { return shouldRun == false || jobs.empty() == false; });
 
-			if (shouldRun == true && jobs.empty())
+			if (shouldRun == false && jobs.empty())
 			{
 				return;
 			}
@@ -60,7 +68,6 @@ void	ThreadManager::workerLoop()
 		}
 	}
 }
-
 
 void ThreadManager::stop()
 {

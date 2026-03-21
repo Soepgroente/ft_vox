@@ -5,6 +5,7 @@
 #include "Config.hpp"
 #include "World.hpp"
 #include "InputHandler.hpp"
+#include "ThreadManager.hpp"
 
 #include <cstdint>
 #include <thread>
@@ -41,6 +42,7 @@ class Vox
 		ve::Camera		camera;
 		WorldNavigator	navigator;
 		InputHandler	inputHandler;
+		ThreadManager	threadManager;
 };
 
 }	// namespace vox
