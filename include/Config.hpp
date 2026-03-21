@@ -18,7 +18,7 @@ struct Config
 
 	static constexpr vec3	cameraLimitsMov{
 		-100000.0f,
-		256.0f,
+		-256.0f,
 		-100000.0f
 	};
 
