@@ -15,7 +15,7 @@ ThreadManager::ThreadManager() : shouldRun(true), activeWorkers(0)
 
 ThreadManager::~ThreadManager() noexcept
 {
-	joinWorkerThreads();
+	stop();
 }
 
 void ThreadManager::joinWorkerThreads()
