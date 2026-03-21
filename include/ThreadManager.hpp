@@ -27,15 +27,16 @@ class ThreadManager
 		void	stop();
 		void	waitIdle();
 
-		/*	Adds a task to the pool and activates an idle thread to execute it. Result is stored */
+		/*	Adds a task to the pool and activates an idle thread to execute it. */
+
 		template <class F>
 		auto enqueue(F&& function) -> std::future<std::invoke_result_t<F>>
 		{
 			using R = std::invoke_result_t<F>;
-		
+
 			std::shared_ptr	task = std::make_shared<std::packaged_task<R()>>(std::forward<F>(function));
 			std::future<R>	fut = task->get_future();
-		
+
 			{
 				std::lock_guard<std::mutex> lock(mutex);
 
@@ -49,7 +50,7 @@ class ThreadManager
 			return fut;
 		}
 
-		private:
+	private:
 		
 		void	workerLoop();
 		

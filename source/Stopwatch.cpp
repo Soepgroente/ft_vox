@@ -3,26 +3,51 @@
 
 using ui64 = uint64_t;
 
-void	Stopwatch::elapsed(std::ostream& stream) const noexcept
+float	Stopwatch::elapsed(Unit type) const noexcept
 {
-	ui64 elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(this->endTime - this->startTime).count();
+	switch (type)
+	{
+		case Nanoseconds:
+			return ns();
+		case Microseconds:
+			return us();
+		case Milliseconds:
+			return ms();
+		case Seconds:
+			return s();
+		default:
+			return 0.0f;
+	}
+}
 
-	if (elapsedTime < 1000)
-	{
-		stream << "Elapsed time: " << elapsedTime << " microseconds" << std::endl;
-	}
-	else if (elapsedTime < 1000000)
-	{
-		stream << "Elapsed time: " << elapsedTime / 1000.0f << " milliseconds" << std::endl;
-	}
-	else
-	{
-		stream << "Elapsed time: " << elapsedTime / 1000000.0f << " seconds" << std::endl;
-	}
+void	Stopwatch::reset() noexcept
+{
+	startTime = now();
+	endTime = startTime;
+	elapsedTime = Duration::zero();
 }
 
 std::ostream&	operator<<(std::ostream& os, const Stopwatch& stopwatch)
 {
-	stopwatch.elapsed(os);
+	Duration elapsed = stopwatch.elapsed();
+	std::chrono::steady_clock::rep elapsedTime = elapsed.count();
+
+	if (elapsedTime < 1000)
+	{
+		os << "Elapsed time: " << stopwatch.elapsed(Nanoseconds) << " nanoseconds";
+	}
+	else if (elapsedTime < 1000000)
+	{
+		os << "Elapsed time: " << stopwatch.elapsed(Microseconds) << " microseconds";
+	}
+	else if (elapsedTime < 1000000000)
+	{
+		os << "Elapsed time: " << stopwatch.elapsed(Milliseconds) << " milliseconds";
+	}
+	else
+	{
+		os << "Elapsed time: " << stopwatch.elapsed(Seconds) << " seconds";
+	}
+	os << std::endl;
 	return os;
 }

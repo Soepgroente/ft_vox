@@ -174,7 +174,7 @@ float World::getWeight( vec3i const& origin ) const noexcept {
 	// NB horizontal distance would be much more important than vertical distance
 	uint32_t distance = vec3i::distance1D(this->worldPos, origin);
 
-	std::chrono::steady_clock::time_point now = std::chrono::high_resolution_clock::now();
+	std::chrono::steady_clock::time_point now = Clock::now();
 	uint32_t deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(now - this->lastAccess).count();
 
 	return World::ALPHA * distance + World::BETA * deltaTime;
@@ -184,7 +184,7 @@ float World::getWeight( vec3i const& origin ) const noexcept {
  * When the chunk/world is visited, updates the the last access time
  */
 void World::updateLastAccess( void ) noexcept {
-	this->lastAccess = std::chrono::high_resolution_clock::now();
+	this->lastAccess = Clock::now();
 }
 
 
@@ -202,41 +202,32 @@ void World::updateLastAccess( void ) noexcept {
  *
  * @return true/false if some new chunks are actually generated
  */
-/* bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
-	Stopwatch timer;
+bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
-
-	timer.start();
+	Stopwatch timer;
 	bool reloadData = false;
 
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z - 1});
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z - 1});
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z});
-	reloadData |= this->addeNewWorld(playerPos);
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z});
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z + 1});
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
-	reloadData |= this->addeNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z});
+	reloadData |= this->addNewWorld(playerPos);
+	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
 
 	timer.stop();
-
 	std::cout << timer;
 	return reloadData;
-} */
+}
 
-
-bool WorldNavigator::spawnCloseByWorlds(vec3 const& start)
+bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& threads)
 {
-	Stopwatch timer;
-	timer.start();
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
-
-	std::atomic<bool> reloadData{false};
-
-	std::vector<vec3i> positions = {
+	const std::array<vec3i, 9> positions = {{
 		{playerPos.x - 1, playerPos.y, playerPos.z - 1},
 		{playerPos.x,     playerPos.y, playerPos.z - 1},
 		{playerPos.x + 1, playerPos.y, playerPos.z - 1},
@@ -246,34 +237,22 @@ bool WorldNavigator::spawnCloseByWorlds(vec3 const& start)
 		{playerPos.x - 1, playerPos.y, playerPos.z + 1},
 		{playerPos.x,     playerPos.y, playerPos.z + 1},
 		{playerPos.x + 1, playerPos.y, playerPos.z + 1},
-	};
+	}};
+	Stopwatch timer;
+	std::array<std::future<bool>, 9> futures;
+	bool reloadData = false;
 
-	Vox::workerThreads.clear();
-	Vox::workerThreads.reserve(positions.size());
-
-	for (vec3i pos : positions)
+	for (size_t i = 0; i < positions.size(); i++)
 	{
-		Vox::workerThreads.emplace_back([this, pos, &reloadData]
-		{
-			bool r = this->addeNewWorld(pos);
-			if (r == true)
-			{
-				reloadData.store(true, std::memory_order_relaxed);
-			}
-		});
+		futures[i] = threads.enqueue([this, pos = positions[i]]() { return this->addNewWorld(pos); });
 	}
-
-	for (std::thread& thread : Vox::workerThreads)
-	{
-		if (thread.joinable() == true)
-		{
-			thread.join();
-		}
+    for (std::future<bool>& result : futures)
+    {
+		reloadData |= result.get();
 	}
-
 	timer.stop();
 	std::cout << timer;
-	return reloadData.load(std::memory_order_relaxed);
+	return reloadData;
 }
 
 /**
@@ -326,7 +305,7 @@ std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevic
  *
  * @return true/false if new data was actually generated
  */
-bool WorldNavigator::addeNewWorld( vec3i const& worldPos ) {
+bool WorldNavigator::addNewWorld( vec3i const& worldPos ) {
 	if (this->worlds.find(worldPos) != this->worlds.end()) {
 		this->worlds[worldPos].updateLastAccess();
 		return false;

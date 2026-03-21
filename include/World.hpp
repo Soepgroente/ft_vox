@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ThreadManager.hpp"
 #include "Vulkan.hpp"
 #include "Vectors.hpp"
 
@@ -134,13 +135,14 @@ class WorldNavigator {
 		WorldNavigator& operator=( WorldNavigator&& ) = delete;
 
 		bool	spawnCloseByWorlds( vec3 const& );
+		bool 	spawnCloseByWorlds(vec3 const& start, ThreadManager& threads);
 		size_t	getMemoryUsed( void ) const noexcept;
 		bool	borderCrossed( vec3 const& ) const noexcept;
 
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
 
 	private:
-		bool	addeNewWorld( vec3i const& );
+		bool	addNewWorld( vec3i const& );
 		vec3i	findFurthestWorld( void ) const noexcept;
 		vec3i	worldPosFromPlayerPos( vec3 const& ) const noexcept;
 
