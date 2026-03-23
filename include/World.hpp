@@ -3,6 +3,7 @@
 #include "ThreadManager.hpp"
 #include "Vulkan.hpp"
 #include "Vectors.hpp"
+#include "Stopwatch.hpp"
 
 #include <cstdint>
 #include <unordered_map>

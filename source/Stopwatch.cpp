@@ -17,7 +17,7 @@ double	Stopwatch::elapsed(Unit type) const noexcept
 		case Unit::Seconds:
 			return s();
 		default:
-			return 0.0f;
+			return 0.0;
 	}
 }
 
