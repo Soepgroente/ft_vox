@@ -19,7 +19,8 @@ enum TextureTypes {
 	TEXT_DIRT_1,
 	TEXT_DIRT_2,
 	TEXT_STONE_1,
-	TEXT_STONE_2
+	TEXT_STONE_2,
+	TEXT_SKYBOX
 };
 
 class Vox

@@ -37,6 +37,7 @@ Vox::Vox( void ) :
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.build();
 
 	this->camera.setViewMatrix();
@@ -47,6 +48,9 @@ Vox::Vox( void ) :
 		ve::CameraSettings::projectionFar
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
+
+	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice}});
+	this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice}});
 }
 
 /**
@@ -77,25 +81,30 @@ void Vox::run( void ) {
 	std::unique_ptr<ve::VulkanDescriptorSetLayout> globalSetLayout = ve::VulkanDescriptorSetLayout::Builder(vulkanDevice)
 		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
 		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+		.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice}});
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
 		VkDescriptorBufferInfo bufferInfo = uboBuffers[i]->descriptorInfo();
-		VkDescriptorImageInfo imageInfo{};
+		VkDescriptorImageInfo imageInfoVoxel{}, imageInfoSkybox{};
 
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
-		imageInfo.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
+		imageInfoVoxel.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfoVoxel.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
+		imageInfoVoxel.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
+
+		imageInfoSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfoSkybox.imageView = this->textures.at(TEXT_SKYBOX).getImageView();
+		imageInfoSkybox.sampler = this->textures.at(TEXT_SKYBOX).getSampler();
 
 		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
 			.writeBuffer(0, &bufferInfo)
-			.writeImage(1, &imageInfo)
+			.writeImage(1, &imageInfoVoxel)
+			.writeImage(2, &imageInfoSkybox)
 			.build(globalDescriptorSets[i]);
 	}
+
 	ve::VulkanRenderSystem	renderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
@@ -138,27 +147,31 @@ void Vox::run( void ) {
 		info.commandBuffer = vulkanRenderer.beginFrame();
 		if (info.commandBuffer != nullptr)
 		{
-			int frameIndex = vulkanRenderer.getCurrentFrameIndex();
+			info.frameIndex = vulkanRenderer.getCurrentFrameIndex();
+			info.globalDescriptorSet = globalDescriptorSets[info.frameIndex];
 			GlobalUBO	ubo{};
 
-			info.frameIndex = frameIndex;
-			info.globalDescriptorSet = globalDescriptorSets[frameIndex];
+			// rendering voxels
 			ubo.projectionView = this->camera.getProjectionMatrix() * this->camera.getViewMatrix();
-			uboBuffers[frameIndex]->writeToBuffer(&ubo);
-			uboBuffers[frameIndex]->flush();
+			uboBuffers[info.frameIndex]->writeToBuffer(&ubo);
+			uboBuffers[info.frameIndex]->flush();
+
+			// rendering skybox
+			// ubo.projectionView = this->camera.getViewMatrixOnlyRotation();
+			// uboBuffers[info.frameIndex]->writeToBuffer(&ubo);
+			// uboBuffers[info.frameIndex]->flush();
 
 			vulkanRenderer.beginSwapChainRenderPass(info.commandBuffer);
 			renderSystem.renderObject(info);
 
-			// vec3 playerPos = info.camera.getCameraPos();
-			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-			// std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
-			
 			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
 			timer.stop();
 			// int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
 			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
+			// vec3 playerPos = info.camera.getCameraPos();
+			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			// std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
 		}
 		this->inputHandler.reset();
 		// frameCount++;
