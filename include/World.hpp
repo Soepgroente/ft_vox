@@ -114,10 +114,10 @@ class World {
 		static constexpr float BETA = 0.2f;		// weight for the time
 
 	private:
-		vec3i										worldPos;
-		vec3ui										worldSize;
-		VertexVector								vertexes;
-		std::chrono::steady_clock::time_point		lastAccess;
+		vec3i			worldPos;
+		vec3ui			worldSize;
+		VertexVector	vertexes;
+		Time			lastAccess;
 
 };
 

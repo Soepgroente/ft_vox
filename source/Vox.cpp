@@ -130,7 +130,7 @@ void Vox::run( void ) {
 		glfwPollEvents();
 		timer.start();
 		// do game operations
-		this->moveCamera(timer.elapsed(Seconds));
+		this->moveCamera(timer.elapsed(Unit::Seconds));
 		// add chunks of maps if necessary
 		if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
 			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);

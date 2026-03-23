@@ -174,7 +174,7 @@ float World::getWeight( vec3i const& origin ) const noexcept {
 	// NB horizontal distance would be much more important than vertical distance
 	uint32_t distance = vec3i::distance1D(this->worldPos, origin);
 
-	std::chrono::steady_clock::time_point now = std::chrono::high_resolution_clock::now();
+	Time now = Clock::now();
 	uint32_t deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(now - this->lastAccess).count();
 
 	return World::ALPHA * distance + World::BETA * deltaTime;
