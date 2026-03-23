@@ -15,6 +15,13 @@ namespace vox {
 
 using ui32 = uint32_t;
 
+enum TextureTypes {
+	TEXT_DIRT_1,
+	TEXT_DIRT_2,
+	TEXT_STONE_1,
+	TEXT_STONE_2
+};
+
 class Vox
 {
 	public:
@@ -29,7 +36,7 @@ class Vox
 
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( vec2 const& );
-		void resizeWindow( uint32_t, uint32_t );
+		void resizeWindow( ui32, ui32 );
 
 		static std::vector<std::thread>	workerThreads;
 
@@ -43,6 +50,8 @@ class Vox
 		WorldNavigator	navigator;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
+
+		std::map<TextureTypes,ve::VulkanTexture> textures;
 };
 
 }	// namespace vox
