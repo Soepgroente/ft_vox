@@ -24,6 +24,12 @@ struct QueueFamilyIndices
 	bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
 };
 
+enum TextureType {
+	TEXTURE_PLAIN,
+	TEXTURE_CUBEMAP
+};
+
+
 class VulkanDevice
 {
 	public:
@@ -96,7 +102,8 @@ class VulkanDevice
 		VkImage image,
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
-		uint32_t layerCount
+		uint32_t layerCount,
+		ve::TextureType textureType = TEXTURE_PLAIN
 	);
 
 	VkPhysicalDeviceProperties	properties;

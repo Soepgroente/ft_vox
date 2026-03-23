@@ -58,10 +58,6 @@ Vox::~Vox( void ) noexcept {
 
 /**
  * Run the rendering loop
- *
- * @param start the starting value of the face indexes
- *
- * @return a vector of 36 uin32_t starting from the offset value
  */
 void Vox::run( void ) {
 	std::vector<std::unique_ptr<ve::VulkanBuffer>>	uboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -84,7 +80,7 @@ void Vox::run( void ) {
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 
-	ve::VulkanTexture texture{Config::texture2VoxelPath, vulkanDevice};
+	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice}});
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
@@ -92,8 +88,8 @@ void Vox::run( void ) {
 		VkDescriptorImageInfo imageInfo{};
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = texture.getImageView();
-		imageInfo.sampler = texture.getSampler();
+		imageInfo.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
+		imageInfo.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
 
 		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
 			.writeBuffer(0, &bufferInfo)
@@ -235,7 +231,7 @@ void Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
  *
  * @param height new height
  */
-void Vox::resizeWindow( uint32_t width, uint32_t height ) {
+void Vox::resizeWindow( ui32 width, ui32 height ) {
 	this->vulkanWindow.resetWindowSize(width, height);
 	this->camera.setPerspectiveProjection(
 		radians(ve::CameraSettings::projectionFov),
