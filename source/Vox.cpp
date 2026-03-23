@@ -111,7 +111,6 @@ void Vox::run( void ) {
 
 	// size_t	frameCount = 0;
 	Stopwatch timer;
-	Stopwatch timer;
 
 	ve::FrameInfo info
 	{
@@ -124,8 +123,6 @@ void Vox::run( void ) {
 
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 
 	std::cout << "\n\n\n\n";
@@ -133,13 +130,10 @@ void Vox::run( void ) {
 	{
 		glfwPollEvents();
 		timer.start();
-		timer.start();
 		// do game operations
 		this->moveCamera(timer.elapsed(Unit::Seconds));
 		// add chunks of maps if necessary
 		if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
-			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 			if (newDataCreated)
@@ -168,9 +162,6 @@ void Vox::run( void ) {
 			
 			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
-			timer.stop();
-			// int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
-			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
 			timer.stop();
 			// int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
 			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
