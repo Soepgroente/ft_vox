@@ -2,7 +2,8 @@
 
 namespace ve {
 
-VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device) : device(device)
+VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device, TextureType type) : 
+	device(device), type(type)
 {
 	textureImage = VK_NULL_HANDLE;
 	textureImageView = VK_NULL_HANDLE;
@@ -21,14 +22,19 @@ VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device) 
 	info.extent.height = static_cast<uint32_t>(imageInfo.height);
 	info.extent.depth = 1;
 	info.mipLevels = 1;
-	info.arrayLayers = 1;
 	info.format = VK_FORMAT_R8G8B8A8_SRGB;
 	info.tiling = VK_IMAGE_TILING_OPTIMAL;
 	info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	info.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	info.samples = VK_SAMPLE_COUNT_1_BIT;
-	info.flags = 0;
+	if (type == TEXTURE_PLAIN) {
+		info.arrayLayers = 1;
+		info.flags = 0;
+	} else if (type == TEXTURE_CUBEMAP) {
+		info.arrayLayers = 6;
+		info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+	}
 
 	createTextureImage();
 	createTextureImageView();
@@ -59,6 +65,7 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) :
 	imageInfo(other.imageInfo),
 	imageSize(other.imageSize),
 	textureImage(other.textureImage),
+	textureImageMemory(other.textureImageMemory),
 	textureImageView(other.textureImageView),
 	textureSampler(other.textureSampler),
 	info(other.info),
@@ -69,6 +76,7 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) :
 	other.textureImage = VK_NULL_HANDLE;
 	other.textureImageView = VK_NULL_HANDLE;
 	other.textureSampler = VK_NULL_HANDLE;
+	other.textureImageMemory = VK_NULL_HANDLE;
 }
 
 VulkanTexture&	VulkanTexture::operator=(VulkanTexture&& other)
@@ -87,6 +95,7 @@ VulkanTexture&	VulkanTexture::operator=(VulkanTexture&& other)
 		other.textureImage = VK_NULL_HANDLE;
 		other.textureImageView = VK_NULL_HANDLE;
 		other.textureSampler = VK_NULL_HANDLE;
+		other.textureImageMemory = VK_NULL_HANDLE;
 	}
 	return *this;
 }
@@ -152,7 +161,8 @@ void	VulkanTexture::createTextureImageView()
 		textureImage,
 		info.format,
 		VK_IMAGE_ASPECT_COLOR_BIT,
-		1
+		info.arrayLayers,
+		type
 	);
 }
 

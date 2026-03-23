@@ -5,12 +5,13 @@
 
 namespace ve {
 
+
 class VulkanTexture
 {
 	public:
 
 	VulkanTexture() = delete;
-	VulkanTexture(const std::string& filePath, VulkanDevice& device);
+	VulkanTexture(const std::string& filePath, VulkanDevice& device, TextureType = TEXTURE_PLAIN);
 	~VulkanTexture();
 
 	VulkanTexture(const VulkanTexture& other) = delete;
@@ -33,13 +34,14 @@ class VulkanTexture
 	VkDeviceSize	imageSize;
 	VkImage			textureImage = VK_NULL_HANDLE;
 	VkDeviceMemory	textureImageMemory = VK_NULL_HANDLE;
-	
+
 	VkImageView		textureImageView = VK_NULL_HANDLE;
 	VkSampler		textureSampler = VK_NULL_HANDLE;
 
 	VkImageCreateInfo	info{};
 
 	VulkanDevice&	device;
+	TextureType		type;
 };
 
 } // namespace ve
