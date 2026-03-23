@@ -28,13 +28,15 @@ class VulkanTexture
 	VkImageView			getImageView() const noexcept { return textureImageView; }
 	VkSampler			getSampler() const noexcept { return textureSampler; }
 
+	static constexpr uint32_t sizeOfPixel = sizeof(int32_t);
+
 	private:
 
 	ImageInfo		imageInfo;
-	VkDeviceSize	imageSize;
+	VkDeviceSize	nPixels;
+
 	VkImage			textureImage = VK_NULL_HANDLE;
 	VkDeviceMemory	textureImageMemory = VK_NULL_HANDLE;
-
 	VkImageView		textureImageView = VK_NULL_HANDLE;
 	VkSampler		textureSampler = VK_NULL_HANDLE;
 

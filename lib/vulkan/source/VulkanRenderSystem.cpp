@@ -16,13 +16,30 @@ struct SimplePushConstantData
 	mat4		normalMatrix{1.0f};
 };
 
-VulkanRenderSystem::VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, char const* vertexShaderFile, char const* fragmentShaderFile) :
+VulkanRenderSystem::VulkanRenderSystem(
+		VulkanDevice& device,
+		VkRenderPass renderPass,
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
+		char const* vertexShaderFile,
+		char const* fragmentShaderFile,
+		ModelType modelType,
+		TextureType textureType
+	) :
 	vulkanDevice(device),
 	vertexShaderFile(vertexShaderFile),
 	fragmentShaderFile(fragmentShaderFile)
 {
-	createPipelineLayout(globalSetLayout);
-	createPipeline(renderPass);
+	createPipelineLayout(descriptorSetLayouts);
+	switch (textureType) {
+		case TEXTURE_PLAIN:
+			createPipeline(renderPass, modelType);
+			break;
+		case TEXTURE_CUBEMAP:
+			createPipelineCubemap(renderPass, modelType);
+			break;
+		// case default:
+		// 	break;
+	}
 }
 
 VulkanRenderSystem::~VulkanRenderSystem()
@@ -30,17 +47,14 @@ VulkanRenderSystem::~VulkanRenderSystem()
 	vkDestroyPipelineLayout(vulkanDevice.device(), pipelineLayout, nullptr);
 }
 
-void	VulkanRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+void	VulkanRenderSystem::createPipelineLayout(std::vector<VkDescriptorSetLayout> descriptorSetLayouts)
 {
-	VkPushConstantRange	pushConstantRange{};
-
+	VkPushConstantRange	pushConstantRange{};		// push constants may not be necessary for every pipeline
 	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushConstantRange.offset = 0;
 	pushConstantRange.size = sizeof(SimplePushConstantData);
 
-	std::vector<VkDescriptorSetLayout>	descriptorSetLayouts = {globalSetLayout};
 	VkPipelineLayoutCreateInfo	pipelineLayoutInfo{};
-
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
@@ -53,7 +67,7 @@ void	VulkanRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLay
 	}
 }
 
-void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
+void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass, ModelType modelType)
 {
 	assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
@@ -67,13 +81,41 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 		vulkanDevice,
 		this->vertexShaderFile,
 		this->fragmentShaderFile,
-		pipelineConfig
+		pipelineConfig,
+		modelType
+	);
+}
+
+void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass, ModelType modelType)
+{
+	assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+	PipelineConfigInfo	pipelineConfig{};
+	VulkanPipeline::defaultPipelineConfigInfo(pipelineConfig);
+	// cubemap config
+	pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+	pipelineConfig.depthStencilInfo.depthTestEnable  = VK_TRUE;
+	pipelineConfig.depthStencilInfo.depthCompareOp   = VK_COMPARE_OP_LESS_OR_EQUAL;
+	pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+
+	pipelineConfig.pipelineLayout = pipelineLayout;
+	pipelineConfig.renderPass = renderPass;
+
+	vulkanPipeline = std::make_unique<VulkanPipeline>(
+		vulkanDevice,
+		this->vertexShaderFile,
+		this->fragmentShaderFile,
+		pipelineConfig,
+		modelType
 	);
 }
 
 void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 {
-	vulkanPipeline->bind(frameInfo.commandBuffer);
+	if (frameInfo.gameObject.model == nullptr)
+	{
+		return;
+	}
 
 	vkCmdBindDescriptorSets(
 		frameInfo.commandBuffer,
@@ -82,12 +124,9 @@ void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 		0, 1, &frameInfo.globalDescriptorSet,
 		0, nullptr
 	);
-	if (frameInfo.gameObject.model == nullptr)
-	{
-		return;
-	}
+	vulkanPipeline->bind(frameInfo.commandBuffer);
 
-	SimplePushConstantData	push{};
+	SimplePushConstantData	push{};		// NB maybe not necessary
 	push.modelMatrix = frameInfo.gameObject.transform.matrix4(frameInfo.gameObject.model->getBoundingCenter());
 	push.normalMatrix = frameInfo.gameObject.transform.normalMatrix();
 

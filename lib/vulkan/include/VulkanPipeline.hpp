@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "VulkanDevice.hpp"
+#include "VulkanModel.hpp"
 
 namespace ve {
 
@@ -36,10 +37,11 @@ class VulkanPipeline
 	public:
 
 	VulkanPipeline(
-		VulkanDevice& device,
-		const std::string& vertPath,
-		const std::string& fragPath,
-		const PipelineConfigInfo& PipelineConfigInfo
+		VulkanDevice&	device,
+		const			std::string& vertPath,
+		const			std::string& fragPath,
+		const			PipelineConfigInfo& PipelineConfigInfo,
+		ModelType		modelType
 	);
 	~VulkanPipeline();
 
@@ -58,7 +60,8 @@ class VulkanPipeline
 	void	createGraphicsPipeline(
 		const std::string& vertPath,
 		const std::string& fragPath,
-		const PipelineConfigInfo& pipelineConfigInfo
+		const PipelineConfigInfo& pipelineConfigInfo,
+		ModelType modelType
 	);
 
 	void	createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);

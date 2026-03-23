@@ -33,12 +33,24 @@ VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
 	return voxelVertexes;
 }
 
+std::vector<vec3> getVertexRelative( vec3 const& relativeOrigin ) {
+	std::vector<vec3> voxelVertexes(VERTEX_PER_VOXEL);
+	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
+		voxelVertexes[i].x = VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
+		voxelVertexes[i].y = VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
+		voxelVertexes[i].z = VOXEL_VERTEXES[i].pos.z + VOXEL_SIZE * 0.5f + relativeOrigin.z;
+	}
+	return voxelVertexes;
+}
+
+
 /**
  * Get the vertex+texture+normal coordinates of a voxel. The texture coordinates are supposed to
  * apply an atlas so that each face of the voxel has a different texture
  * This atlas is used (file textures/texture_dirt_atlas.jpeg)
  *  _______________
- * |   | B |   |   |	
+ * |   | B |   |   |
  * |___|___|___|___|
  * | L | T | R | B |
  * |___|___|___|___|
@@ -205,7 +217,6 @@ void World::updateLastAccess( void ) noexcept {
 bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
-	Stopwatch timer;
 	bool reloadData = false;
 
 	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
@@ -218,8 +229,6 @@ bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
 	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
 
-	timer.stop();
-	std::cout << timer;
 	return reloadData;
 }
 

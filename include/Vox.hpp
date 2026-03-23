@@ -19,14 +19,15 @@ enum TextureTypes {
 	TEXT_DIRT_1,
 	TEXT_DIRT_2,
 	TEXT_STONE_1,
-	TEXT_STONE_2
+	TEXT_STONE_2,
+	TEXT_SKYBOX
 };
 
 class Vox
 {
 	public:
 		Vox( void );
-		~Vox( void ) noexcept;
+		~Vox( void ) noexcept {};
 		Vox( Vox const& ) = delete;
 		Vox( Vox&& ) = delete;
 		Vox& operator=( Vox const& ) = delete;
@@ -37,6 +38,7 @@ class Vox
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( ui32, ui32 );
+		std::unique_ptr<ve::VulkanModel> createSkyboxModel( void );
 
 		static std::vector<std::thread>	workerThreads;
 
@@ -44,7 +46,6 @@ class Vox
 		ve::VulkanWindow							vulkanWindow;
 		ve::VulkanDevice							vulkanDevice;
 		ve::VulkanRenderer							vulkanRenderer;
-		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool;
 
 		ve::Camera		camera;
 		WorldNavigator	navigator;

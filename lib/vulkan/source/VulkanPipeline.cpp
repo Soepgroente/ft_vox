@@ -1,22 +1,24 @@
 #include "VulkanPipeline.hpp"
 #include "VulkanModel.hpp"
 
+#include <cstddef>
+
+
 namespace ve {
 
 VulkanPipeline::VulkanPipeline(
 	VulkanDevice& device,
 	const std::string& vertPath,
 	const std::string& fragPath,
-	const PipelineConfigInfo& configInfo
+	const PipelineConfigInfo& configInfo,
+	ModelType modelType
 ) : vulkanDevice{device}
 {
-	createGraphicsPipeline(vertPath, fragPath, configInfo);
+	createGraphicsPipeline(vertPath, fragPath, configInfo, modelType);
 }
 
 VulkanPipeline::~VulkanPipeline()
 {
-	vkDestroyShaderModule(vulkanDevice.device(), vertexShaderModule, nullptr);
-	vkDestroyShaderModule(vulkanDevice.device(), fragmentShaderModule, nullptr);
 	vkDestroyPipeline(vulkanDevice.device(), graphicsPipeline, nullptr);
 }
 
@@ -46,20 +48,17 @@ std::vector<char>	VulkanPipeline::readFile(const std::string& filePath)
 void	VulkanPipeline::createGraphicsPipeline(
 	const std::string& vertPath,
 	const std::string& fragPath,
-	const PipelineConfigInfo& configInfo
+	const PipelineConfigInfo& configInfo,
+	ModelType modelType
 )
 {
 	assert(configInfo.pipelineLayout != VK_NULL_HANDLE && "Cannot create graphics pipeline: no pipeline layout provided in config info");
 	assert(configInfo.renderPass != VK_NULL_HANDLE && "Cannot create graphics pipeline: no render pass provided in config info");
 
-	std::vector<char>	vertexShaderCode = readFile(vertPath);
-	std::vector<char>	fragmentShaderCode = readFile(fragPath);
-
-	createShaderModule(vertexShaderCode, &vertexShaderModule);
-	createShaderModule(fragmentShaderCode, &fragmentShaderModule);
+	createShaderModule(readFile(vertPath), &vertexShaderModule);
+	createShaderModule(readFile(fragPath), &fragmentShaderModule);
 
 	VkPipelineShaderStageCreateInfo	shaderStages[2]{};
-
 	shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 	shaderStages[0].module = vertexShaderModule;
@@ -76,10 +75,31 @@ void	VulkanPipeline::createGraphicsPipeline(
 	shaderStages[1].pNext = nullptr;
 	shaderStages[1].pSpecializationInfo = nullptr;
 
-	std::vector<VkVertexInputBindingDescription>	bindingDescriptions = VulkanModel::Vertex::getBindingDescriptions();
-	std::vector<VkVertexInputAttributeDescription>	attributeDescriptions = VulkanModel::Vertex::getAttributeDescriptions();
-	VkPipelineVertexInputStateCreateInfo	vertexInputInfo{};
+	std::vector<VkVertexInputBindingDescription>	bindingDescriptions(1);
+	bindingDescriptions[0].binding = 0;
+	bindingDescriptions[0].stride = 0;
+	if (modelType & ModelType::VERTEX)
+		bindingDescriptions[0].stride += sizeof(vec3);
+	if (modelType & ModelType::NORMAL)
+		bindingDescriptions[0].stride += sizeof(vec3);
+	if (modelType & ModelType::TEXTURE)
+		bindingDescriptions[0].stride += sizeof(vec2);
+	bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
+	std::vector<VkVertexInputAttributeDescription>	attributeDescriptions;
+	if (modelType & ModelType::VERTEX)
+		attributeDescriptions.push_back(
+			VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(ve::VulkanModel::Vertex, pos)});
+	if (modelType & ModelType::NORMAL)
+		attributeDescriptions.push_back(
+			VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(ve::VulkanModel::Vertex, normal)}
+		);
+	if (modelType & ModelType::TEXTURE)
+		attributeDescriptions.push_back(
+			VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ve::VulkanModel::Vertex, textureUv)}
+		);
+
+	VkPipelineVertexInputStateCreateInfo	vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
@@ -87,7 +107,6 @@ void	VulkanPipeline::createGraphicsPipeline(
 	vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
 
 	VkGraphicsPipelineCreateInfo	pipelineInfo{};
-
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo.stageCount = 2;
 	pipelineInfo.pStages = shaderStages;
@@ -117,6 +136,8 @@ void	VulkanPipeline::createGraphicsPipeline(
 	{
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
+	vkDestroyShaderModule(vulkanDevice.device(), vertexShaderModule, nullptr);
+	vkDestroyShaderModule(vulkanDevice.device(), fragmentShaderModule, nullptr);
 }
 
 void	VulkanPipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
@@ -205,5 +226,6 @@ void	VulkanPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 	configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
 	configInfo.dynamicStateInfo.flags = 0;
 }
+
 
 }

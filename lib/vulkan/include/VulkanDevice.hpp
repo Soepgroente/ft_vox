@@ -80,7 +80,8 @@ class VulkanDevice
 		VkImage image,
 		uint32_t width,
 		uint32_t height,
-		uint32_t layerCount
+		uint32_t layerCount,
+		TextureType textureType
 	);
 
 	void	createImageWithInfo(
@@ -103,7 +104,7 @@ class VulkanDevice
 		VkFormat format,
 		VkImageAspectFlags aspectFlags,
 		uint32_t layerCount,
-		ve::TextureType textureType = TEXTURE_PLAIN
+		TextureType textureType = TEXTURE_PLAIN
 	);
 
 	VkPhysicalDeviceProperties	properties;

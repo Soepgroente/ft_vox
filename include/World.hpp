@@ -37,36 +37,36 @@ inline constexpr uint32_t	MAX_WORLDS = 128U;
 
 // Hard-coded VBO (vertex+normal+textureUV data) of a voxel
 inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
-    // face FRONT (z = +0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
-    //face BACK (z = -0.5)
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
-    // face LEFT (x = -0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
-    // face RIGHT (x = +0.5)
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
-    // face TOP (y = +0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
-    // face BOTTOM (y = -0.5)
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
-    ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
-    ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }}
+	// face FRONT (z = +0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
+	//face BACK (z = -0.5)
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
+	// face LEFT (x = -0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
+	// face RIGHT (x = +0.5)
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
+	// face TOP (y = +0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }},
+	// face BOTTOM (y = -0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3(0.0f), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3(0.0f), vec2{ 0.0f, 0.0f }}
 };
 
 // hard-coded face indexes of a voxel
@@ -88,9 +88,10 @@ inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 using VertexVector = std::vector<ve::VulkanModel::Vertex>;
 using IndexVector = std::vector<uint32_t>;
 
-VertexVector	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
-VertexVector	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
-IndexVector		getIndexRelative( uint32_t = 0U );
+VertexVector		getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
+VertexVector		getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
+std::vector<vec3>	getVertexRelative( vec3 const& = vec3(0.0f) );
+IndexVector			getIndexRelative( uint32_t = 0U );
 
 
 class World {

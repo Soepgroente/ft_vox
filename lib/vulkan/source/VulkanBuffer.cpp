@@ -84,14 +84,14 @@ void	VulkanBuffer::writeToBuffer(const void *data, VkDeviceSize size, VkDeviceSi
 {
 	assert(mapped && "Cannot copy to unmapped buffer");
 
+	unsigned char* memOffset = static_cast<unsigned char*>(mapped);
+	memOffset += offset;
 	if (size == VK_WHOLE_SIZE)
 	{
-		std::memcpy(mapped, data, bufferSize);
+		std::memcpy(mapped, data, bufferSize - offset);
 	}
 	else
 	{
-		char* memOffset = static_cast<char*>(mapped);
-		memOffset += offset;
 		std::memcpy(memOffset, data, size);
 	}
 }

@@ -29,6 +29,8 @@ struct Config
 		worldSize / 2.0f + 0.5f
 	};
 
+	static constexpr float	noiseScalar = 0.01f;
+
 	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;
 
@@ -37,6 +39,7 @@ struct Config
 
 	static constexpr char const	texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char const	texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
+	static constexpr char const	textureSkyboxPath[] = "textures/skybox.png";
 };
 
 } // namespace vox
