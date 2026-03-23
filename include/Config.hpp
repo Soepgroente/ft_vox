@@ -18,18 +18,18 @@ struct Config
 
 	static constexpr vec3	cameraLimitsMov{
 		-100000.0f,
-		1.5f,
+		-256.0f,
 		-100000.0f
 	};
 
 	static constexpr uint32_t	worldSize = 32U;
 	static constexpr vec3		startingPos{		// NB this is ugly, y should depend on ground lvl
 		worldSize / 2.0f + 0.5f,
-		1.5f,
+		128.0f,
 		worldSize / 2.0f + 0.5f
 	};
 
-	static constexpr float	movementSpeed = 10.0f;
+	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;
 
 	static constexpr char const	vertShaderPath[] = "build/basic.vert.spv";
@@ -37,6 +37,7 @@ struct Config
 
 	static constexpr char const	texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char const	texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
+	static constexpr float	noiseScalar = 0.01f;
 };
 
 } // namespace vox

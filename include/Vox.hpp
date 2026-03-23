@@ -5,11 +5,15 @@
 #include "Config.hpp"
 #include "World.hpp"
 #include "InputHandler.hpp"
+#include "ThreadManager.hpp"
 
 #include <cstdint>
+#include <thread>
 
 
 namespace vox {
+
+using ui32 = uint32_t;
 
 class Vox
 {
@@ -27,6 +31,8 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( uint32_t, uint32_t );
 
+		static std::vector<std::thread>	workerThreads;
+
 	private:
 		ve::VulkanWindow							vulkanWindow;
 		ve::VulkanDevice							vulkanDevice;
@@ -36,6 +42,7 @@ class Vox
 		ve::Camera		camera;
 		WorldNavigator	navigator;
 		InputHandler	inputHandler;
+		ThreadManager	threadManager;
 };
 
 }	// namespace vox

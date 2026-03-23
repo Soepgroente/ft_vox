@@ -3,24 +3,32 @@
 #include <ostream>
 #include <cstdint>
 
+using ui32 = uint32_t;
+
 class vec3ui
 {
 	public:
 
 	union
 	{
-		unsigned int	data[3];
+		ui32	data[3];
 		struct
 		{
-			unsigned int	x;
-			unsigned int	y;
-			unsigned int	z;
+			ui32	x;
+			ui32	y;
+			ui32	z;
+		};
+		struct
+		{
+			ui32	width;
+			ui32	height;
+			ui32	depth;
 		};
 	};
 
 	constexpr vec3ui() : x(0), y(0), z(0) {}
-	constexpr explicit vec3ui(unsigned int val) : x(val), y(val), z(val) {}
-	constexpr vec3ui(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
+	constexpr explicit vec3ui(ui32 val) : x(val), y(val), z(val) {}
+	constexpr vec3ui(ui32 x, ui32 y, ui32 z) : x(x), y(y), z(z) {}
 	constexpr vec3ui(const vec3ui&) noexcept = default;
 	constexpr vec3ui(vec3ui&&) noexcept = default;
 	vec3ui&	operator=(const vec3ui&) noexcept = default;
@@ -39,8 +47,8 @@ class vec3ui
 	bool	operator>(const vec3ui& other) const noexcept { return !(*this <= other); }
 	bool	operator>=(const vec3ui& other) const noexcept { return !(*this < other); }
 
-	unsigned int&		operator[](unsigned int index) noexcept { return data[index]; }
-	const unsigned int&	operator[](unsigned int index) const noexcept { return data[index]; }
+	ui32&		operator[](ui32 index) noexcept { return data[index]; }
+	const ui32&	operator[](ui32 index) const noexcept { return data[index]; }
 	
 	vec3ui	clone() const noexcept { return vec3ui(x, y, z); }
 	

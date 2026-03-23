@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ThreadManager.hpp"
 #include "Vulkan.hpp"
 #include "Vectors.hpp"
 
@@ -116,7 +117,7 @@ class World {
 		vec3i										worldPos;
 		vec3ui										worldSize;
 		VertexVector								vertexes;
-		std::chrono::_V2::system_clock::time_point	lastAccess;
+		std::chrono::steady_clock::time_point		lastAccess;
 
 };
 
@@ -124,7 +125,7 @@ class World {
 class WorldNavigator {
 	public:
 		explicit WorldNavigator( uint32_t worldSize ) : 
-			worldSize(worldSize),
+			worldSize(worldSize, 256, worldSize),
 			totVoxels(0U),
 			currentWorldPos(0U) {};
 		~WorldNavigator( void ) = default;
@@ -134,13 +135,14 @@ class WorldNavigator {
 		WorldNavigator& operator=( WorldNavigator&& ) = delete;
 
 		bool	spawnCloseByWorlds( vec3 const& );
+		bool 	spawnCloseByWorlds(vec3 const& start, ThreadManager& threads);
 		size_t	getMemoryUsed( void ) const noexcept;
 		bool	borderCrossed( vec3 const& ) const noexcept;
 
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
 
 	private:
-		bool	addeNewWorld( vec3i const& );
+		bool	addNewWorld( vec3i const& );
 		vec3i	findFurthestWorld( void ) const noexcept;
 		vec3i	worldPosFromPlayerPos( vec3 const& ) const noexcept;
 
@@ -151,5 +153,8 @@ class WorldNavigator {
 		std::unordered_map<vec3i,World>	worlds;
 		vec3i							currentWorldPos;	// last position known of the player
 };
+
+float	perlin(float x, float y, float z);
+float	randomNoise(float, float, ui32& seed);
 
 }	// namespace vox

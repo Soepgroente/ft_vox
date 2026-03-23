@@ -1,10 +1,13 @@
 #include "Vox.hpp"
+#include "Stopwatch.hpp"
 #include "Utils.hpp"
 
 #include <chrono>
 
 
 namespace vox {
+
+std::vector<std::thread> Vox::workerThreads{};
 
 struct GlobalUBO
 {
@@ -29,6 +32,7 @@ Vox::Vox( void ) :
 		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
 	)
 {
+	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -104,10 +108,8 @@ void Vox::run( void ) {
 		Config::fragShaderPath
 	};
 
-	size_t	frameCount = 0;
-	float	elapsedTime = 0.0f;
-	std::chrono::high_resolution_clock::time_point	currentTime, newTime;
-	currentTime = std::chrono::high_resolution_clock::now();
+	// size_t	frameCount = 0;
+	Stopwatch timer;
 
 	ve::FrameInfo info
 	{
@@ -118,21 +120,21 @@ void Vox::run( void ) {
 		ve::VulkanObject::createVulkanObject(),
 	};
 
-	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
-		newTime = std::chrono::high_resolution_clock::now();
-		elapsedTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
-		currentTime = std::chrono::high_resolution_clock::now();
+		timer.start();
 		// do game operations
-		this->moveCamera(elapsedTime);
+		this->moveCamera(timer.elapsed(Seconds));
 		// add chunks of maps if necessary
 		if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
-			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
+			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 			if (newDataCreated)
 				info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 		}
@@ -152,20 +154,18 @@ void Vox::run( void ) {
 			vulkanRenderer.beginSwapChainRenderPass(info.commandBuffer);
 			renderSystem.renderObject(info);
 
-			newTime = std::chrono::high_resolution_clock::now();
-			int32_t	fps = static_cast<int> (1.0f / elapsedTime);
-			float	frameTime = std::chrono::duration<float, std::chrono::milliseconds::period>(newTime - currentTime).count();
-			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << frameTime << "ms "<< std::endl;
-
-			vec3 playerPos = info.camera.getCameraPos();
-			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
-
+			// vec3 playerPos = info.camera.getCameraPos();
+			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			// std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
+			
 			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
+			timer.stop();
+			// int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
+			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
 		}
 		this->inputHandler.reset();
-		frameCount++;
+		// frameCount++;
 	}
 
 	vkDeviceWaitIdle(vulkanDevice.device());
