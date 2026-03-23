@@ -5,24 +5,29 @@ namespace vox {
 
 VoxelMap::VoxelMap()
 {
-	size = vec3ui(Config::worldSize, Config::worldSize, Config::worldSize);
-	map.reserve(size.width * size.height * size.depth);
+	ui32 visibleChunks = Config::minimumViewingDistance * 4 / (Config::worldSize + 1);
+
+	chunkDimensions = vec3ui{Config::worldSize, Config::worldHeight, Config::worldSize};
+	chunkSize = Config::worldSize * Config::worldHeight * Config::worldSize * sizeof(VoxelType);
+	map.reserve(chunkSize * visibleChunks);
+	chunkIds.reserve(visibleChunks);
 }
 
-VoxelMap::VoxelMap(const vec3ui& size)
-{
-	this->size = size;
-	map.reserve(size.width * size.height * size.depth);
-}
+/*	Explicit for readability for now. 4th position in vec4 contains index for which chunk	*/
 
-VoxelMap::VoxelType&	VoxelMap::operator[](const vec3ui& pos)
+VoxelMap::VoxelType&	VoxelMap::operator[](const vec4ui& pos)
 {
-	assert(	pos.width < size.width &&
-			pos.height < size.height &&
-			pos.depth < size.depth &&
+	assert(	pos.width < chunkDimensions.width &&
+			pos.height < chunkDimensions.height &&
+			pos.depth < chunkDimensions.depth &&
 			"Voxel position out of world");
 
-	return map[pos.width + pos.height * size.width + pos.depth * size.width * size.height];
+	ui32 chunkIndex = pos.index * chunkSize;
+	ui32 voxelX = pos.width;
+	ui32 voxelY = pos.height * chunkDimensions.width;
+	ui32 voxelZ = pos.depth * chunkDimensions.width * chunkDimensions.height;
+
+	return map[chunkIndex * chunkSize + voxelY + voxelZ + voxelX];
 }
 
 }	// namespace vox
