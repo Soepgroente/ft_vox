@@ -3,7 +3,7 @@
 
 namespace vox {
 
-/*
+/**
  * Zero all data
  */
 void	MouseInput::reset() noexcept

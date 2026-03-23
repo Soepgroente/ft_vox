@@ -4,7 +4,7 @@
 namespace vox {
 
 
-/*
+/**
  * Set up callbacks for input, currently used: 1. callback for key T (toggle fps mode)
  * and ESC (window closing), 2. mouse capture for camera rotation (only when fps mode is
  * active), 3. resizing the window
@@ -77,7 +77,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 	});
 }
 
-/*
+/**
  * Zero the input listeners
  */
 void InputHandler::reset() noexcept
@@ -86,7 +86,7 @@ void InputHandler::reset() noexcept
 	mouse.reset();
 }
 
-/*
+/**
  * Toggle fps mode, by enabling/disabling the cursor, it the mode is active the camera
  * rotates according to the cursor position
  *
@@ -98,7 +98,7 @@ void InputHandler::toggleFpsMode( GLFWwindow* window ) noexcept
 	glfwSetInputMode(window, GLFW_CURSOR, this->fpsMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-/*
+/**
  * Close the GLFW window
  *
  * @param window GLFW window to be closed

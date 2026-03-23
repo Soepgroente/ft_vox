@@ -10,7 +10,7 @@
 
 namespace vox {
 
-/*
+/**
  * Get the vertex+texture+normal coordinates of a voxel. The texture coordinates are supposed to
  * apply a whole texture on every face of the voxel
  *
@@ -33,7 +33,7 @@ VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
 	return voxelVertexes;
 }
 
-/*
+/**
  * Get the vertex+texture+normal coordinates of a voxel. The texture coordinates are supposed to
  * apply an atlas so that each face of the voxel has a different texture
  * This atlas is used (file textures/texture_dirt_atlas.jpeg)
@@ -90,7 +90,7 @@ VertexVector getVertexRelativeAtlasTexture( vec3 const& relativeOrigin ) {
 	return voxelVertexes;
 }
 
-/*
+/**
  * Get the the indexes of every face of the voxel. Voxel has 6 faces, every face is made 
  * by 2 triangles, so a total of 36 indexes, drawing the triangles CW order
  *
@@ -107,7 +107,7 @@ IndexVector getIndexRelative( uint32_t start ) {
 }
 
 
-/*
+/**
  * Build a chunk of voxels (i.e. a World) in a 3D space
  * 
  * @todo currently such voxel generation is static, ideally perlin noise shall be used
@@ -160,7 +160,7 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 	this->updateLastAccess();
 }
 
-/*
+/**
  * Get the weight of the chunk/world: it combines to parameters: 1. the distance from the world
  * from the origin, the bigger the distance, the smaller the weight; 2. the delta time between 
  * now() and the last time the chunk was visited, the bigger the delta the smaller the weight
@@ -180,15 +180,15 @@ float World::getWeight( vec3i const& origin ) const noexcept {
 	return World::ALPHA * distance + World::BETA * deltaTime;
 }
 
-/*
+/**
  * When the chunk/world is visited, updates the the last access time
  */
 void World::updateLastAccess( void ) noexcept {
-	this->lastAccess = std::chrono::high_resolution_clock::now();
+	this->lastAccess = Clock::now();
 }
 
 
-/*
+/**
  * Spawns new chunks around the player position, in each of these 9 quadrants:
  *  __ __ __
  * |NW|N |NE|
@@ -203,11 +203,22 @@ void World::updateLastAccess( void ) noexcept {
  * @return true/false if some new chunks are actually generated
  */
 bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
+bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
 	Stopwatch timer;
+	Stopwatch timer;
 	bool reloadData = false;
 
+	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z - 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z});
+	reloadData |= this->addNewWorld(playerPos);
+	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
+	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
 	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
 	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z - 1});
 	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z - 1});
@@ -222,11 +233,14 @@ bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	std::cout << timer;
 	return reloadData;
 }
+}
 
+bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& threads)
 bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& threads)
 {
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
+	const std::array<vec3i, 9> positions = {{
 	const std::array<vec3i, 9> positions = {{
 		{playerPos.x - 1, playerPos.y, playerPos.z - 1},
 		{playerPos.x,     playerPos.y, playerPos.z - 1},
@@ -241,10 +255,20 @@ bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& thread
 	Stopwatch timer;
 	std::array<std::future<bool>, 9> futures;
 	bool reloadData = false;
+	}};
+	Stopwatch timer;
+	std::array<std::future<bool>, 9> futures;
+	bool reloadData = false;
 
+	for (size_t i = 0; i < positions.size(); i++)
 	for (size_t i = 0; i < positions.size(); i++)
 	{
 		futures[i] = threads.enqueue([this, pos = positions[i]]() { return this->addNewWorld(pos); });
+		futures[i] = threads.enqueue([this, pos = positions[i]]() { return this->addNewWorld(pos); });
+	}
+    for (std::future<bool>& result : futures)
+    {
+		reloadData |= result.get();
 	}
     for (std::future<bool>& result : futures)
     {
@@ -253,9 +277,10 @@ bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& thread
 	timer.stop();
 	std::cout << timer;
 	return reloadData;
+	return reloadData;
 }
 
-/*
+/**
  * @return the size of memory, in bytes, used by the chunks
  */
 size_t WorldNavigator::getMemoryUsed( void ) const noexcept {
@@ -265,7 +290,7 @@ size_t WorldNavigator::getMemoryUsed( void ) const noexcept {
 	return size;
 }
 
-/*
+/**
  * Check if a new world is accessed by comparing the position stored in the
  * navigator with the current player position. If the world position actually changed
  * WorldNavigator::spawnCloseByWorlds() shall be called to generate other chunks around
@@ -280,7 +305,7 @@ bool WorldNavigator::borderCrossed( vec3 const& currentPos ) const noexcept {
 	return playerPos != this->currentWorldPos;
 }
 
-/*
+/**
  * Creates a new ve::VulkanModel, that loads vertex data into the GPU. It shall be called everytime
  * a new world/chunks is created (i.e. whenever WorldNavigator::spawnCloseByWorlds() returns true)
  *
@@ -296,7 +321,7 @@ std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevic
 	return std::make_unique<ve::VulkanModel>(device, vertexes, VOXEL_VERTEX_INDEXES);
 }
 
-/*
+/**
  * By checking if the key worldPos exists or not inside the map of worlds, creates a new
  * chunk/world if it doesn't exist, or just updates the access time if it does. Memory is fixed,
  * so if the limit is reached the 'oldest' (see World::getWeight()) world is deleted.
@@ -305,6 +330,7 @@ std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevic
  *
  * @return true/false if new data was actually generated
  */
+bool WorldNavigator::addNewWorld( vec3i const& worldPos ) {
 bool WorldNavigator::addNewWorld( vec3i const& worldPos ) {
 	if (this->worlds.find(worldPos) != this->worlds.end()) {
 		this->worlds[worldPos].updateLastAccess();
@@ -322,7 +348,7 @@ bool WorldNavigator::addNewWorld( vec3i const& worldPos ) {
 	}
 }
 
-/*
+/**
  * Looks up on every existing world and returns the one with the hightest weight, i.e. the one
  * that will be discarder
  *
@@ -341,7 +367,7 @@ vec3i WorldNavigator::findFurthestWorld( void ) const noexcept {
 	return furthestWorld;
 }
 
-/*
+/**
  * Convert the player position in a 3D continuous space, to the discrete position
  * of the world it belongs
  *
