@@ -1,6 +1,7 @@
 #include "World.hpp"
 #include "Config.hpp"
 #include "Vox.hpp"
+#include "VoxelMap.hpp"
 
 #include <chrono>
 #include <mutex>
@@ -117,46 +118,34 @@ IndexVector getIndexRelative( uint32_t start ) {
  * @param worldSize 3D size of the chunk
  */
 World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldPos), worldSize(worldSize) {
-	vec3 const& relativePos = vec3{
-		static_cast<float>(this->worldPos.x) * static_cast<float>(this->worldSize.x),
-		static_cast<float>(this->worldPos.y) * static_cast<float>(this->worldSize.y),
-		static_cast<float>(this->worldPos.z) * static_cast<float>(this->worldSize.z)
-	};
+	
+	VoxelMap&	map = *World::voxelMap;
+	const VoxelMap::VoxelType* chunk = map.getChunk(vec2i{static_cast<int>(worldPos.x), static_cast<int>(worldPos.z)});
 
-	static ui32 seed = 0;
-	// std::cout << "World size: " << worldSize << std::endl;
-	// std::cout << "World position: " << worldPos << std::endl;
-	// std::cout << "Relative position: " << relativePos << std::endl;
-	(void)relativePos;
+	ui32 index = 0;
+
 	for (ui32 z = 0; z < worldSize.z; z++)
 	{
 		for (ui32 x = 0; x < worldSize.x; x++)
 		{
-			float noiseValue = perlin(
-				(relativePos.x + static_cast<float>(x)) * Config::noiseScalar,
-				(relativePos.z + static_cast<float>(z)) * Config::noiseScalar,
-				static_cast<float>(seed));
-			// float noiseValue = randomNoise(x, z, seed);
-			// if (x == 5)
-			// {
-			// 	std::cout << "Noise value: " << noiseValue << std::endl;
-			// 	std::cout << "x: " << relativePos.x + static_cast<float>(x) << std::endl;
-			// 	std::cout << "z: " << relativePos.z + static_cast<float>(z) << std::endl;
-			// }
-			float heightValue = (noiseValue + 1.0f) * 0.5f * static_cast<float>(worldSize.y);
-			// for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
-			// {
-				vec3 centerVoxel{
-					static_cast<float>(x + relativePos.x),
-					static_cast<float>(heightValue - 0.5f),
-					static_cast<float>(z + relativePos.z)
+			for (ui32 y = 0; y < worldSize.y; y++)
+			{
+				if (chunk[index] == VoxelMap::VoxelType::Air)
+				{
+					index++;
+					continue;
+				}
+				vec3 relativePos{
+					static_cast<float>(x),
+					static_cast<float>(y),
+					static_cast<float>(z)
 				};
-				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
+				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
 				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
-			// }
+				index++;
+			}
 		}
 	}
-	this->updateLastAccess();
 }
 
 /**

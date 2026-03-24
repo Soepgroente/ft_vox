@@ -4,6 +4,7 @@
 #include "Vulkan.hpp"
 #include "Vectors.hpp"
 #include "Stopwatch.hpp"
+#include "VoxelMap.hpp"
 
 #include <cstdint>
 #include <unordered_map>
@@ -113,6 +114,7 @@ class World {
 
 		static constexpr float ALPHA = 0.8f;	// weight for distance
 		static constexpr float BETA = 0.2f;		// weight for the time
+		static inline VoxelMap*	voxelMap;
 
 	private:
 		vec3i			worldPos;
