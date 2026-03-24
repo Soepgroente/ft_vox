@@ -5,7 +5,7 @@ namespace vox {
 
 VoxelMap::VoxelMap()
 {
-	ui32 visibleChunks = Config::minimumViewingDistance * 4 / (Config::worldSize + 1);
+	ui32 visibleChunks = Config::minimumViewingDistance * 4 / Config::worldSize;
 
 	chunkDimensions = vec3ui{Config::worldSize, Config::worldHeight, Config::worldSize};
 	chunkSize = Config::worldSize * Config::worldHeight * Config::worldSize * sizeof(VoxelType);
