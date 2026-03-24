@@ -134,12 +134,12 @@ void Vox::run( void ) {
 		// do game operations
 		this->moveCamera(timer.elapsed(Unit::Seconds));
 		// add chunks of maps if necessary
-		if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
-			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-			if (newDataCreated)
-				info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
-		}
+		// if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
+		// 	bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
+		// 	// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+		// 	if (newDataCreated)
+		// 		info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+		// }
 
 		info.commandBuffer = vulkanRenderer.beginFrame();
 		if (info.commandBuffer != nullptr)
