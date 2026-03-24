@@ -48,6 +48,7 @@ Vox::Vox( void ) :
 		ve::CameraSettings::projectionFar
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
+	World::voxelMap = &this->voxelMap;
 }
 
 /**

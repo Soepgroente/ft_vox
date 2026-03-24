@@ -43,6 +43,7 @@ class VoxelMap
 	private:
 
 		VoxelType*	map;
+		ui32	worldSeed;
 		ui32	chunkSize;
 		vec3ui	chunkDimensions;
 		ui32 	chunkRowSize;
@@ -50,7 +51,7 @@ class VoxelMap
 		vec2i	minPositions;
 		vec2i	maxPositions;
 
-		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
+		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition = vec2i{0, 0});
 		void	north();
 		void	south();
 		void	west();

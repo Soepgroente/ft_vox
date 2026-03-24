@@ -31,19 +31,21 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( uint32_t, uint32_t );
 
+		/*	Temporarily global for testing	*/
 		static std::vector<std::thread>	workerThreads;
-
-	private:
+		VoxelMap&	getMap() { return voxelMap; };
+		
+		private:
 		ve::VulkanWindow							vulkanWindow;
 		ve::VulkanDevice							vulkanDevice;
 		ve::VulkanRenderer							vulkanRenderer;
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool;
-
+		
+		VoxelMap		voxelMap;
 		ve::Camera		camera;
 		WorldNavigator	navigator;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
-		VoxelMap		voxelMap;
 };
 
 }	// namespace vox
