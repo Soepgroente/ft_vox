@@ -144,8 +144,8 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 			// 	std::cout << "z: " << relativePos.z + static_cast<float>(z) << std::endl;
 			// }
 			float heightValue = (noiseValue + 1.0f) * 0.5f * static_cast<float>(worldSize.y);
-			for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
-			{
+			// for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
+			// {
 				vec3 centerVoxel{
 					static_cast<float>(x + relativePos.x),
 					static_cast<float>(heightValue - 0.5f),
@@ -153,7 +153,7 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 				};
 				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(centerVoxel);
 				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
-			}
+			// }
 		}
 	}
 	this->updateLastAccess();
@@ -228,6 +228,10 @@ bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& thread
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
 	const std::array<vec3i, 9> positions = {{
+		{playerPos.x - 1, playerPos.y, playerPos.z - 1},
+		{playerPos.x,     playerPos.y, playerPos.z - 1},
+		{playerPos.x + 1, playerPos.y, playerPos.z - 1},
+		{playerPos.x - 1, playerPos.y, playerPos.z},
 		{playerPos.x,     playerPos.y, playerPos.z},
 		{playerPos.x + 1, playerPos.y, playerPos.z},
 		{playerPos.x - 1, playerPos.y, playerPos.z + 1},
@@ -240,7 +244,6 @@ bool WorldNavigator::spawnCloseByWorlds(vec3 const& start, ThreadManager& thread
 
 	for (size_t i = 0; i < positions.size(); i++)
 	{
-		futures[i] = threads.enqueue([this, pos = positions[i]]() { return this->addNewWorld(pos); });
 		futures[i] = threads.enqueue([this, pos = positions[i]]() { return this->addNewWorld(pos); });
 	}
 	for (std::future<bool>& result : futures)
