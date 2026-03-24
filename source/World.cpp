@@ -120,29 +120,34 @@ IndexVector getIndexRelative( uint32_t start ) {
 World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldPos), worldSize(worldSize) {
 	
 	VoxelMap&	map = *World::voxelMap;
-	const VoxelMap::VoxelType* chunk = map.getChunk(vec2i{static_cast<int>(worldPos.x), static_cast<int>(worldPos.z)});
-
-	ui32 index = 0;
-
-	for (ui32 z = 0; z < worldSize.z; z++)
+	for (vec2i pos = vec2i{worldPos.x, worldPos.z}; pos.y < worldPos.z + static_cast<int>(worldSize.z); pos.y++)
 	{
-		for (ui32 x = 0; x < worldSize.x; x++)
+		for (pos.x = worldPos.x; pos.x < worldPos.x + static_cast<int>(worldSize.x); pos.x++)
 		{
-			for (ui32 y = 0; y < worldSize.y; y++)
+			const VoxelMap::VoxelType* chunk = map.getChunk(vec2i{static_cast<int>(worldPos.x), static_cast<int>(worldPos.z)});
+			ui32 index = 0;
+	
+			for (ui32 z = 0; z < worldSize.z; z++)
 			{
-				if (chunk[index] == VoxelMap::VoxelType::Air)
+				for (ui32 x = 0; x < worldSize.x; x++)
 				{
-					index++;
-					continue;
+					for (ui32 y = 0; y < worldSize.y; y++)
+					{
+						if (chunk[index] == VoxelMap::VoxelType::Air)
+						{
+							index++;
+							continue;
+						}
+						vec3 relativePos{
+							static_cast<float>(x),
+							static_cast<float>(y),
+							static_cast<float>(z)
+						};
+						VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
+						this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
+						index++;
+					}
 				}
-				vec3 relativePos{
-					static_cast<float>(x),
-					static_cast<float>(y),
-					static_cast<float>(z)
-				};
-				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
-				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
-				index++;
 			}
 		}
 	}
