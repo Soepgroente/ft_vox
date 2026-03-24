@@ -6,10 +6,10 @@
 #include "World.hpp"
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"
+#include "VoxelMap.hpp"
 
 #include <cstdint>
 #include <thread>
-
 
 namespace vox {
 
@@ -43,6 +43,7 @@ class Vox
 		WorldNavigator	navigator;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
+		VoxelMap		voxelMap;
 };
 
 }	// namespace vox
