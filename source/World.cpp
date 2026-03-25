@@ -140,6 +140,11 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 					index++;
 					continue;
 				}
+				if (y < sizeY - 1 && chunk[index + 1] != VoxelMap::VoxelType::Air)
+				{
+					index++;
+					continue;
+				}
 				vec3 relativePos{
 					static_cast<float>(x + worldPos.x * Config::worldSize),
 					static_cast<float>(y + worldPos.y * Config::worldHeight),

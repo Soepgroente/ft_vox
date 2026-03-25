@@ -41,7 +41,7 @@ class VoxelMap
 		VoxelMap& operator=(VoxelMap&&) = delete;
 
 		const VoxelType*	getChunk(const vec2i& position)	const;
-		ui32	positiveModulo(i32 value, ui32 modulus)	const noexcept;
+		ui32	positiveModulo(i32 value, i32 modulus)	const noexcept;
 
 		void	move(Direction direction);
 		void	init(WorldNavigator& world);
@@ -53,7 +53,7 @@ class VoxelMap
 		ui32	worldSeed;
 		ui32	chunkSize;
 		vec3ui	chunkDimensions;
-		ui32 	chunkRowSize;
+		i32 	squareSize;
 		ui32	totalChunks;
 		vec2i	maxPositions;
 

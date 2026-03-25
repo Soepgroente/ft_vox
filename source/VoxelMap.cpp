@@ -22,28 +22,21 @@ VoxelMap::VoxelMap()
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
 	chunkDimensions = vec3ui{Config::worldSize, Config::worldHeight, Config::worldSize};
+	std::cout << "Chunk dimensions: " << chunkDimensions << std::endl;
 	chunkSize = Config::worldSize * Config::worldHeight * Config::worldSize;
 
-	std::cout << "Allocating: " << formatBytes(chunkSize * visibleChunks) << " bytes for voxel map" << std::endl;
+	std::cout << "Allocating: " << formatBytes(chunkSize * visibleChunks * sizeof(VoxelType)) << " for voxel map" << std::endl;
 
-	map = reinterpret_cast<VoxelType*>(malloc(chunkSize * visibleChunks));
+	map = reinterpret_cast<VoxelType*>(malloc(chunkSize * visibleChunks * sizeof(VoxelType)));
 	if (map == nullptr)
 	{
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
-	std::cout << "Map is at address: " << map << std::endl;
-	chunkRowSize = visibleWidth;
-	std::cout << "Size of row: " << chunkRowSize << std::endl;
+	squareSize = visibleWidth;
 	totalChunks = visibleChunks;
 	minPositions = vec2i{-visibleWidth / 2, -visibleWidth / 2};
 	maxPositions = vec2i{minPositions.x + visibleWidth - 1, minPositions.y + visibleWidth - 1};
-
-	std::cout << "Square goes from: " << minPositions << " to " << maxPositions << std::endl;
 	worldSeed = 0;
-
-	/*	Generate initial chunks around starting position. */
-	
-	std::cout << "(CONSTRUCTOR) minPosition: " << minPositions.width << " " << minPositions.depth << std::endl;
 }
 
 /*	Explicit for readability for now. 4th position in vec4 contains index for which chunk	*/
@@ -52,11 +45,21 @@ void	VoxelMap::init(WorldNavigator& world)
 {
 	vec2i pos = minPositions;
 
-	for (i32 z = 0; z < (i32)chunkRowSize; z++)
+	for (i32 z = 0; z < squareSize; z++)
 	{
-		for (i32 x = 0; x < (i32)chunkRowSize; x++)
+		for (i32 x = 0; x < squareSize; x++)
 		{
 			generateChunk((VoxelType*)getChunk(pos), pos);
+			pos.width += 1;
+		}
+		pos.width = minPositions.x;
+		pos.depth += 1;
+	}
+	pos = minPositions;
+	for (i32 z = 0; z < squareSize; z++)
+	{
+		for (i32 x = 0; x < squareSize; x++)
+		{
 			world.addNewWorld(vec3i{pos.width, 0, pos.depth});
 			pos.width += 1;
 		}
@@ -74,40 +77,50 @@ const VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const
 {
 	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
 	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
-	ui32 chunkX = positiveModulo(position.width, chunkRowSize);
-	ui32 chunkZ = positiveModulo(position.depth, chunkRowSize);
+	ui32 chunkX = positiveModulo(position.width, squareSize);
+	ui32 chunkZ = positiveModulo(position.depth, squareSize);
 	
-	ui32 chunkIndex = chunkZ * chunkRowSize + chunkX;
+	ui32 chunkIndex = chunkZ * squareSize + chunkX;
 
 	return map + chunkIndex * chunkSize;
 }
 
-ui32	VoxelMap::positiveModulo(i32 value, ui32 modulus) const noexcept
+ui32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
 {
-	return (value % modulus + modulus) % modulus;
+	if (value < 0)
+	{
+		return (value % modulus) + modulus;
+	}
+	return value % modulus;
 }
 
 void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 {
+	ui32 y = 0;
+
 	for (ui32 z = 0; z < chunkDimensions.z; z++)
 	{
 		for (ui32 x = 0; x < chunkDimensions.x; x++)
 		{
 			float noiseValue = perlin(
-				static_cast<float>((pos.width + x) * Config::noiseScalar),
-				static_cast<float>((pos.depth + z) * Config::noiseScalar),
+				static_cast<float>((pos.width * chunkDimensions.width + x) * Config::noiseScalar),
+				static_cast<float>((pos.depth * chunkDimensions.depth + z) * Config::noiseScalar),
 				static_cast<float>(worldSeed));
-			float heightValue = (noiseValue + 1.0f) * 0.5f * static_cast<float>(chunkDimensions.y);
+			ui32 heightValue = static_cast<ui32>((noiseValue + 1.0f) * 0.5f * static_cast<float>(chunkDimensions.height));
 			// std::cout << "height: " << heightValue << std::endl;
-			for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
+			for (y = 0; y < chunkDimensions.y; y++)
 			{
-				if (y < Config::seaLevel)
+				if (y < heightValue)
 				{
-					chunkData[y * chunkDimensions.z * chunkDimensions.x + z * chunkDimensions.x + x] = VoxelType::Water;
+					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
+				}
+				else if (y < Config::seaLevel)
+				{
+					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
 				}
 				else
 				{
-					chunkData[y * chunkDimensions.z * chunkDimensions.x + z * chunkDimensions.x + x] = VoxelType::Dirt;
+					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
 				}
 			}
 		}
@@ -141,9 +154,9 @@ void	VoxelMap::north()
 	minPositions.y += 1;
 	maxPositions.y += 1;
 	vec2i	pos = vec2i{minPositions.x, maxPositions.y};
-	ui32	index = positiveModulo(pos.y, chunkRowSize) * chunkRowSize;
+	ui32	index = positiveModulo(pos.y, squareSize) * squareSize;
 
-	for (ui32 i = 0; i < chunkRowSize; i++)
+	for (i32 i = 0; i < squareSize; i++)
 	{
 		generateChunk(map + index * chunkSize, pos);
 		index += i;
@@ -156,9 +169,9 @@ void	VoxelMap::south()
 	minPositions.y -= 1;
 	maxPositions.y -= 1;
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-	ui32	index = positiveModulo(pos.y, chunkRowSize) * chunkRowSize;
+	ui32	index = positiveModulo(pos.y, squareSize) * squareSize;
 
-	for (ui32 i = 0; i < chunkRowSize; i++)
+	for (i32 i = 0; i < squareSize; i++)
 	{
 		generateChunk(map + index * chunkSize, pos);
 		index += i;
@@ -171,12 +184,12 @@ void	VoxelMap::west()
 	minPositions.x -= 1;
 	maxPositions.x -= 1;
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-	ui32	index = positiveModulo(pos.x, chunkRowSize);
+	ui32	index = positiveModulo(pos.x, squareSize);
 
-	for (ui32 i = 0; i < chunkRowSize; i++)
+	for (i32 i = 0; i < squareSize; i++)
 	{
 		generateChunk(map + index * chunkSize, pos);
-		index = (index + chunkRowSize) % chunkSize;
+		index = (index + squareSize) % chunkSize;
 		pos.y += 1;
 	}
 }
@@ -186,12 +199,12 @@ void	VoxelMap::east()
 	minPositions.x += 1;
 	maxPositions.x += 1;
 	vec2i	pos = vec2i{maxPositions.x, minPositions.y};
-	ui32	index = positiveModulo(pos.x, chunkRowSize);
+	ui32	index = positiveModulo(pos.x, squareSize);
 
-	for (ui32 i = 0; i < chunkRowSize; i++)
+	for (i32 i = 0; i < squareSize; i++)
 	{
 		generateChunk(map + index * chunkSize, pos);
-		index = (index + chunkRowSize) % chunkSize;
+		index = (index + squareSize) % chunkSize;
 		pos.y += 1;
 	}
 }
