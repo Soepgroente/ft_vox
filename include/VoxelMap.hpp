@@ -2,6 +2,8 @@
 
 #include "Vectors.hpp"
 
+#include "World.hpp"
+
 namespace vox {
 
 using ui8 = uint8_t;
@@ -16,16 +18,19 @@ enum class Direction : ui8
 	West
 };
 
+class World;
+class WorldNavigator;
+
 class VoxelMap
 {
 	public:
 
-		enum class VoxelType : ui8 
+		enum class VoxelType : ui8
 		{
-			Air,
-			Dirt,
-			Stone,
-			Water
+			Air = 0,
+			Dirt = 1,
+			Stone = 2,
+			Water = 3,
 		};
 
 		VoxelMap();
@@ -35,10 +40,12 @@ class VoxelMap
 		VoxelMap& operator=(VoxelMap const&) = delete;
 		VoxelMap& operator=(VoxelMap&&) = delete;
 
-		const VoxelType*	getChunk(const vec2i& position)	const noexcept;
-		ui32	positiveModulo(ui32 value, ui32 modulus)	const noexcept;
+		const VoxelType*	getChunk(const vec2i& position)	const;
+		ui32	positiveModulo(i32 value, ui32 modulus)	const noexcept;
 
 		void	move(Direction direction);
+		void	init(WorldNavigator& world);
+		vec2i	minPositions;
 	
 	private:
 
@@ -48,7 +55,6 @@ class VoxelMap
 		vec3ui	chunkDimensions;
 		ui32 	chunkRowSize;
 		ui32	totalChunks;
-		vec2i	minPositions;
 		vec2i	maxPositions;
 
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition = vec2i{0, 0});

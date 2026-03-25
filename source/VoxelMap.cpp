@@ -16,13 +16,13 @@ using i32 = int32_t;
 
 VoxelMap::VoxelMap()
 {
-	i32 chunks = static_cast<i32>(Config::minimumViewingDistance * 2);
-	i32 visibleWidth = chunks / static_cast<i32>(Config::worldSize) + 1;
+	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
+	i32 visibleWidth = visibleVoxels / static_cast<i32>(Config::worldSize) + 1;
 	i32 visibleChunks = visibleWidth * visibleWidth;
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
 	chunkDimensions = vec3ui{Config::worldSize, Config::worldHeight, Config::worldSize};
-	chunkSize = Config::worldSize * Config::worldHeight * Config::worldSize * sizeof(VoxelType);
+	chunkSize = Config::worldSize * Config::worldHeight * Config::worldSize;
 
 	std::cout << "Allocating: " << formatBytes(chunkSize * visibleChunks) << " bytes for voxel map" << std::endl;
 
@@ -31,46 +31,58 @@ VoxelMap::VoxelMap()
 	{
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
-	chunkRowSize = chunks;
+	std::cout << "Map is at address: " << map << std::endl;
+	chunkRowSize = visibleWidth;
+	std::cout << "Size of row: " << chunkRowSize << std::endl;
 	totalChunks = visibleChunks;
 	minPositions = vec2i{-visibleWidth / 2, -visibleWidth / 2};
 	maxPositions = vec2i{minPositions.x + visibleWidth - 1, minPositions.y + visibleWidth - 1};
+
+	std::cout << "Square goes from: " << minPositions << " to " << maxPositions << std::endl;
 	worldSeed = 0;
 
 	/*	Generate initial chunks around starting position. */
-	vec2i pos = minPositions;
-	ui32 index = 0;
-	for (i32 z = 0; z < visibleWidth; z++)
-	{
-		for (i32 x = 0; x < visibleWidth; x++)
-		{
-			generateChunk(map + index * chunkSize, pos);
-			index++;
-			pos.x += 1;
-		}
-		pos.x = minPositions.x;
-		pos.y += 1;
-	}
-	std::cout << "MADE IT HERE!!!" << std::endl;
+	
+	std::cout << "(CONSTRUCTOR) minPosition: " << minPositions.width << " " << minPositions.depth << std::endl;
 }
 
 /*	Explicit for readability for now. 4th position in vec4 contains index for which chunk	*/
+
+void	VoxelMap::init(WorldNavigator& world)
+{
+	vec2i pos = minPositions;
+
+	for (i32 z = 0; z < (i32)chunkRowSize; z++)
+	{
+		for (i32 x = 0; x < (i32)chunkRowSize; x++)
+		{
+			generateChunk((VoxelType*)getChunk(pos), pos);
+			world.addNewWorld(vec3i{pos.width, 0, pos.depth});
+			pos.width += 1;
+		}
+		pos.width = minPositions.x;
+		pos.depth += 1;
+	}
+}
 
 VoxelMap::~VoxelMap()
 {
 	free(map);
 }
 
-const VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
+const VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const
 {
-	ui32 chunkX = positiveModulo(position.x, Config::worldSize);
-	ui32 chunkZ = positiveModulo(position.y, Config::worldSize);
+	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
+	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
+	ui32 chunkX = positiveModulo(position.width, chunkRowSize);
+	ui32 chunkZ = positiveModulo(position.depth, chunkRowSize);
+	
 	ui32 chunkIndex = chunkZ * chunkRowSize + chunkX;
 
 	return map + chunkIndex * chunkSize;
 }
 
-ui32	VoxelMap::positiveModulo(ui32 value, ui32 modulus) const noexcept
+ui32	VoxelMap::positiveModulo(i32 value, ui32 modulus) const noexcept
 {
 	return (value % modulus + modulus) % modulus;
 }
@@ -82,13 +94,21 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 		for (ui32 x = 0; x < chunkDimensions.x; x++)
 		{
 			float noiseValue = perlin(
-				static_cast<float>((pos.x + x) * Config::noiseScalar),
-				static_cast<float>((pos.y + z) * Config::noiseScalar),
+				static_cast<float>((pos.width + x) * Config::noiseScalar),
+				static_cast<float>((pos.depth + z) * Config::noiseScalar),
 				static_cast<float>(worldSeed));
 			float heightValue = (noiseValue + 1.0f) * 0.5f * static_cast<float>(chunkDimensions.y);
+			// std::cout << "height: " << heightValue << std::endl;
 			for (ui32 y = 0; y < static_cast<ui32>(heightValue); y++)
 			{
-				chunkData[y * chunkDimensions.z * chunkDimensions.x + z * chunkDimensions.x + x] = VoxelType::Dirt;
+				if (y < Config::seaLevel)
+				{
+					chunkData[y * chunkDimensions.z * chunkDimensions.x + z * chunkDimensions.x + x] = VoxelType::Water;
+				}
+				else
+				{
+					chunkData[y * chunkDimensions.z * chunkDimensions.x + z * chunkDimensions.x + x] = VoxelType::Dirt;
+				}
 			}
 		}
 	}
@@ -110,6 +130,7 @@ void	VoxelMap::move(Direction direction)
 		case Direction::East:
 			east();
 			break;
+		default: break;
 	}
 }
 

@@ -11,7 +11,7 @@ struct Config
 {
 	static constexpr ui32	defaultWindowWidth = 1300;
 	static constexpr ui32	defaultWindowHeight = 1300;
-	static constexpr ui32	minimumViewingDistance = 160;
+	static constexpr ui32	minimumViewingDistance = 80;
 
 	static constexpr vec3ui	mapLimits{
 		16384U,
@@ -25,9 +25,9 @@ struct Config
 		-100000.0f
 	};
 
-	static constexpr ui32	worldSize = 16U;
-	static constexpr ui32	worldHeight = 256U;
-	static constexpr ui32	seaLevel = 64U;
+	static constexpr ui32	worldSize = 8U;
+	static constexpr ui32	worldHeight = 64U;
+	static constexpr ui32	seaLevel = 8U;
 	static constexpr vec3		startingPos{		// NB this is ugly, y should depend on ground lvl
 		worldSize / 2.0f + 0.5f,
 		128.0f,

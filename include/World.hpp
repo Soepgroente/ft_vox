@@ -5,6 +5,7 @@
 #include "Vectors.hpp"
 #include "Stopwatch.hpp"
 #include "VoxelMap.hpp"
+#include "Config.hpp"
 
 #include <cstdint>
 #include <unordered_map>
@@ -94,6 +95,7 @@ VertexVector	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
 VertexVector	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
 IndexVector		getIndexRelative( uint32_t = 0U );
 
+class VoxelMap;
 
 class World {
 	public:
@@ -128,7 +130,7 @@ class World {
 class WorldNavigator {
 	public:
 		explicit WorldNavigator( uint32_t worldSize ) : 
-			worldSize(worldSize, 256, worldSize),
+			worldSize(worldSize, Config::worldHeight, worldSize),
 			totVoxels(0U),
 			currentWorldPos(0U) {};
 		~WorldNavigator( void ) = default;
@@ -143,15 +145,15 @@ class WorldNavigator {
 		bool	borderCrossed( vec3 const& ) const noexcept;
 
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
+		bool	addNewWorld( vec3i const& );
 
 	private:
-		bool	addNewWorld( vec3i const& );
 		vec3i	findFurthestWorld( void ) const noexcept;
 		vec3i	worldPosFromPlayerPos( vec3 const& ) const noexcept;
 
 		vec3ui							worldSize;			// 3D dimension of every world
 		uint32_t						totVoxels;			// total voxel generated in every world
-		// map of the existing chunks/worls (note: positions are stored using integers, that 
+		// map of the existing chunks/worlds (note: positions are stored using integers, that 
 		// represent the 3D indexes of the world, not their actual distance frm the origin)
 		std::unordered_map<vec3i,World>	worlds;
 		vec3i							currentWorldPos;	// last position known of the player
