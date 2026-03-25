@@ -82,6 +82,8 @@ const VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const
 	
 	ui32 chunkIndex = chunkZ * squareSize + chunkX;
 
+	// std::cout << "Index: " << chunkIndex << std::endl;
+
 	return map + chunkIndex * chunkSize;
 }
 
@@ -106,6 +108,7 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 				static_cast<float>((pos.width * chunkDimensions.width + x) * Config::noiseScalar),
 				static_cast<float>((pos.depth * chunkDimensions.depth + z) * Config::noiseScalar),
 				static_cast<float>(worldSeed));
+			noiseValue = std::clamp(noiseValue, -1.0f, 1.0f);
 			ui32 heightValue = static_cast<ui32>((noiseValue + 1.0f) * 0.5f * static_cast<float>(chunkDimensions.height));
 			// std::cout << "height: " << heightValue << std::endl;
 			for (y = 0; y < chunkDimensions.y; y++)
