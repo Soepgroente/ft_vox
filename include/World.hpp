@@ -129,8 +129,8 @@ class World {
 
 class WorldNavigator {
 	public:
-		explicit WorldNavigator( uint32_t worldSize ) : 
-			worldSize(worldSize, Config::worldHeight, worldSize),
+		explicit WorldNavigator() : 
+			worldSize(Config::worldSize, Config::worldHeight, Config::worldSize),
 			totVoxels(0U),
 			currentWorldPos(0U) {};
 		~WorldNavigator( void ) = default;
