@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <mutex>
+#include <set>
 #include <atomic>
 #include <thread>
 
@@ -127,6 +128,10 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 
 
 	const VoxelMap::VoxelType* chunk = map->getChunk(pos);
+	// static std::set<const VoxelMap::VoxelType*> seenPtrs;
+
+	// seenPtrs.insert(chunk);
+	// std::cout << seenPtrs.size() << " pointers" << std::endl;
 	ui32 index = 0;
 
 	for (i32 z = 0; z < sizeZ; z++)
@@ -156,6 +161,7 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 			}
 		}
 	}
+	assert(index == Config::worldHeight * Config::worldSize * Config::worldSize && "oh oh, index is off");
 }
 
 /**
