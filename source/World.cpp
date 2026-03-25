@@ -119,35 +119,35 @@ IndexVector getIndexRelative( uint32_t start ) {
  */
 World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldPos), worldSize(worldSize) {
 	
-	VoxelMap&	map = *World::voxelMap;
-	for (vec2i pos = vec2i{worldPos.x, worldPos.z}; pos.y < worldPos.z + static_cast<int>(worldSize.z); pos.y++)
+	VoxelMap*	map = World::voxelMap;
+	vec2i pos = vec2i{worldPos.x, worldPos.z};
+	i32 sizeX = static_cast<i32>(worldSize.x);
+	i32 sizeY = static_cast<i32>(worldSize.y);
+	i32 sizeZ = static_cast<i32>(worldSize.z);
+
+
+	const VoxelMap::VoxelType* chunk = map->getChunk(pos);
+	ui32 index = 0;
+
+	for (i32 z = 0; z < sizeZ; z++)
 	{
-		for (pos.x = worldPos.x; pos.x < worldPos.x + static_cast<int>(worldSize.x); pos.x++)
+		for (i32 x = 0; x < sizeX; x++)
 		{
-			const VoxelMap::VoxelType* chunk = map.getChunk(vec2i{static_cast<int>(worldPos.x), static_cast<int>(worldPos.z)});
-			ui32 index = 0;
-	
-			for (ui32 z = 0; z < worldSize.z; z++)
+			for (i32 y = 0; y < sizeY; y++)
 			{
-				for (ui32 x = 0; x < worldSize.x; x++)
+				if (chunk[index] == VoxelMap::VoxelType::Air)
 				{
-					for (ui32 y = 0; y < worldSize.y; y++)
-					{
-						if (chunk[index] == VoxelMap::VoxelType::Air)
-						{
-							index++;
-							continue;
-						}
-						vec3 relativePos{
-							static_cast<float>(x),
-							static_cast<float>(y),
-							static_cast<float>(z)
-						};
-						VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
-						this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
-						index++;
-					}
+					index++;
+					continue;
 				}
+				vec3 relativePos{
+					static_cast<float>(x + worldPos.x * Config::worldSize),
+					static_cast<float>(y + worldPos.y * Config::worldHeight),
+					static_cast<float>(z + worldPos.z * Config::worldSize)
+				};
+				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
+				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
+				index++;
 			}
 		}
 	}

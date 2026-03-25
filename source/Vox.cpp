@@ -49,6 +49,7 @@ Vox::Vox( void ) :
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 	World::voxelMap = &this->voxelMap;
+	voxelMap.init(navigator);
 }
 
 /**
@@ -123,7 +124,7 @@ void Vox::run( void ) {
 	};
 
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
+	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 
 	std::cout << "\n\n\n\n";
@@ -135,6 +136,8 @@ void Vox::run( void ) {
 		this->moveCamera(timer.elapsed(Unit::Seconds));
 		// add chunks of maps if necessary
 		// if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
+
+
 		// 	bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 		// 	// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 		// 	if (newDataCreated)
