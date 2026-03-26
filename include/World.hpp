@@ -130,7 +130,7 @@ class World {
 class WorldNavigator {
 	public:
 		explicit WorldNavigator() : 
-			worldSize(Config::worldSize, Config::worldHeight, Config::worldSize),
+			worldSize(Config::chunkLength, Config::chunkHeight, Config::chunkLength),
 			totVoxels(0U),
 			currentWorldPos(0U) {};
 		~WorldNavigator( void ) = default;

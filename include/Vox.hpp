@@ -32,7 +32,6 @@ class Vox
 		void resizeWindow( uint32_t, uint32_t );
 
 		/*	Temporarily global for testing	*/
-		static std::vector<std::thread>	workerThreads;
 		VoxelMap&	getMap() { return voxelMap; };
 		
 		private:

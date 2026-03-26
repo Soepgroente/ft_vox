@@ -17,13 +17,13 @@ using i32 = int32_t;
 VoxelMap::VoxelMap()
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
-	i32 visibleWidth = visibleVoxels / static_cast<i32>(Config::worldSize) + 1;
+	i32 visibleWidth = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
 	i32 visibleChunks = visibleWidth * visibleWidth;
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
-	chunkDimensions = vec3ui{Config::worldSize, Config::worldHeight, Config::worldSize};
+	chunkDimensions = vec3ui{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
 	std::cout << "Chunk dimensions: " << chunkDimensions << std::endl;
-	chunkSize = Config::worldSize * Config::worldHeight * Config::worldSize;
+	chunkSize = Config::chunkLength * Config::chunkHeight * Config::chunkLength;
 
 	std::cout << "Allocating: " << formatBytes(chunkSize * visibleChunks * sizeof(VoxelType)) << " for voxel map" << std::endl;
 
@@ -73,7 +73,7 @@ VoxelMap::~VoxelMap()
 	free(map);
 }
 
-const VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const
+VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
 {
 	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
 	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
@@ -111,20 +111,19 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 			noiseValue = std::clamp(noiseValue, -1.0f, 1.0f);
 			ui32 heightValue = static_cast<ui32>((noiseValue + 1.0f) * 0.5f * static_cast<float>(chunkDimensions.height));
 			// std::cout << "height: " << heightValue << std::endl;
-			for (y = 0; y < chunkDimensions.y; y++)
+			assert(heightValue <= chunkDimensions.height && "height value out of range");
+			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
+			for (y = 0; y < heightValue; y++)
 			{
-				if (y < heightValue)
-				{
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
-				}
-				else if (y < Config::seaLevel)
-				{
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
-				}
-				else
-				{
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
-				}
+				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
+			}
+			for (; y < Config::seaLevel; y++)
+			{
+				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
+			}
+			for (; y < chunkDimensions.height; y++)
+			{
+				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
 			}
 		}
 	}
@@ -157,12 +156,10 @@ void	VoxelMap::north()
 	minPositions.y += 1;
 	maxPositions.y += 1;
 	vec2i	pos = vec2i{minPositions.x, maxPositions.y};
-	ui32	index = positiveModulo(pos.y, squareSize) * squareSize;
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(map + index * chunkSize, pos);
-		index += i;
+		generateChunk(getChunk(pos), pos);
 		pos.x += 1;
 	}
 }
@@ -172,12 +169,10 @@ void	VoxelMap::south()
 	minPositions.y -= 1;
 	maxPositions.y -= 1;
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-	ui32	index = positiveModulo(pos.y, squareSize) * squareSize;
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(map + index * chunkSize, pos);
-		index += i;
+		generateChunk(getChunk(pos), pos);
 		pos.x += 1;
 	}
 }
@@ -187,12 +182,10 @@ void	VoxelMap::west()
 	minPositions.x -= 1;
 	maxPositions.x -= 1;
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-	ui32	index = positiveModulo(pos.x, squareSize);
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(map + index * chunkSize, pos);
-		index = (index + squareSize) % chunkSize;
+		generateChunk(getChunk(pos), pos);
 		pos.y += 1;
 	}
 }
@@ -202,12 +195,10 @@ void	VoxelMap::east()
 	minPositions.x += 1;
 	maxPositions.x += 1;
 	vec2i	pos = vec2i{maxPositions.x, minPositions.y};
-	ui32	index = positiveModulo(pos.x, squareSize);
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(map + index * chunkSize, pos);
-		index = (index + squareSize) % chunkSize;
+		generateChunk(getChunk(pos), pos);
 		pos.y += 1;
 	}
 }

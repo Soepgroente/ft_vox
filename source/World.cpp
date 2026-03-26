@@ -126,7 +126,6 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 	i32 sizeY = static_cast<i32>(worldSize.y);
 	i32 sizeZ = static_cast<i32>(worldSize.z);
 
-
 	const VoxelMap::VoxelType* chunk = map->getChunk(pos);
 	// static std::set<const VoxelMap::VoxelType*> seenPtrs;
 
@@ -140,20 +139,16 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 		{
 			for (i32 y = 0; y < sizeY; y++)
 			{
-				if (chunk[index] == VoxelMap::VoxelType::Air)
-				{
-					index++;
-					continue;
-				}
-				if (y < sizeY - 1 && chunk[index + 1] != VoxelMap::VoxelType::Air)
+				if (chunk[index] == VoxelMap::VoxelType::Air ||
+					(y < sizeY - 1 && chunk[index + 1] != VoxelMap::VoxelType::Air))
 				{
 					index++;
 					continue;
 				}
 				vec3 relativePos{
-					static_cast<float>(x + worldPos.x * Config::worldSize),
-					static_cast<float>(y + worldPos.y * Config::worldHeight),
-					static_cast<float>(z + worldPos.z * Config::worldSize)
+					static_cast<float>(x + worldPos.x * Config::chunkLength),
+					static_cast<float>(y + worldPos.y * Config::chunkHeight),
+					static_cast<float>(z + worldPos.z * Config::chunkLength)
 				};
 				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
 				this->vertexes.insert(this->vertexes.end(), voxelVertexes.begin(), voxelVertexes.end());
@@ -161,7 +156,7 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 			}
 		}
 	}
-	assert(index == Config::worldHeight * Config::worldSize * Config::worldSize && "oh oh, index is off");
+	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
 }
 
 /**
