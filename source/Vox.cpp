@@ -8,8 +8,6 @@
 
 namespace vox {
 
-std::vector<std::thread> Vox::workerThreads{};
-
 struct GlobalUBO
 {
 	mat4				projectionView{1.0f};
@@ -32,7 +30,6 @@ Vox::Vox( void ) :
 		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
 	)
 {
-	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
 	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
 		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
 		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -65,13 +62,15 @@ Vox::~Vox( void ) noexcept {
  *
  * @return a vector of 36 uin32_t starting from the offset value
  */
-void Vox::run( void ) {
+
+static std::vector<std::unique_ptr<ve::VulkanBuffer>>	initUboBuffers(ve::VulkanDevice& device)
+{
 	std::vector<std::unique_ptr<ve::VulkanBuffer>>	uboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < uboBuffers.size(); i++)
 	{
 		uboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
-			vulkanDevice,
+			device,
 			sizeof(GlobalUBO),
 			1,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -79,14 +78,18 @@ void Vox::run( void ) {
 		);
 		uboBuffers[i]->map();
 	}
+	return uboBuffers;
+}
+
+void	Vox::run( void ) {
+	std::vector<std::unique_ptr<ve::VulkanBuffer>>	uboBuffers = initUboBuffers(vulkanDevice);
+	ve::VulkanTexture texture{Config::texture2VoxelPath, vulkanDevice};
 
 	std::unique_ptr<ve::VulkanDescriptorSetLayout> globalSetLayout = ve::VulkanDescriptorSetLayout::Builder(vulkanDevice)
 		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
 		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 		.build();
 	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-	ve::VulkanTexture texture{Config::texture2VoxelPath, vulkanDevice};
 
 	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
 	{
@@ -183,7 +186,7 @@ void Vox::run( void ) {
  * 
  * @note camera rotation using a key will be removed in the final version
  */
-void Vox::moveCamera( float deltaTime ) {
+void	Vox::moveCamera( float deltaTime ) {
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
 		this->camera.moveForward(deltaTime * Config::movementSpeed);
 
@@ -224,7 +227,7 @@ void Vox::moveCamera( float deltaTime ) {
  *
  * @return a vector of 36 uin32_t starting from the offset value
  */
-void Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
+void	Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
 	vec2 const& oldPos = this->inputHandler.getCursorPos();
 
 	float yaw = (currPos.x - oldPos.x) * ve::CameraSettings::cameraSensitivity;
@@ -240,7 +243,7 @@ void Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
  *
  * @param height new height
  */
-void Vox::resizeWindow( uint32_t width, uint32_t height ) {
+void	Vox::resizeWindow( uint32_t width, uint32_t height ) {
 	this->vulkanWindow.resetWindowSize(width, height);
 	this->camera.setPerspectiveProjection(
 		radians(ve::CameraSettings::projectionFov),

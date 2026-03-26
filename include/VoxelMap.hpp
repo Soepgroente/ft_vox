@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Vectors.hpp"
-
+#include "VoxelChunk.hpp"
 #include "World.hpp"
 
 namespace vox {
@@ -40,7 +40,7 @@ class VoxelMap
 		VoxelMap& operator=(VoxelMap const&) = delete;
 		VoxelMap& operator=(VoxelMap&&) = delete;
 
-		const VoxelType*	getChunk(const vec2i& position)	const;
+		VoxelType*	getChunk(const vec2i& position)	const noexcept;
 		ui32	positiveModulo(i32 value, i32 modulus)	const noexcept;
 
 		void	move(Direction direction);
@@ -57,7 +57,9 @@ class VoxelMap
 		ui32	totalChunks;
 		vec2i	maxPositions;
 
-		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition = vec2i{0, 0});
+		std::vector<VoxelChunk>	chunks;
+
+		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	north();
 		void	south();
 		void	west();
