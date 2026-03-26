@@ -11,7 +11,9 @@ std::vector<std::thread> Vox::workerThreads{};
 
 struct GlobalUBO
 {
-	mat4				projectionView{1.0f};
+	mat4				model{1.0f};
+	mat4				view{1.0f};
+	mat4				projection{1.0f};
 	vec4				ambientLightColor{1.0f, 1.0f, 1.0f, 0.1f};
 	vec3				lightPosition{0.0f, -4.0f, -3.0f};
 	alignas(16)	vec4	lightColor{1.0f};
@@ -24,7 +26,6 @@ Vox::Vox( void ) :
 	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"},
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
-	globalDescriptorPool{},
 	camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
 	navigator{Config::worldSize},
 	inputHandler(
@@ -105,12 +106,20 @@ void Vox::run( void ) {
 			.build(globalDescriptorSets[i]);
 	}
 
-	ve::VulkanRenderSystem	renderSystem{
+	ve::VulkanRenderSystem	worldRenderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
 		globalSetLayout->getDescriptorSetLayout(),
-		Config::vertShaderPath,
-		Config::fragShaderPath
+		Config::worldVertShaderPath,
+		Config::worldFragShaderPath
+	};
+
+	ve::VulkanRenderSystem	skyRenderSystem{
+		vulkanDevice,
+		vulkanRenderer.getSwapChainRenderPass(),
+		globalSetLayout->getDescriptorSetLayout(),
+		Config::skyVertShaderPath,
+		Config::worldFragShaderPath
 	};
 
 	// size_t	frameCount = 0;
@@ -125,8 +134,8 @@ void Vox::run( void ) {
 		ve::VulkanObject::createVulkanObject(),
 	};
 
-	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
+	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 
 	std::cout << "\n\n\n\n";
@@ -152,7 +161,9 @@ void Vox::run( void ) {
 			GlobalUBO	ubo{};
 
 			// rendering voxels
-			ubo.projectionView = this->camera.getProjectionMatrix() * this->camera.getViewMatrix();
+			ubo.model = mat4::idMat();
+			ubo.view = this->camera.getViewMatrix();
+			ubo.projection = this->camera.getProjectionMatrix();
 			uboBuffers[info.frameIndex]->writeToBuffer(&ubo);
 			uboBuffers[info.frameIndex]->flush();
 
@@ -162,7 +173,7 @@ void Vox::run( void ) {
 			// uboBuffers[info.frameIndex]->flush();
 
 			vulkanRenderer.beginSwapChainRenderPass(info.commandBuffer);
-			renderSystem.renderObject(info);
+			worldRenderSystem.renderObject(info);
 
 			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
