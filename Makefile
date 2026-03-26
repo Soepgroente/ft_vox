@@ -29,8 +29,7 @@ DEPS		:= $(patsubst $(SRC_DIR)%,$(DEPS_DIR)%,$(SOURCES:.cpp=.d))
 UNAME_S		:=	$(shell uname -s)
 
 SHADERS_DIR	:=	shaders
-SHADERS_SRC	:=	basic.vert \
-				basic.frag \
+SHADERS_SRC	:=	$(shell ls $(SHADERS_DIR))
 
 GLSLC				:= $(shell which glslc)
 SHADERS_COMPILED	:= $(addprefix $(BUILD_DIR)/,$(addsuffix .spv,$(SHADERS_SRC)))

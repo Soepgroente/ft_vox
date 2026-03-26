@@ -205,7 +205,6 @@ void World::updateLastAccess( void ) noexcept {
 bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	vec3i playerPos = this->worldPosFromPlayerPos(start);
 	this->currentWorldPos = playerPos;
-	Stopwatch timer;
 	bool reloadData = false;
 
 	reloadData |= this->addNewWorld(vec3i{playerPos.x - 1, playerPos.y, playerPos.z - 1});
@@ -218,8 +217,6 @@ bool WorldNavigator::spawnCloseByWorlds( vec3 const& start ) {
 	reloadData |= this->addNewWorld(vec3i{playerPos.x, playerPos.y, playerPos.z + 1});
 	reloadData |= this->addNewWorld(vec3i{playerPos.x + 1, playerPos.y, playerPos.z + 1});
 
-	timer.stop();
-	std::cout << timer;
 	return reloadData;
 }
 

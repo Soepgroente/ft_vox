@@ -26,11 +26,11 @@ class VulkanRenderSystem
 		char const* fragmentShaderFile
 	);
 	~VulkanRenderSystem();
-	
+
 	VulkanRenderSystem() = delete;
 	VulkanRenderSystem(const VulkanRenderSystem&) = delete;
 	VulkanRenderSystem& operator=(const VulkanRenderSystem&) = delete;
-	
+
 	void	renderObject(FrameInfo& frameInfo);
 
 	private:

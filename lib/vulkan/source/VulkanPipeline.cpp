@@ -15,8 +15,6 @@ VulkanPipeline::VulkanPipeline(
 
 VulkanPipeline::~VulkanPipeline()
 {
-	vkDestroyShaderModule(vulkanDevice.device(), vertexShaderModule, nullptr);
-	vkDestroyShaderModule(vulkanDevice.device(), fragmentShaderModule, nullptr);
 	vkDestroyPipeline(vulkanDevice.device(), graphicsPipeline, nullptr);
 }
 
@@ -117,6 +115,8 @@ void	VulkanPipeline::createGraphicsPipeline(
 	{
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
+	vkDestroyShaderModule(vulkanDevice.device(), vertexShaderModule, nullptr);
+	vkDestroyShaderModule(vulkanDevice.device(), fragmentShaderModule, nullptr);
 }
 
 void	VulkanPipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
