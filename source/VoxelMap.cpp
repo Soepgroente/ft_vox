@@ -92,6 +92,10 @@ void	VoxelMap::init()
 	threadManager.waitIdle();
 	timer.stop();
 	std::cout << "Initial voxel map generation took: " << timer << std::endl;
+	for (ui32 i = 0; i < chunksAsVectors.size(); i++)
+	{
+		std::cout << chunksAsVectors[0][i].pos << std::endl;
+	}
 }
 
 VoxelMap::~VoxelMap()
@@ -222,7 +226,7 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& po
 				}
 				vec3 relativePos{
 					static_cast<float>(x + pos.width * Config::chunkLength),
-					static_cast<float>(y * Config::chunkHeight),
+					static_cast<float>(y),
 					static_cast<float>(z + pos.depth * Config::chunkLength)
 				};
 				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
