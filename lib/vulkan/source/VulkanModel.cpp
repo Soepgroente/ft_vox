@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <set>
-#include <iomanip>
 
 namespace ve {
 
@@ -34,27 +33,6 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertic
  *
  */
 
-static std::string format( size_t bytes ) {
-	constexpr size_t KB = 1024UL;
-	constexpr size_t MB = 1024UL * KB;
-	constexpr size_t GB = 1024UL * MB;
-
-	std::ostringstream oss;
-	oss << std::fixed << std::setprecision(3);
-
-	if (bytes >= GB)
-		oss << static_cast<double>(bytes) / GB << " GiB";
-	else if (bytes >= MB)
-		oss << static_cast<double>(bytes) / MB << " MiB";
-	else if (bytes >= KB)
-		oss << static_cast<double>(bytes) / KB << " KiB";
-	else
-		oss << bytes << " B";
-
-	return oss.str();
-}
-
-
 VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
 {
 	this->vertexCount = 0U;
@@ -66,8 +44,6 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Ver
 		this->indexCount += (worldVertexes.size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
 	}
 	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
-	std::cout << "Vertexes: " << this->vertexCount << std::endl;
-	std::cout << "Using " << format(this->vertexCount * sizeof(Vertex)) << std::endl;
 	this->hasIndexBuffer = true;
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
