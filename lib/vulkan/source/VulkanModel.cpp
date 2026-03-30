@@ -4,12 +4,13 @@
 
 #include <iostream>
 #include <set>
+#include <iomanip>
 
 namespace ve {
 
 VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder) : vulkanDevice{device}
 {
-	createVertexBuffers(builder.vertices);
+	// createVertexBuffers(builder.vertices);
 	createIndexBuffers(builder.indices);
 	vertexCount = static_cast<uint32_t>(builder.vertices.size());
 	indexCount = static_cast<uint32_t>(builder.indices.size());
@@ -17,7 +18,7 @@ VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder) : vulkanD
 
 VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : vulkanDevice{device}
 {
-	createVertexBuffers(vertices);
+	// createVertexBuffers(vertices);
 	createIndexBuffers(indices);
 	vertexCount = static_cast<uint32_t>(vertices.size());
 	indexCount = static_cast<uint32_t>(indices.size());
@@ -32,21 +33,45 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertic
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
+
+static std::string format( size_t bytes ) {
+	constexpr size_t KB = 1024UL;
+	constexpr size_t MB = 1024UL * KB;
+	constexpr size_t GB = 1024UL * MB;
+
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(3);
+
+	if (bytes >= GB)
+		oss << static_cast<double>(bytes) / GB << " GiB";
+	else if (bytes >= MB)
+		oss << static_cast<double>(bytes) / MB << " MiB";
+	else if (bytes >= KB)
+		oss << static_cast<double>(bytes) / KB << " KiB";
+	else
+		oss << bytes << " B";
+
+	return oss.str();
+}
+
+
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
 {
 	this->vertexCount = 0U;
 	this->indexCount = 0U;
-	for (std::vector<Vertex> const* worldVertexes : vertices) {
-		this->vertexCount += worldVertexes->size();
+	for (std::vector<Vertex> const& worldVertexes : vertices) {
+		this->vertexCount += worldVertexes.size();
 		// a voxel has always 24 vertexes and 36 indexes, with this proportion, given
 		// an amount of voxels, the total number of indexes is: nVoxels * nIndexPerVoxel / nVertexPerVoxel
-		this->indexCount += (worldVertexes->size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
+		this->indexCount += (worldVertexes.size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
 	}
 	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
+	std::cout << "Vertexes: " << this->vertexCount << std::endl;
+	std::cout << "Using " << format(this->vertexCount * sizeof(Vertex)) << std::endl;
 	this->hasIndexBuffer = true;
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
-
+/* 
 void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 {
 	vertexCount = static_cast<uint32_t>(vertices.size());
@@ -76,7 +101,7 @@ void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 	);
 	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), bufferSize);
 }
-
+ */
 void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 {
 	indexCount = static_cast<uint32_t>(indices.size());
@@ -111,7 +136,7 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), indexBuffer->getBuffer(), bufferSize);
 }
 
-void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
+void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
 {
 	uint32_t		vertexSize = sizeof(Vertex);
 	VulkanBuffer	stagingBufferVertex(
@@ -138,15 +163,18 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 
 	uint32_t offsetVertex = 0U;		// careful: this is a bytes offset
 	uint32_t offsetIndex = 0U;		// careful: this is an element (uints) offset
-	for (std::vector<Vertex> const* worldVertexes : vertices) {
-		uint32_t sizeData = worldVertexes->size() * vertexSize;
+	for (std::vector<Vertex> const& worldVertexes : vertices) {
+		uint32_t sizeData = worldVertexes.size() * vertexSize;
 		// insert vertexes of this chunk in staging buffer
-		stagingBufferVertex.writeToBuffer(static_cast<const void*>(worldVertexes->data()), sizeData, offsetVertex);
-		uint32_t nVoxels = worldVertexes->size() / VERTEX_PER_VOXEL;
+		stagingBufferVertex.writeToBuffer(static_cast<const void*>(worldVertexes.data()), sizeData, offsetVertex);
+		uint32_t nVoxels = worldVertexes.size() / VERTEX_PER_VOXEL;
 		// for every voxel load its face indexes, offsetIndex represents all the vertexes already inserted
 		for (uint32_t i = 0; i<nVoxels; i++) {
 			for (uint32_t index : indexesVoxel)
-				*stagingIndexPtr++ = index + offsetIndex;
+			{
+				*stagingIndexPtr = index + offsetIndex;
+				stagingIndexPtr++;
+			}
 			offsetIndex += VERTEX_PER_VOXEL;
 		}
 		offsetVertex += sizeData;

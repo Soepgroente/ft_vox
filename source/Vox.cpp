@@ -45,8 +45,7 @@ Vox::Vox( void ) :
 		ve::CameraSettings::projectionFar
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
-	World::voxelMap = &this->voxelMap;
-	voxelMap.init(navigator);
+	voxelMap.init();
 }
 
 /**
@@ -125,34 +124,29 @@ void	Vox::run( void ) {
 		nullptr,
 		ve::VulkanObject::createVulkanObject(),
 	};
-
+	info.gameObject.model = voxelMap.createNewModel(vulkanDevice);
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+	// info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
+		vec3 playerPos = info.camera.getCameraPos();
 		glfwPollEvents();
-		timer.start();
-		// do game operations
 		this->moveCamera(timer.elapsed(Unit::Seconds));
-		// add chunks of maps if necessary
-		// if (this->navigator.borderCrossed(this->camera.getCameraPos()) == true) {
+		timer.start();
 
-
-		// 	bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-		// 	// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-		// 	if (newDataCreated)
-		// 		info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
-		// }
+		if (voxelMap.update(playerPos) == true)
+		{
+			info.gameObject.model = voxelMap.createNewModel(vulkanDevice);
+		}
 
 		info.commandBuffer = vulkanRenderer.beginFrame();
 		if (info.commandBuffer != nullptr)
 		{
 			int frameIndex = vulkanRenderer.getCurrentFrameIndex();
 			GlobalUBO	ubo{};
-
 			info.frameIndex = frameIndex;
 			info.globalDescriptorSet = globalDescriptorSets[frameIndex];
 			ubo.projectionView = this->camera.getProjectionMatrix() * this->camera.getViewMatrix();
@@ -162,16 +156,14 @@ void	Vox::run( void ) {
 			vulkanRenderer.beginSwapChainRenderPass(info.commandBuffer);
 			renderSystem.renderObject(info);
 
-			vec3 playerPos = info.camera.getCameraPos();
-			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
-			
-			
+			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			// std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
+
 			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
 			vulkanRenderer.endFrame();
 			timer.stop();
-			int	fps = static_cast<int> (1.0f / timer.elapsed(Unit::Seconds));
-			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Unit::Milliseconds) << "ms " << std::endl;
+			// int	fps = static_cast<int> (1.0f / timer.elapsed(Unit::Seconds));
+			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Unit::Milliseconds) << "ms " << std::endl;
 		}
 		this->inputHandler.reset();
 		// frameCount++;

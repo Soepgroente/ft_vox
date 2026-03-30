@@ -99,7 +99,7 @@ class VoxelMap;
 
 class World {
 	public:
-		explicit World( vec3i const&, vec3ui const& );
+		explicit World( vec2i const&, vec3ui const& );
 		World( void ) = default;
 		~World( void ) noexcept = default;
 		World( World const& ) = delete;
@@ -111,19 +111,10 @@ class World {
 		VertexVector&		getVertexes( void ) noexcept { return this->vertexes; };
 		IndexVector			getIndexes( u_int32_t start ) const noexcept { return getIndexRelative(start); };
 		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
-		float				getWeight( vec3i const& ) const noexcept;
-		void				updateLastAccess( void ) noexcept;
-
-		static constexpr float ALPHA = 0.8f;	// weight for distance
-		static constexpr float BETA = 0.2f;		// weight for the time
-		static inline VoxelMap*	voxelMap;
 
 	private:
-		vec3i			worldPos;
 		vec3ui			worldSize;
 		VertexVector	vertexes;
-		Time			lastAccess;
-
 };
 
 
@@ -139,17 +130,11 @@ class WorldNavigator {
 		WorldNavigator& operator=( WorldNavigator const& ) = delete;
 		WorldNavigator& operator=( WorldNavigator&& ) = delete;
 
-		bool	spawnCloseByWorlds( vec3 const& );
-		bool 	spawnCloseByWorlds(vec3 const& start, ThreadManager& threads);
 		size_t	getMemoryUsed( void ) const noexcept;
-		bool	borderCrossed( vec3 const& ) const noexcept;
 
-		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
-		bool	addNewWorld( vec3i const& );
+		// std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
 
 	private:
-		vec3i	findFurthestWorld( void ) const noexcept;
-		vec3i	worldPosFromPlayerPos( vec3 const& ) const noexcept;
 
 		vec3ui							worldSize;			// 3D dimension of every world
 		uint32_t						totVoxels;			// total voxel generated in every world

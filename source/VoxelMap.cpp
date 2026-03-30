@@ -32,6 +32,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	{
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
+	chunksAsVectors.resize(visibleChunks);
 	squareSize = visibleWidth;
 	totalChunks = visibleChunks;
 	minPositions = vec2i{-visibleWidth / 2, -visibleWidth / 2};
@@ -39,7 +40,23 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	worldSeed = 0;
 }
 
-void	VoxelMap::init(WorldNavigator& world)
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const {
+
+	std::unique_ptr<ve::VulkanModel> model;
+
+	// std::cout << "Vectors: " << chunksAsVectors.size() << std::endl;
+
+
+	// for (size_t i = 0; i < chunksAsVectors.size(); i++)
+	// {
+	// 	std::cout << "Vectors[i] size: " << chunksAsVectors[i].size() << std::endl;
+	// }
+
+	model = std::make_unique<ve::VulkanModel>(device, chunksAsVectors, VOXEL_VERTEX_INDEXES);
+	return model;
+}
+
+void	VoxelMap::init()
 {
 	vec2i pos = minPositions;
 	Stopwatch timer;
@@ -49,7 +66,9 @@ void	VoxelMap::init(WorldNavigator& world)
 	{
 		for (i32 x = 0; x < squareSize; x++)
 		{
-			generateChunk((VoxelType*)getChunk(pos), pos);
+			generateChunk(getChunk(pos), pos);
+			// threadManager.enqueue([this, pos] {
+			// });
 			pos.width += 1;
 		}
 		pos.width = minPositions.x;
@@ -60,9 +79,10 @@ void	VoxelMap::init(WorldNavigator& world)
 	{
 		for (i32 x = 0; x < squareSize; x++)
 		{
-			threadManager.enqueue([pos, &world] {
-				world.addNewWorld(vec3i(pos.width, 0, pos.depth));
-			});
+			mapToVertexes(getChunk(pos), chunksAsVectors.at(getChunkIndex(pos)), pos);
+			// threadManager.enqueue([pos, &world] {
+			// 	world.addNewWorld(vec3i(pos.width, 0, pos.depth));
+			// });
 			// world.addNewWorld(vec3i(pos.width, 0, pos.depth));
 			pos.width += 1;
 		}
@@ -81,16 +101,17 @@ VoxelMap::~VoxelMap()
 
 VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
 {
+	return map + getChunkIndex(position) * chunkSize;
+}
+
+ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
+{
 	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
 	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
 	ui32 chunkX = positiveModulo(position.width, squareSize);
 	ui32 chunkZ = positiveModulo(position.depth, squareSize);
 	
-	ui32 chunkIndex = chunkZ * squareSize + chunkX;
-
-	// std::cout << "Index: " << chunkIndex << std::endl;
-
-	return map + chunkIndex * chunkSize;
+	return chunkZ * squareSize + chunkX;
 }
 
 ui32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
@@ -135,37 +156,100 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 	}
 }
 
-void	VoxelMap::move(Direction direction)
+vec2i	VoxelMap::voxelToChunkPosition(const vec3& position)
 {
-	switch (direction)
+	vec2i	chunkPos{
+		static_cast<i32>(position.x / squareSize),
+		static_cast<i32>(position.z / squareSize)
+	};
+	if (position.x < 0.0f)
+		chunkPos.width -= 1;
+	if (position.z < 0.0f)
+		chunkPos.depth -= 1;
+	return chunkPos;
+}
+
+bool	VoxelMap::update(const vec3& newPosition)
+{
+	vec2i	moveDirection = voxelToChunkPosition(newPosition) - playerOnChunk;
+	
+	if (moveDirection == vec2i::zero())
 	{
-		case Direction::North:
-			north();
-			break;
-		case Direction::South:
-			south();
-			break;
-		case Direction::West:
-			west();
-			break;
-		case Direction::East:
-			east();
-			break;
-		default: break;
+		return false;
 	}
+	playerOnChunk = playerOnChunk + moveDirection;
+	rawPosition = newPosition;
+	while (moveDirection.width > 0)
+	{
+		east();
+		moveDirection.width--;
+	}
+	while (moveDirection.width < 0)
+	{
+		west();
+		moveDirection.width++;
+	}
+	while (moveDirection.depth > 0)
+	{
+		south();
+		moveDirection.depth--;
+	}
+	while (moveDirection.depth < 0)
+	{
+		north();
+		moveDirection.depth++;
+	}
+	return true;
+}
+
+void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
+{
+	chunk.clear();
+
+	ui32 index = 0;
+
+	for (ui32 z = 0; z < chunkDimensions.z; z++)
+	{
+		for (ui32 x = 0; x < chunkDimensions.x; x++)
+		{
+			for (ui32 y = 0; y < chunkDimensions.y; y++)
+			{
+				if (data[index] == VoxelMap::VoxelType::Air ||
+					(y < chunkDimensions.y - 1 && data[index + 1] != VoxelMap::VoxelType::Air))
+				{
+					index++;
+					continue;
+				}
+				vec3 relativePos{
+					static_cast<float>(x + pos.width * Config::chunkLength),
+					static_cast<float>(y * Config::chunkHeight),
+					static_cast<float>(z + pos.depth * Config::chunkLength)
+				};
+				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
+				chunk.insert(chunk.end(), voxelVertexes.begin(), voxelVertexes.end());
+				index++;
+			}
+		}
+	}
+	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
 }
 
 /*	Mapped like x/y graph in math, from -x (left/west) to +x (right/east) horizontally, -y (up/north) to +y (down/south) vertically. */
 
 void	VoxelMap::north()
 {
+	puts("HI I MOVED NORTH");
 	minPositions.y += 1;
 	maxPositions.y += 1;
 	vec2i	pos = vec2i{minPositions.x, maxPositions.y};
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(getChunk(pos), pos);
+		ui32	index = getChunkIndex(pos);
+		VoxelType*	ptrToData = map + index * chunkSize;
+		
+		generateChunk(ptrToData, pos);
+		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
 		pos.x += 1;
 	}
 }
@@ -178,7 +262,11 @@ void	VoxelMap::south()
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(getChunk(pos), pos);
+		ui32	index = getChunkIndex(pos);
+		VoxelType*	ptrToData = map + index * chunkSize;
+		
+		generateChunk(ptrToData, pos);
+		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
 		pos.x += 1;
 	}
 }
@@ -191,7 +279,11 @@ void	VoxelMap::west()
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(getChunk(pos), pos);
+		ui32	index = getChunkIndex(pos);
+		VoxelType*	ptrToData = map + index * chunkSize;
+
+		generateChunk(ptrToData, pos);
+		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
 		pos.y += 1;
 	}
 }
@@ -204,7 +296,11 @@ void	VoxelMap::east()
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		generateChunk(getChunk(pos), pos);
+		ui32	index = getChunkIndex(pos);
+		VoxelType*	ptrToData = map + index * chunkSize;
+		
+		generateChunk(ptrToData, pos);
+		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
 		pos.y += 1;
 	}
 }

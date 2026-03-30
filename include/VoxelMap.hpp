@@ -2,7 +2,7 @@
 
 #include "ThreadManager.hpp"
 #include "Vectors.hpp"
-#include "VoxelChunk.hpp"
+// #include "VoxelChunk.hpp"
 #include "World.hpp"
 
 namespace vox {
@@ -24,6 +24,8 @@ class WorldNavigator;
 
 class VoxelMap
 {
+	using VoxelChunk = std::vector<ve::VulkanModel::Vertex>;
+
 	public:
 
 		enum class VoxelType : ui8
@@ -44,26 +46,33 @@ class VoxelMap
 		VoxelMap& operator=(VoxelMap&&) = delete;
 
 		VoxelType*	getChunk(const vec2i& position)	const noexcept;
-		ui32	positiveModulo(i32 value, i32 modulus)	const noexcept;
+		ui32 		getChunkIndex(const vec2i& position) const noexcept;
+		
+		bool	update(const vec3& newPosition);
+		void	init();
+		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
 
-		void	move(Direction direction);
-		void	init(WorldNavigator& world);
-		vec2i	minPositions;
-	
+		
 	private:
-
+		
 		VoxelType*	map;
 		ui32	worldSeed;
 		ui32	chunkSize;
 		vec3ui	chunkDimensions;
 		i32 	squareSize;
 		ui32	totalChunks;
+		vec2i	minPositions;
 		vec2i	maxPositions;
-
+		vec2i	playerOnChunk;
+		vec3	rawPosition;
+		
 		ThreadManager&	threadManager;
-		// std::vector<VoxelChunk>	chunks;
+		std::vector<VoxelChunk>	chunksAsVectors;
 
+		ui32	positiveModulo(i32 value, i32 modulus)	const noexcept;
+		vec2i	voxelToChunkPosition(const vec3& position);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
+		void	mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos);
 		void	north();
 		void	south();
 		void	west();
