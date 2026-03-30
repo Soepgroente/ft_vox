@@ -9,7 +9,7 @@ namespace vox {
 
 std::vector<std::thread> Vox::workerThreads{};
 
-struct GlobalUBO
+struct TerrainUBO
 {
 	mat4				model{1.0f};
 	mat4				view{1.0f};
@@ -17,6 +17,12 @@ struct GlobalUBO
 	vec4				ambientLightColor{1.0f, 1.0f, 1.0f, 0.1f};
 	vec3				lightPosition{0.0f, -4.0f, -3.0f};
 	alignas(16)	vec4	lightColor{1.0f};
+};
+
+struct SkyboxUBO
+{
+	mat4				view{1.0f};
+	mat4				projection{1.0f};
 };
 
 /**
@@ -34,12 +40,6 @@ Vox::Vox( void ) :
 	)
 {
 	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
-	globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
-		.setMaxSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.build();
 
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
@@ -55,77 +55,108 @@ Vox::Vox( void ) :
 }
 
 /**
- * destructor
- */
-Vox::~Vox( void ) noexcept {
-	globalDescriptorPool.reset();
-}
-
-/**
  * Run the rendering loop
  */
 void Vox::run( void ) {
-	std::vector<std::unique_ptr<ve::VulkanBuffer>>	uboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < uboBuffers.size(); i++)
+	std::vector<std::unique_ptr<ve::VulkanBuffer>>	terrainUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < terrainUboBuffers.size(); i++)
 	{
-		uboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
+		terrainUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
 			vulkanDevice,
-			sizeof(GlobalUBO),
+			sizeof(TerrainUBO),
 			1,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 		);
-		uboBuffers[i]->map();
+		terrainUboBuffers[i]->map();
 	}
 
-	std::unique_ptr<ve::VulkanDescriptorSetLayout> globalSetLayout = ve::VulkanDescriptorSetLayout::Builder(vulkanDevice)
-		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
-		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-		.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-		.build();
-	std::vector<VkDescriptorSet>	globalDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < globalDescriptorSets.size(); i++)
+	std::vector<std::unique_ptr<ve::VulkanBuffer>>	skyboxUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < skyboxUboBuffers.size(); i++)
 	{
-		VkDescriptorBufferInfo bufferInfo = uboBuffers[i]->descriptorInfo();
-		VkDescriptorImageInfo imageInfoVoxel{}, imageInfoSkybox{};
+		skyboxUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
+			vulkanDevice,
+			sizeof(SkyboxUBO),
+			1,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+		);
+		skyboxUboBuffers[i]->map();
+	}
+	ui32 maxDescriptors = 2;
+	ui32 nUboBuffers = 2;
+	ui32 nTextures = 2;
+	std::unique_ptr<ve::VulkanDescriptorPool> globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
+		.setMaxSets(maxDescriptors * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nUboBuffers * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nTextures * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.build();
 
-		imageInfoVoxel.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfoVoxel.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
-		imageInfoVoxel.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
+	std::unique_ptr<ve::VulkanDescriptorSetLayout> globalSetLayout = ve::VulkanDescriptorSetLayout::Builder(vulkanDevice)
+		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+		.build();
 
-		imageInfoSkybox.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfoSkybox.imageView = this->textures.at(TEXT_SKYBOX).getImageView();
-		imageInfoSkybox.sampler = this->textures.at(TEXT_SKYBOX).getSampler();
+	std::vector<VkDescriptorSet> terrainDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < terrainDescriptorSets.size(); i++)
+	{
+		VkDescriptorBufferInfo bufferInfo = terrainUboBuffers[i]->descriptorInfo();
+		VkDescriptorImageInfo imageInfo{};
+
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
+		imageInfo.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
 
 		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
 			.writeBuffer(0, &bufferInfo)
-			.writeImage(1, &imageInfoVoxel)
-			.writeImage(2, &imageInfoSkybox)
-			.build(globalDescriptorSets[i]);
+			.writeImage(1, &imageInfo)
+			.build(terrainDescriptorSets[i]);
+	}
+
+	std::vector<VkDescriptorSet> skyboxDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < skyboxDescriptorSets.size(); i++)
+	{
+		VkDescriptorBufferInfo bufferInfo = terrainUboBuffers[i]->descriptorInfo();
+		VkDescriptorImageInfo imageInfo{};
+
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = this->textures.at(TEXT_SKYBOX).getImageView();
+		imageInfo.sampler = this->textures.at(TEXT_SKYBOX).getSampler();
+
+		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
+			.writeBuffer(0, &bufferInfo)
+			.writeImage(1, &imageInfo)
+			.build(skyboxDescriptorSets[i]);
 	}
 
 	ve::VulkanRenderSystem	worldRenderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
-		globalSetLayout->getDescriptorSetLayout(),
+		std::vector{globalSetLayout->getDescriptorSetLayout()},
 		Config::worldVertShaderPath,
-		Config::worldFragShaderPath
+		Config::worldFragShaderPath,
+		ve::TextureType::TEXTURE_PLAIN
 	};
 
 	ve::VulkanRenderSystem	skyRenderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
-		globalSetLayout->getDescriptorSetLayout(),
+		std::vector{globalSetLayout->getDescriptorSetLayout()},
 		Config::skyVertShaderPath,
-		Config::worldFragShaderPath
+		Config::worldFragShaderPath,
+		ve::TextureType::TEXTURE_CUBEMAP
 	};
 
-	// size_t	frameCount = 0;
-	Stopwatch timer;
+	ve::FrameInfo terrainRenderinginfo
+	{
+		0,
+		this->camera,
+		nullptr,
+		nullptr,
+		ve::VulkanObject::createVulkanObject(),
+	};
 
-	ve::FrameInfo info
+	ve::FrameInfo skyboxRenderingInfo
 	{
 		0,
 		this->camera,
@@ -136,8 +167,10 @@ void Vox::run( void ) {
 
 	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+	terrainRenderinginfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+	skyboxRenderingInfo.gameObject.model = this->createSkyboxModel();
 
+	Stopwatch timer;
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
@@ -150,32 +183,37 @@ void Vox::run( void ) {
 			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 			if (newDataCreated)
-				info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+				terrainRenderinginfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 		}
-
-		info.commandBuffer = vulkanRenderer.beginFrame();
-		if (info.commandBuffer != nullptr)
+		VkCommandBuffer commandBuffer = vulkanRenderer.beginFrame();
+		terrainRenderinginfo.commandBuffer = &commandBuffer;
+		skyboxRenderingInfo.commandBuffer = &commandBuffer;
+		if (commandBuffer != nullptr)	// NB when can this give back null?
 		{
-			info.frameIndex = vulkanRenderer.getCurrentFrameIndex();
-			info.globalDescriptorSet = globalDescriptorSets[info.frameIndex];
-			GlobalUBO	ubo{};
+			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
+			terrainRenderinginfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
 
-			// rendering voxels
-			ubo.model = mat4::idMat();
-			ubo.view = this->camera.getViewMatrix();
-			ubo.projection = this->camera.getProjectionMatrix();
-			uboBuffers[info.frameIndex]->writeToBuffer(&ubo);
-			uboBuffers[info.frameIndex]->flush();
+			TerrainUBO	terrainUbo{};
+			terrainUbo.model = mat4::idMat();
+			terrainUbo.view = this->camera.getViewMatrix();
+			terrainUbo.projection = this->camera.getProjectionMatrix();
+			terrainUboBuffers[terrainRenderinginfo.frameIndex]->writeToBuffer(&terrainUbo);
+			terrainUboBuffers[terrainRenderinginfo.frameIndex]->flush();
+			terrainRenderinginfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderinginfo.frameIndex];
 
-			// rendering skybox
-			// ubo.projectionView = this->camera.getViewMatrixOnlyRotation();
-			// uboBuffers[info.frameIndex]->writeToBuffer(&ubo);
-			// uboBuffers[info.frameIndex]->flush();
+			worldRenderSystem.renderObject(terrainRenderinginfo);
 
-			vulkanRenderer.beginSwapChainRenderPass(info.commandBuffer);
-			worldRenderSystem.renderObject(info);
+			SkyboxUBO skyboxUbo{};
+			skyboxUbo.view = this->camera.getViewMatrixOnlyRotation();
+			skyboxUbo.projection = this->camera.getProjectionMatrix();
+			skyboxRenderingInfo.frameIndex = terrainRenderinginfo.frameIndex;
+			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->writeToBuffer(&terrainUbo);
+			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->flush();
+			skyboxRenderingInfo.globalDescriptorSet = skyboxDescriptorSets[skyboxRenderingInfo.frameIndex];
 
-			vulkanRenderer.endSwapChainRenderPass(info.commandBuffer);
+			worldRenderSystem.renderObject(skyboxRenderingInfo);
+
+			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();
 			timer.stop();
 			// int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
@@ -263,6 +301,18 @@ void Vox::resizeWindow( ui32 width, ui32 height ) {
 		ve::CameraSettings::projectionNear,
 		ve::CameraSettings::projectionFar
 	);
+}
+
+/**
+ * Creates a new ve::VulkanModel, that loads vertex data into the GPU. It shall be called everytime
+ * a new world/chunks is created (i.e. whenever WorldNavigator::spawnCloseByWorlds() returns true)
+ *
+ * @param device vulkan object used to build the buffers
+ *
+ * @return pointer to the newly created model 
+ */
+std::unique_ptr<ve::VulkanModel> Vox::createSkyboxModel( void ) const {
+	return std::make_unique<ve::VulkanModel>(vulkanDevice, VOXEL_VERTEXES, VOXEL_VERTEX_INDEXES);
 }
 
 }	// namespace vox

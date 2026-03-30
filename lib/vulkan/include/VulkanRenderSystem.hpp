@@ -6,6 +6,7 @@
 #include "VulkanModel.hpp"
 #include "VulkanObject.hpp"
 #include "VulkanPipeline.hpp"
+#include "VulkanTexture.hpp"
 
 #include <GLFW/glfw3.h>
 #include <array>
@@ -21,9 +22,10 @@ class VulkanRenderSystem
 	VulkanRenderSystem(
 		VulkanDevice& device,
 		VkRenderPass renderPass,
-		VkDescriptorSetLayout globalSetLayout,
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
 		char const* vertexShaderFile,
-		char const* fragmentShaderFile
+		char const* fragmentShaderFile,
+		TextureType type = TEXTURE_PLAIN
 	);
 	~VulkanRenderSystem();
 
@@ -35,8 +37,9 @@ class VulkanRenderSystem
 
 	private:
 
-	void	createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+	void	createPipelineLayout(std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
 	void	createPipeline(VkRenderPass renderPass);
+	void	createPipelineCubemap(VkRenderPass renderPass);
 
 	VulkanDevice&	vulkanDevice;
 

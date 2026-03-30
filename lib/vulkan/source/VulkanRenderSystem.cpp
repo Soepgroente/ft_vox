@@ -16,13 +16,29 @@ struct SimplePushConstantData
 	mat4		normalMatrix{1.0f};
 };
 
-VulkanRenderSystem::VulkanRenderSystem(VulkanDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout, char const* vertexShaderFile, char const* fragmentShaderFile) :
+VulkanRenderSystem::VulkanRenderSystem(
+		VulkanDevice& device,
+		VkRenderPass renderPass,
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
+		char const* vertexShaderFile,
+		char const* fragmentShaderFile,
+		TextureType type
+	) :
 	vulkanDevice(device),
 	vertexShaderFile(vertexShaderFile),
 	fragmentShaderFile(fragmentShaderFile)
 {
-	createPipelineLayout(globalSetLayout);
-	createPipeline(renderPass);
+	createPipelineLayout(descriptorSetLayouts);
+	switch (type) {
+		case TEXTURE_PLAIN:
+			createPipeline(renderPass);
+			break;
+		case TEXTURE_CUBEMAP:
+			createPipelineCubemap(renderPass);
+			break;
+		// case default:
+		// 	break;
+	}
 }
 
 VulkanRenderSystem::~VulkanRenderSystem()
@@ -30,17 +46,14 @@ VulkanRenderSystem::~VulkanRenderSystem()
 	vkDestroyPipelineLayout(vulkanDevice.device(), pipelineLayout, nullptr);
 }
 
-void	VulkanRenderSystem::createPipelineLayout(VkDescriptorSetLayout globalSetLayout)
+void	VulkanRenderSystem::createPipelineLayout(std::vector<VkDescriptorSetLayout> descriptorSetLayouts)
 {
-	VkPushConstantRange	pushConstantRange{};
-
+	VkPushConstantRange	pushConstantRange{};		// push constants may not be necessary for every pipeline
 	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushConstantRange.offset = 0;
 	pushConstantRange.size = sizeof(SimplePushConstantData);
 
-	std::vector<VkDescriptorSetLayout>	descriptorSetLayouts = {globalSetLayout};
 	VkPipelineLayoutCreateInfo	pipelineLayoutInfo{};
-
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
@@ -71,28 +84,51 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 	);
 }
 
+void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass)
+{
+	assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+	PipelineConfigInfo	pipelineConfig{};
+
+	VulkanPipeline::defaultPipelineConfigInfo(pipelineConfig);
+	// cubemap config
+	pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+	pipelineConfig.depthStencilInfo.depthTestEnable  = VK_TRUE;
+	pipelineConfig.depthStencilInfo.depthCompareOp   = VK_COMPARE_OP_LESS_OR_EQUAL;
+	pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+
+	pipelineConfig.pipelineLayout = pipelineLayout;
+	pipelineConfig.renderPass = renderPass;
+
+	vulkanPipeline = std::make_unique<VulkanPipeline>(
+		vulkanDevice,
+		this->vertexShaderFile,
+		this->fragmentShaderFile,
+		pipelineConfig
+	);
+}
 void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 {
-	vulkanPipeline->bind(frameInfo.commandBuffer);
-
-	vkCmdBindDescriptorSets(
-		frameInfo.commandBuffer,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		pipelineLayout,
-		0, 1, &frameInfo.globalDescriptorSet,
-		0, nullptr
-	);
 	if (frameInfo.gameObject.model == nullptr)
 	{
 		return;
 	}
 
-	SimplePushConstantData	push{};
+	vkCmdBindDescriptorSets(
+		*frameInfo.commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		pipelineLayout,
+		0, 1, &frameInfo.globalDescriptorSet,
+		0, nullptr
+	);
+	vulkanPipeline->bind(*frameInfo.commandBuffer);
+
+	SimplePushConstantData	push{};		// NB maybe not necessary
 	push.modelMatrix = frameInfo.gameObject.transform.matrix4(frameInfo.gameObject.model->getBoundingCenter());
 	push.normalMatrix = frameInfo.gameObject.transform.normalMatrix();
 
 	vkCmdPushConstants(
-		frameInfo.commandBuffer,
+		*frameInfo.commandBuffer,
 		pipelineLayout,
 		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 		0,
@@ -100,8 +136,8 @@ void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 		&push
 	);
 	
-	frameInfo.gameObject.model->bind(frameInfo.commandBuffer);
-	frameInfo.gameObject.model->draw(frameInfo.commandBuffer);
+	frameInfo.gameObject.model->bind(*frameInfo.commandBuffer);
+	frameInfo.gameObject.model->draw(*frameInfo.commandBuffer);
 }
 
 } // namespace ve

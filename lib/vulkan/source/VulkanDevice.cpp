@@ -546,6 +546,14 @@ void	VulkanDevice::copyBufferToImage(
 	region.imageSubresource.mipLevel = 0;
 	region.imageSubresource.baseArrayLayer = 0;
 	region.imageSubresource.layerCount = layerCount;
+	// NB for cubemaps
+	// for (int i = 0; i < 6; i++) {
+	// 	VkBufferImageCopy region{};
+	// 	region.imageSubresource.baseArrayLayer = i;
+	// 	region.imageSubresource.layerCount     = 1;
+	// 	region.imageExtent                     = { width, height, 1 };
+	// 	// ...
+	// }
 	region.imageOffset = {0, 0, 0};
 	region.imageExtent = {width, height, 1};
 
