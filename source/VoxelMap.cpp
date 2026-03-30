@@ -14,7 +14,7 @@ float	randomNoise(float, float, ui32& seed);
 
 using i32 = int32_t;
 
-VoxelMap::VoxelMap()
+VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
 	i32 visibleWidth = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
@@ -39,12 +39,12 @@ VoxelMap::VoxelMap()
 	worldSeed = 0;
 }
 
-/*	Explicit for readability for now. 4th position in vec4 contains index for which chunk	*/
-
 void	VoxelMap::init(WorldNavigator& world)
 {
 	vec2i pos = minPositions;
+	Stopwatch timer;
 
+	timer.start();
 	for (i32 z = 0; z < squareSize; z++)
 	{
 		for (i32 x = 0; x < squareSize; x++)
@@ -60,12 +60,18 @@ void	VoxelMap::init(WorldNavigator& world)
 	{
 		for (i32 x = 0; x < squareSize; x++)
 		{
-			world.addNewWorld(vec3i{pos.width, 0, pos.depth});
+			threadManager.enqueue([pos, &world] {
+				world.addNewWorld(vec3i(pos.width, 0, pos.depth));
+			});
+			// world.addNewWorld(vec3i(pos.width, 0, pos.depth));
 			pos.width += 1;
 		}
 		pos.width = minPositions.x;
 		pos.depth += 1;
 	}
+	threadManager.waitIdle();
+	timer.stop();
+	std::cout << "Initial voxel map generation took: " << timer << std::endl;
 }
 
 VoxelMap::~VoxelMap()

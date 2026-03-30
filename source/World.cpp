@@ -126,6 +126,7 @@ World::World( vec3i const& worldPos, vec3ui const& worldSize ) : worldPos(worldP
 	i32 sizeY = static_cast<i32>(worldSize.y);
 	i32 sizeZ = static_cast<i32>(worldSize.z);
 
+	vertexes.reserve(VOXEL_VERTEXES.size() * Config::chunkLength * Config::chunkHeight * Config::chunkLength / 16);
 	const VoxelMap::VoxelType* chunk = map->getChunk(pos);
 	// static std::set<const VoxelMap::VoxelType*> seenPtrs;
 
@@ -306,21 +307,12 @@ std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevic
  * @return true/false if new data was actually generated
  */
 
-bool WorldNavigator::addNewWorld( vec3i const& worldPos ) {
-	if (this->worlds.find(worldPos) != this->worlds.end()) {
-		this->worlds[worldPos].updateLastAccess();
-		return false;
-	} else {
-		this->worlds.emplace(worldPos, World(worldPos, this->worldSize));
-		this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
+bool WorldNavigator::addNewWorld( vec3i const& worldPos )
+{
+	this->worlds.emplace(worldPos, World(worldPos, this->worldSize));
+	this->totVoxels += this->worlds[worldPos].getVertexSize() / VERTEX_PER_VOXEL;
 
-		if (this->worlds.size() > MAX_WORLDS) {
-			vec3i furthestWorld = this->findFurthestWorld();
-			this->totVoxels -= this->worlds[furthestWorld].getVertexSize() / VERTEX_PER_VOXEL;
-			this->worlds.erase(furthestWorld);
-		}
-		return true;
-	}
+	return true;
 }
 
 /**

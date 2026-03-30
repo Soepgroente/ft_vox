@@ -3,44 +3,29 @@
 
 namespace vox {
 
-VoxelChunk::VoxelChunk() : data(nullptr), position(0, 0), size(0), capacity(0)
-{
-}
+// static void insertVoxelVertices(std::vector<ve::VulkanModel::Vertex>& data, const vec3& position)
+// {
+// 	(void)position;
+// 	(void)data;
+// 	for (ui32 i = 0; i < VERTEX_PER_VOXEL; i++)
+// 	{
+// 		;
+// 	}
+// }
 
-VoxelChunk::~VoxelChunk()
+void	VoxelChunk::mapDataToChunk(void* chunkData, const vec2i& position)
 {
-	free(data);
-}
-
-bool	VoxelChunk::manageData()
-{
-	if (size >= capacity)
+	VoxelMap::VoxelType* map = reinterpret_cast<VoxelMap::VoxelType*>(chunkData);
+	if (data.size() > 0)
 	{
-		ui64 newCapacity = capacity * 2;
-		ve::VulkanModel::Vertex* newData = reinterpret_cast<ve::VulkanModel::Vertex*>(realloc(data, newCapacity * sizeof(ve::VulkanModel::Vertex)));
-		if (newData == nullptr)
-		{
-			return false;
-		}
-		data = newData;
-		capacity = newCapacity;
+		data.clear();
 	}
-}
-
-bool	VoxelChunk::mapToChunk(VoxelMap::VoxelType* chunkData, ui64 chunkSize, const vec2i& position)
-{
+	else
+	{
+		data.reserve(VOXEL_VERTEXES.size() * Config::chunkLength * Config::chunkHeight * Config::chunkLength / 16);
+	}
 	vec3i pos = vec3i(position.width, 0, position.depth);
 
-	if (size == 0)
-	{
-		data = reinterpret_cast<ve::VulkanModel::Vertex*>(malloc(chunkSize * sizeof(ve::VulkanModel::Vertex)));
-		if (data == nullptr)
-		{
-			return false;
-		}
-		capacity = chunkSize;
-	}
-	size = 0;
 	ui32 width, height, depth;
 	width = Config::chunkLength;
 	depth = Config::chunkLength;
@@ -52,14 +37,17 @@ bool	VoxelChunk::mapToChunk(VoxelMap::VoxelType* chunkData, ui64 chunkSize, cons
 		{
 			for (ui32 y = 0; y < height; y++)
 			{
-				if (chunkData[z * width * height + x * height + y] != VoxelMap::VoxelType::Air)
+				switch(map[z * width * height + x * height + y])
 				{
-					if (!manageData())
-					{
-						return false;
-					}
-					data[size] = ve::VulkanModel::Vertex{vec3(pos.x + x, pos.y + y, pos.z + z), vec3(0.0f, 1.0f, 0.0f), vec2(0.0f, 0.0f)};
-					size++;
+					case VoxelMap::VoxelType::Air:
+						break;
+					case VoxelMap::VoxelType::Dirt:
+						break;
+					case VoxelMap::VoxelType::Stone:
+						break;
+					case VoxelMap::VoxelType::Water:
+						break;
+					default: break;
 				}
 			}
 		}

@@ -25,6 +25,7 @@ Vox::Vox( void ) :
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	globalDescriptorPool{},
 	camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
+	voxelMap{threadManager},
 	inputHandler(
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
 		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }

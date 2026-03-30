@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ThreadManager.hpp"
 #include "Vectors.hpp"
 #include "VoxelChunk.hpp"
 #include "World.hpp"
@@ -31,9 +32,11 @@ class VoxelMap
 			Dirt = 1,
 			Stone = 2,
 			Water = 3,
+			NoMoreBlocksThisColumn = 255
 		};
 
-		VoxelMap();
+		VoxelMap() = delete;
+		VoxelMap(ThreadManager& threadManager);
 		~VoxelMap();
 		VoxelMap(VoxelMap const&) = delete;
 		VoxelMap(VoxelMap&&) = delete;
@@ -57,7 +60,8 @@ class VoxelMap
 		ui32	totalChunks;
 		vec2i	maxPositions;
 
-		std::vector<VoxelChunk>	chunks;
+		ThreadManager&	threadManager;
+		// std::vector<VoxelChunk>	chunks;
 
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	north();
