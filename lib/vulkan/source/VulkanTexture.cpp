@@ -31,67 +31,18 @@ VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device, 
 		info.flags = 0;
 		info.extent.width = static_cast<uint32_t>(imageInfo.width);
 		info.extent.height = static_cast<uint32_t>(imageInfo.height);
-		imageSize = static_cast<VkDeviceSize>(imageInfo.width) * imageInfo.height * 4;
+		nPixels = info.extent.width * info.extent.height;
 	} else if (type == TEXTURE_CUBEMAP) {
 		info.arrayLayers = 6;
 		info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-		uint32_t faceSize = imageInfo.width / 4;
-		info.extent.width = static_cast<uint32_t>(faceSize);
-		info.extent.height = static_cast<uint32_t>(faceSize);
-		imageSize = faceSize * faceSize * 6 * 4;	// 6 are the faces per picture, 4 is the size in pixel of every pixel
+		info.extent.width = static_cast<uint32_t>(imageInfo.width) / 4U;
+		info.extent.height = static_cast<uint32_t>(imageInfo.height) / 3U;
+		nPixels = info.extent.width * info.extent.height * 6;
 	}
 
 	createTextureImage();
 	createTextureImageView();
 	createTextureSampler();
-
-	// NB do that:
-	// 1. carica l'immagine totale da disco
-	// int totalWidth, totalHeight, channels;
-	// stbi_uc* pixels = stbi_load(path, &totalWidth, &totalHeight, &channels, STBI_rgb_alpha);
-
-	// int faceWidth  = totalWidth / 4;
-	// int faceHeight = totalHeight / 3;
-	// VkDeviceSize faceSize  = faceWidth * faceHeight * 4;
-	// VkDeviceSize totalSize = faceSize * 6;
-
-	// // 2. crea lo staging buffer di totalSize
-	// // ...
-	// void* stagingPtr;
-	// vkMapMemory(device, stagingMemory, 0, totalSize, 0, &stagingPtr);
-
-	// // 3. ← QUI — estrai le 6 facce e copiale nello staging buffer
-	// for (int face = 0; face < 6; face++) {
-	// 	auto [col, row] = offsets[face];
-	// 	int srcX = col * faceWidth;
-	// 	int srcY = row * faceHeight;
-
-	// 	for (int y = 0; y < faceHeight; y++) {
-	// 		memcpy(
-	// 			(uint8_t*)stagingPtr + face * faceSize + y * faceWidth * 4,
-	// 			pixels + (srcY + y) * totalWidth * 4 + srcX * 4,
-	// 			faceWidth * 4
-	// 		);
-	// 	}
-	// }
-
-	// vkUnmapMemory(device, stagingMemory);
-	// stbi_image_free(pixels);
-
-	// // 4. crea VkImage con arrayLayers=6, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
-	// // ...
-
-	// // 5. transizione layout UNDEFINED → TRANSFER_DST_OPTIMAL
-	// // ...
-
-	// // 6. vkCmdCopyBufferToImage con le 6 regions
-	// // ...
-
-	// // 7. transizione layout TRANSFER_DST_OPTIMAL → SHADER_READ_ONLY_OPTIMAL
-	// // ...
-
-	// // 8. crea VkImageView con viewType=VK_IMAGE_VIEW_TYPE_CUBE
-	// // ...
 }
 
 VulkanTexture::~VulkanTexture()
@@ -116,7 +67,7 @@ VulkanTexture::~VulkanTexture()
 
 VulkanTexture::VulkanTexture(VulkanTexture&& other) :
 	imageInfo(other.imageInfo),
-	imageSize(other.imageSize),
+	nPixels(other.nPixels),
 	textureImage(other.textureImage),
 	textureImageMemory(other.textureImageMemory),
 	textureImageView(other.textureImageView),
@@ -125,7 +76,7 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) :
 	device(other.device)
 {
 	other.imageInfo = {};
-	other.imageSize = 0;
+	other.nPixels = 0;
 	other.textureImage = VK_NULL_HANDLE;
 	other.textureImageView = VK_NULL_HANDLE;
 	other.textureSampler = VK_NULL_HANDLE;
@@ -137,14 +88,14 @@ VulkanTexture&	VulkanTexture::operator=(VulkanTexture&& other)
 	if (this != &other)
 	{
 		imageInfo = other.imageInfo;
-		imageSize = other.imageSize;
+		nPixels = other.nPixels;
 		textureImage = other.textureImage;
 		textureImageView = other.textureImageView;
 		textureSampler = other.textureSampler;
 		info = other.info;
 
 		other.imageInfo = {};
-		other.imageSize = 0;
+		other.nPixels = 0;
 		other.textureImage = VK_NULL_HANDLE;
 		other.textureImageView = VK_NULL_HANDLE;
 		other.textureSampler = VK_NULL_HANDLE;
@@ -155,22 +106,54 @@ VulkanTexture&	VulkanTexture::operator=(VulkanTexture&& other)
 
 void	VulkanTexture::createTextureImage()
 {
-	VkBuffer		stagingBuffer;
-	VkDeviceMemory	stagingBufferMemory;
-
-	device.createBuffer(
-		imageSize,
+	VulkanBuffer	stagingBuffer(
+		device,
+		VulkanTexture::sizeOfPixel,
+		nPixels,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		stagingBuffer,
-		stagingBufferMemory
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 	);
+	stagingBuffer.map();
 
-	void* data;
+	if (type == TEXTURE_PLAIN)
+	{
+		stagingBuffer.writeToBuffer(imageInfo.imageData, nPixels * static_cast<VkDeviceSize>(VulkanTexture::sizeOfPixel));
+	}
+	else if (type == TEXTURE_CUBEMAP)
+	{
+		uint32_t faceWidth  = static_cast<uint32_t>(imageInfo.width) / 4U;
+		uint32_t faceHeight = static_cast<uint32_t>(imageInfo.height) / 3U;
 
-	vkMapMemory(device.device(), stagingBufferMemory, 0, imageSize, 0, &data);
-	memcpy(data, imageInfo.imageData, static_cast<size_t>(imageSize));
-	vkUnmapMemory(device.device(), stagingBufferMemory);
+		// order of the faces matters!
+		std::vector<vec2ui> offsets = {
+			vec2ui{3 * faceWidth, 1 * faceHeight},	// +Z
+			vec2ui{1 * faceWidth, 1 * faceHeight},	// -Z
+			vec2ui{1 * faceWidth, 2 * faceHeight},	// +Y
+			vec2ui{1 * faceWidth, 0 * faceHeight},	// -Y
+			vec2ui{0 * faceWidth, 1 * faceHeight},	// +X
+			vec2ui{2 * faceWidth, 1 * faceHeight},	// -X
+		};
+
+		uint32_t faceWidthBytes  = faceWidth * VulkanTexture::sizeOfPixel;
+		uint32_t faceSizeBytes  = faceWidth * faceHeight * VulkanTexture::sizeOfPixel;
+		uint32_t textureWidthBytes = imageInfo.width * VulkanTexture::sizeOfPixel;
+		for (uint32_t face = 0; face < 6; face++)
+		{
+			uint32_t x = offsets[face].x;
+			uint32_t y = offsets[face].y;
+			// std::cout << "face index: " << face << std::endl;
+			for (uint32_t h = 0; h < faceHeight; h++)
+			{
+				// std::cout << "h index: " << h << std::endl;
+				stagingBuffer.writeToBuffer(
+					imageInfo.imageData + (h + y) * textureWidthBytes + x * VulkanTexture::sizeOfPixel,
+					faceWidthBytes,
+					face * faceSizeBytes + h * faceWidthBytes
+				);
+			}
+		}
+	}
+
 	free((const_cast<unsigned char*>(imageInfo.imageData)));
 	imageInfo.imageData = nullptr;
 
@@ -180,21 +163,19 @@ void	VulkanTexture::createTextureImage()
 		textureImage,
 		textureImageMemory
 	);
-
 	device.transitionImageLayout(
 		textureImage,
 		info.format,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		(this->type == TEXTURE_PLAIN) ? 1 : 6
+		info.arrayLayers
 	);
-
 	device.copyBufferToImage(
-		stagingBuffer,
+		stagingBuffer.getBuffer(),
 		textureImage,
 		static_cast<uint32_t>(imageInfo.width),
 		static_cast<uint32_t>(imageInfo.height),
-		1,
+		info.arrayLayers,
 		type
 	);
 	device.transitionImageLayout(
@@ -202,11 +183,8 @@ void	VulkanTexture::createTextureImage()
 		info.format,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		(this->type == TEXTURE_PLAIN) ? 1 : 6
+		info.arrayLayers
 	);
-
-	vkDestroyBuffer(device.device(), stagingBuffer, nullptr);
-	vkFreeMemory(device.device(), stagingBufferMemory, nullptr);
 }
 
 void	VulkanTexture::createTextureImageView()
@@ -227,13 +205,18 @@ void	VulkanTexture::createTextureSampler()
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	samplerInfo.magFilter = VK_FILTER_LINEAR;
 	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	// NB for cubemaps
-	// samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	// samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	// samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	if (type == TEXTURE_PLAIN)
+	{
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	}
+	else if (type == TEXTURE_CUBEMAP)
+	{
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	}
 	samplerInfo.anisotropyEnable = VK_TRUE;
 	samplerInfo.maxAnisotropy = device.properties.limits.maxSamplerAnisotropy;
 	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;

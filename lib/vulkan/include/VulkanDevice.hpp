@@ -81,7 +81,7 @@ class VulkanDevice
 		uint32_t width,
 		uint32_t height,
 		uint32_t layerCount,
-		TextureType textureType = TEXTURE_PLAIN
+		TextureType textureType
 	);
 
 	void	createImageWithInfo(

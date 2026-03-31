@@ -538,13 +538,13 @@ void	VulkanDevice::copyBufferToImage(
 	VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount, TextureType textureType)
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-	if (textureType == TEXTURE_PLAIN) {
+	if (textureType == TEXTURE_PLAIN)
+	{
 		VkBufferImageCopy region{};
 
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;
 		region.bufferImageHeight = 0;
-
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.mipLevel = 0;
 		region.imageSubresource.baseArrayLayer = 0;
@@ -560,34 +560,24 @@ void	VulkanDevice::copyBufferToImage(
 			1,
 			&region
 		);
-	} else if (textureType == TEXTURE_CUBEMAP) {
-		uint32_t faceSize = width / 4;
-		assert( faceSize == (height / 3) && "Texture tiles do not have same size for width and height");
-		std::vector<VkBufferImageCopy> copyRegions(6);
+	}
+	else if (textureType == TEXTURE_CUBEMAP)
+	{
+		uint32_t faceWidth = width / 4;
+		uint32_t faceHeight = height / 3;
+		uint32_t faceSize = faceWidth * faceHeight * 4;
 
-		std::vector<vec2ui> offsets = {
-			vec2ui{0 * faceSize, 1 * faceSize},	// +X
-			vec2ui{2 * faceSize, 1 * faceSize},	// -X
-			vec2ui{1 * faceSize, 2 * faceSize},	// +Y
-			vec2ui{1 * faceSize, 0 * faceSize},	// -Y
-			vec2ui{3 * faceSize, 1 * faceSize},	// +Z
-			vec2ui{1 * faceSize, 1 * faceSize},	// -Z
-		};
-
-		for (uint32_t i = 0; i < 6; i++) {
-			// copyRegions[i].bufferOffset = 0;
-			// copyRegions[i].bufferRowLength = width;
-			// copyRegions[i].bufferImageHeight = height;
-			copyRegions[i].bufferOffset = i * faceSize;
-			copyRegions[i].bufferRowLength = width;
-			copyRegions[i].bufferImageHeight = height;
-			copyRegions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			copyRegions[i].imageSubresource.mipLevel = 0;
-			copyRegions[i].imageSubresource.baseArrayLayer = i;
-			copyRegions[i].imageSubresource.layerCount = 1; // 6
-			// copyRegions[i].imageOffset = {static_cast<int32_t>(offsets[i].x), static_cast<int32_t>(offsets[i].y), 0};
-			copyRegions[i].imageOffset = {0, 0, 0};
-			copyRegions[i].imageExtent = {faceSize, faceSize, 1};
+		std::vector<VkBufferImageCopy> regions(6);
+		for (uint32_t face = 0; face < 6; face++) {
+			regions[face].bufferOffset = face * faceSize;
+			regions[face].bufferRowLength = 0;
+			regions[face].bufferImageHeight = 0;
+			regions[face].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			regions[face].imageSubresource.mipLevel = 0;
+			regions[face].imageSubresource.baseArrayLayer = face;
+			regions[face].imageSubresource.layerCount = 1;
+			regions[face].imageOffset = {0, 0, 0};
+			regions[face].imageExtent = {faceWidth, faceHeight, 1};
 		}
 
 		vkCmdCopyBufferToImage(
@@ -595,8 +585,8 @@ void	VulkanDevice::copyBufferToImage(
 			buffer,
 			image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			6,
-			copyRegions.data()
+			static_cast<uint32_t>(regions.size()),
+			regions.data()
 		);
 	}
 	endSingleTimeCommands(commandBuffer);
