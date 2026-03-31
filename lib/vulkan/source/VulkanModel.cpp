@@ -5,22 +5,35 @@
 #include <iostream>
 #include <set>
 
+
 namespace ve {
 
-VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder) : vulkanDevice{device}
+VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder, ModelType type) : vulkanDevice{device}, type{type}
 {
 	createVertexBuffers(builder.vertices);
-	createIndexBuffers(builder.indices);
-	vertexCount = static_cast<uint32_t>(builder.vertices.size());
-	indexCount = static_cast<uint32_t>(builder.indices.size());
+	if (builder.indices.size() > 2U) {
+		this->type = this->type | ModelType::INDEXED;
+		createIndexBuffers(builder.indices);
+	}
 }
 
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : vulkanDevice{device}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, ModelType type) : vulkanDevice{device}, type{type}
 {
 	createVertexBuffers(vertices);
-	createIndexBuffers(indices);
-	vertexCount = static_cast<uint32_t>(vertices.size());
-	indexCount = static_cast<uint32_t>(indices.size());
+	if (indices.size() > 2U) {
+		this->type = this->type | ModelType::INDEXED;
+		createIndexBuffers(indices);
+	}
+}
+
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, ModelType type) : vulkanDevice{device}, type{type}
+{
+	createVertexBuffers(vertices);
+	if (indices.size() > 2U) {
+		this->type = this->type | ModelType::INDEXED;
+		createIndexBuffers(indices);
+	}
+
 }
 
 /**
@@ -32,25 +45,14 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertic
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}, type{defaultModelType | ModelType::INDEXED}
 {
-	this->vertexCount = 0U;
-	this->indexCount = 0U;
-	for (std::vector<Vertex> const* worldVertexes : vertices) {
-		this->vertexCount += worldVertexes->size();
-		// a voxel has always 24 vertexes and 36 indexes, with this proportion, given
-		// an amount of voxels, the total number of indexes is: nVoxels * nIndexPerVoxel / nVertexPerVoxel
-		this->indexCount += (worldVertexes->size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
-	}
-	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
-	this->hasIndexBuffer = true;
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
 
 void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 {
 	vertexCount = static_cast<uint32_t>(vertices.size());
-
 	assert(vertexCount >= 3 && "Vertex count must be at least 3");
 
 	VkDeviceSize	bufferSize = sizeof(vertices[0]) * vertexCount;
@@ -77,18 +79,42 @@ void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), bufferSize);
 }
 
+void	VulkanModel::createVertexBuffers(const std::vector<vec3>& vertices)
+{
+	vertexCount = static_cast<uint32_t>(vertices.size());
+	assert(vertexCount >= 3 && "Vertex count must be at least 3");
+
+	uint32_t		vertexSize = sizeof(vec3);
+	VkDeviceSize	bufferSize = vertexSize * vertexCount;
+
+	VulkanBuffer	stagingBuffer(
+		vulkanDevice,
+		vertexSize,
+		vertexCount,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+	);
+
+	stagingBuffer.map();
+	stagingBuffer.writeToBuffer(static_cast<const void*>(vertices.data()));
+
+	vertexBuffer = std::make_unique<VulkanBuffer>(
+		vulkanDevice,
+		vertexSize,
+		vertexCount,
+		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+	);
+	vulkanDevice.copyBuffer(stagingBuffer.getBuffer(), vertexBuffer->getBuffer(), bufferSize);
+}
+
 void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 {
 	indexCount = static_cast<uint32_t>(indices.size());
-	hasIndexBuffer = indexCount > 0;
+	assert(indexCount >= 3 && "Index count must be at least 3");
 
-	if (hasIndexBuffer == false)
-	{
-		return;
-	}
-
-	VkDeviceSize	bufferSize = sizeof(indices[0]) * indexCount;
-	uint32_t		indexSize = sizeof(indices[0]);
+	uint32_t		indexSize = sizeof(uint32_t);
+	VkDeviceSize	bufferSize = indexSize * indexCount;
 
 	VulkanBuffer	stagingBuffer(
 		vulkanDevice,
@@ -113,6 +139,17 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 
 void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
 {
+	this->vertexCount = 0U;
+	this->indexCount = 0U;
+	for (std::vector<Vertex> const* worldVertexes : vertices) {
+		this->vertexCount += worldVertexes->size();
+		// a voxel has always 24 vertexes and 36 indexes, with this proportion, given
+		// an amount of voxels, the total number of indexes is: nVoxels * nIndexPerVoxel / nVertexPerVoxel
+		this->indexCount += (worldVertexes->size() * INDEX_PER_VOXEL) / VERTEX_PER_VOXEL;
+	}
+	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
+	assert(this->indexCount >= 3 && "Index count must be at least 3");
+
 	uint32_t		vertexSize = sizeof(Vertex);
 	VulkanBuffer	stagingBufferVertex(
 		vulkanDevice,
@@ -177,7 +214,7 @@ void	VulkanModel::bind(VkCommandBuffer commandBuffer)
 	VkDeviceSize	offsets[] = {0};
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
-	if (hasIndexBuffer == true)
+	if (this->type & ModelType::INDEXED)
 	{
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 	}
@@ -185,7 +222,7 @@ void	VulkanModel::bind(VkCommandBuffer commandBuffer)
 
 void	VulkanModel::draw(VkCommandBuffer commandBuffer)
 {
-	if (hasIndexBuffer == true)
+	if (this->type & ModelType::INDEXED)
 	{
 		vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 	}
@@ -195,11 +232,80 @@ void	VulkanModel::draw(VkCommandBuffer commandBuffer)
 	}
 }
 
+void	VulkanModel::setBoundingBox(const std::vector<Vertex>& vertices) noexcept
+{
+	boundingBox.min.x = std::min_element(vertices.begin(), vertices.end(),
+		[](const Vertex& a, const Vertex& b) { return a.pos.x < b.pos.x; })->pos.x;
+	boundingBox.max.x = std::max_element(vertices.begin(), vertices.end(),
+		[](const Vertex& a, const Vertex& b) { return a.pos.x < b.pos.x; })->pos.x;
+	boundingBox.min.y = std::min_element(vertices.begin(), vertices.end(),
+		[](const Vertex& a, const Vertex& b) { return a.pos.y < b.pos.y; })->pos.y;
+	boundingBox.max.y = std::max_element(vertices.begin(), vertices.end(),
+		[](const Vertex& a, const Vertex& b) { return a.pos.y < b.pos.y; })->pos.y;
+	boundingBox.min.z = std::min_element(vertices.begin(), vertices.end(),
+		[](const Vertex& a, const Vertex& b) { return a.pos.z < b.pos.z; })->pos.z;
+	boundingBox.max.z = std::max_element(vertices.begin(), vertices.end(),
+		[](const Vertex& a, const Vertex& b) { return a.pos.z < b.pos.z; })->pos.z;
+}
+
+std::vector<VkVertexInputBindingDescription>	VulkanModel::getBindingDescriptions()
+{
+	std::vector<VkVertexInputBindingDescription>	bindingDescriptions(1);
+
+	bindingDescriptions[0].binding = 0;
+	bindingDescriptions[0].stride = 0;
+	if (this->type & ModelType::VERTEX)
+		bindingDescriptions[0].stride += sizeof(vec3);
+	if (this->type & ModelType::NORMAL)
+		bindingDescriptions[0].stride += sizeof(vec3);
+	if (this->type & ModelType::TEXTURE)
+		bindingDescriptions[0].stride += sizeof(vec2);
+	bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	return bindingDescriptions;
+}
+
+std::vector<VkVertexInputAttributeDescription>	VulkanModel::getAttributeDescriptions()
+{
+	std::vector<VkVertexInputAttributeDescription>	attributeDescriptions;
+
+	if (this->type & ModelType::VERTEX)
+		attributeDescriptions.push_back(
+			VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)});
+	if (this->type & ModelType::NORMAL)
+		attributeDescriptions.push_back(
+			VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}
+		);
+	if (this->type & ModelType::TEXTURE)
+		attributeDescriptions.push_back(
+			VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, textureUv)}
+		);
+	return attributeDescriptions;
+}
+
+void	VulkanModel::setObjectCenter() noexcept
+{
+	boundingCenter = (boundingBox.min + boundingBox.max) / 2.0f;
+}
+
+vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept
+{
+	vec3	center{};
+
+	for (const Vertex& vertex : vertices)
+	{
+		center += vertex.pos;
+	}
+	center /= static_cast<float>(vertices.size());
+	return center;
+}
+
+
 std::vector<VkVertexInputBindingDescription>	VulkanModel::Vertex::getBindingDescriptions()
 {
 	std::vector<VkVertexInputBindingDescription>	bindingDescriptions(1);
 
 	bindingDescriptions[0].binding = 0;
+	bindingDescriptions[0].stride = 0;
 	bindingDescriptions[0].stride = sizeof(Vertex);
 	bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	return bindingDescriptions;
@@ -222,40 +328,6 @@ std::vector<VkVertexInputAttributeDescription>	VulkanModel::Vertex::getAttribute
 	);
 	return attributeDescriptions;
 }
-
-void	VulkanModel::setBoundingBox(const std::vector<Vertex>& vertices) noexcept
-{
-	boundingBox.min.x = std::min_element(vertices.begin(), vertices.end(),
-		[](const Vertex& a, const Vertex& b) { return a.pos.x < b.pos.x; })->pos.x;
-	boundingBox.max.x = std::max_element(vertices.begin(), vertices.end(),
-		[](const Vertex& a, const Vertex& b) { return a.pos.x < b.pos.x; })->pos.x;
-	boundingBox.min.y = std::min_element(vertices.begin(), vertices.end(),
-		[](const Vertex& a, const Vertex& b) { return a.pos.y < b.pos.y; })->pos.y;
-	boundingBox.max.y = std::max_element(vertices.begin(), vertices.end(),
-		[](const Vertex& a, const Vertex& b) { return a.pos.y < b.pos.y; })->pos.y;
-	boundingBox.min.z = std::min_element(vertices.begin(), vertices.end(),
-		[](const Vertex& a, const Vertex& b) { return a.pos.z < b.pos.z; })->pos.z;
-	boundingBox.max.z = std::max_element(vertices.begin(), vertices.end(),
-		[](const Vertex& a, const Vertex& b) { return a.pos.z < b.pos.z; })->pos.z;
-}
-
-void	VulkanModel::setObjectCenter() noexcept
-{
-	boundingCenter = (boundingBox.min + boundingBox.max) / 2.0f;
-}
-
-vec3	VulkanModel::calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept
-{
-	vec3	center{};
-
-	for (const Vertex& vertex : vertices)
-	{
-		center += vertex.pos;
-	}
-	center /= static_cast<float>(vertices.size());
-	return center;
-}
-
 
 void	VulkanModel::Builder::emptyData( void ) noexcept {
 	this->vertices.clear();

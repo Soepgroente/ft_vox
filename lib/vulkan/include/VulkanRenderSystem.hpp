@@ -25,7 +25,8 @@ class VulkanRenderSystem
 		std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
 		char const* vertexShaderFile,
 		char const* fragmentShaderFile,
-		TextureType type = TEXTURE_PLAIN
+		ModelType modelType = defaultModelType,
+		TextureType textureType = TEXTURE_PLAIN
 	);
 	~VulkanRenderSystem();
 
@@ -38,8 +39,8 @@ class VulkanRenderSystem
 	private:
 
 	void	createPipelineLayout(std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
-	void	createPipeline(VkRenderPass renderPass);
-	void	createPipelineCubemap(VkRenderPass renderPass);
+	void	createPipeline(VkRenderPass renderPass, ModelType modelType);
+	void	createPipelineCubemap(VkRenderPass renderPass, ModelType modelType);
 
 	VulkanDevice&	vulkanDevice;
 

@@ -1,4 +1,5 @@
 #include "VulkanTexture.hpp"
+#include <iostream>
 
 namespace ve {
 
@@ -14,12 +15,9 @@ VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device, 
 	{
 		throw std::runtime_error("failed to load texture image!");
 	}
-	imageSize = static_cast<VkDeviceSize>(imageInfo.width) * imageInfo.height * 4;
 
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	info.imageType = VK_IMAGE_TYPE_2D;
-	info.extent.width = static_cast<uint32_t>(imageInfo.width);
-	info.extent.height = static_cast<uint32_t>(imageInfo.height);
 	info.extent.depth = 1;
 	info.mipLevels = 1;
 	info.format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -31,14 +29,69 @@ VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device, 
 	if (type == TEXTURE_PLAIN) {
 		info.arrayLayers = 1;
 		info.flags = 0;
+		info.extent.width = static_cast<uint32_t>(imageInfo.width);
+		info.extent.height = static_cast<uint32_t>(imageInfo.height);
+		imageSize = static_cast<VkDeviceSize>(imageInfo.width) * imageInfo.height * 4;
 	} else if (type == TEXTURE_CUBEMAP) {
 		info.arrayLayers = 6;
 		info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		uint32_t faceSize = imageInfo.width / 4;
+		info.extent.width = static_cast<uint32_t>(faceSize);
+		info.extent.height = static_cast<uint32_t>(faceSize);
+		imageSize = faceSize * faceSize * 6 * 4;	// 6 are the faces per picture, 4 is the size in pixel of every pixel
 	}
 
 	createTextureImage();
 	createTextureImageView();
 	createTextureSampler();
+
+	// NB do that:
+	// 1. carica l'immagine totale da disco
+	// int totalWidth, totalHeight, channels;
+	// stbi_uc* pixels = stbi_load(path, &totalWidth, &totalHeight, &channels, STBI_rgb_alpha);
+
+	// int faceWidth  = totalWidth / 4;
+	// int faceHeight = totalHeight / 3;
+	// VkDeviceSize faceSize  = faceWidth * faceHeight * 4;
+	// VkDeviceSize totalSize = faceSize * 6;
+
+	// // 2. crea lo staging buffer di totalSize
+	// // ...
+	// void* stagingPtr;
+	// vkMapMemory(device, stagingMemory, 0, totalSize, 0, &stagingPtr);
+
+	// // 3. ← QUI — estrai le 6 facce e copiale nello staging buffer
+	// for (int face = 0; face < 6; face++) {
+	// 	auto [col, row] = offsets[face];
+	// 	int srcX = col * faceWidth;
+	// 	int srcY = row * faceHeight;
+
+	// 	for (int y = 0; y < faceHeight; y++) {
+	// 		memcpy(
+	// 			(uint8_t*)stagingPtr + face * faceSize + y * faceWidth * 4,
+	// 			pixels + (srcY + y) * totalWidth * 4 + srcX * 4,
+	// 			faceWidth * 4
+	// 		);
+	// 	}
+	// }
+
+	// vkUnmapMemory(device, stagingMemory);
+	// stbi_image_free(pixels);
+
+	// // 4. crea VkImage con arrayLayers=6, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
+	// // ...
+
+	// // 5. transizione layout UNDEFINED → TRANSFER_DST_OPTIMAL
+	// // ...
+
+	// // 6. vkCmdCopyBufferToImage con le 6 regions
+	// // ...
+
+	// // 7. transizione layout TRANSFER_DST_OPTIMAL → SHADER_READ_ONLY_OPTIMAL
+	// // ...
+
+	// // 8. crea VkImageView con viewType=VK_IMAGE_VIEW_TYPE_CUBE
+	// // ...
 }
 
 VulkanTexture::~VulkanTexture()
@@ -133,7 +186,7 @@ void	VulkanTexture::createTextureImage()
 		info.format,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		1
+		(this->type == TEXTURE_PLAIN) ? 1 : 6
 	);
 
 	device.copyBufferToImage(
@@ -141,14 +194,15 @@ void	VulkanTexture::createTextureImage()
 		textureImage,
 		static_cast<uint32_t>(imageInfo.width),
 		static_cast<uint32_t>(imageInfo.height),
-		1
+		1,
+		type
 	);
 	device.transitionImageLayout(
 		textureImage,
 		info.format,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		1
+		(this->type == TEXTURE_PLAIN) ? 1 : 6
 	);
 
 	vkDestroyBuffer(device.device(), stagingBuffer, nullptr);

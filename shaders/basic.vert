@@ -7,7 +7,7 @@ layout(location = 2) in vec2 uv;
 // layout(location = 0) flat out vec3 fragColor;
 // layout(location = 1) out vec3 fragPosWorld;
 // layout(location = 2) out vec3 fragNormalWorld;
-layout(location = 3) out vec2 fragTexCoord;
+layout(location = 0) out vec2 fragTexCoord;
 
 layout(set = 0, binding = 0) uniform TerrainUBO
 {

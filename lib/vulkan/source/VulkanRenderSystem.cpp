@@ -22,19 +22,20 @@ VulkanRenderSystem::VulkanRenderSystem(
 		std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
 		char const* vertexShaderFile,
 		char const* fragmentShaderFile,
-		TextureType type
+		ModelType modelType,
+		TextureType textureType
 	) :
 	vulkanDevice(device),
 	vertexShaderFile(vertexShaderFile),
 	fragmentShaderFile(fragmentShaderFile)
 {
 	createPipelineLayout(descriptorSetLayouts);
-	switch (type) {
+	switch (textureType) {
 		case TEXTURE_PLAIN:
-			createPipeline(renderPass);
+			createPipeline(renderPass, modelType);
 			break;
 		case TEXTURE_CUBEMAP:
-			createPipelineCubemap(renderPass);
+			createPipelineCubemap(renderPass, modelType);
 			break;
 		// case default:
 		// 	break;
@@ -66,7 +67,7 @@ void	VulkanRenderSystem::createPipelineLayout(std::vector<VkDescriptorSetLayout>
 	}
 }
 
-void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
+void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass, ModelType modelType)
 {
 	assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
@@ -80,16 +81,16 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass)
 		vulkanDevice,
 		this->vertexShaderFile,
 		this->fragmentShaderFile,
-		pipelineConfig
+		pipelineConfig,
+		modelType
 	);
 }
 
-void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass)
+void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass, ModelType modelType)
 {
 	assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
 	PipelineConfigInfo	pipelineConfig{};
-
 	VulkanPipeline::defaultPipelineConfigInfo(pipelineConfig);
 	// cubemap config
 	pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
@@ -104,9 +105,11 @@ void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass)
 		vulkanDevice,
 		this->vertexShaderFile,
 		this->fragmentShaderFile,
-		pipelineConfig
+		pipelineConfig,
+		modelType
 	);
 }
+
 void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 {
 	if (frameInfo.gameObject.model == nullptr)

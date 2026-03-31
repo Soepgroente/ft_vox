@@ -38,7 +38,7 @@ class Vox
 		void moveCamera( float );
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( ui32, ui32 );
-		std::unique_ptr<ve::VulkanModel> createSkyboxModel( void ) const;
+		std::unique_ptr<ve::VulkanModel> createSkyboxModel( void );
 
 		static std::vector<std::thread>	workerThreads;
 

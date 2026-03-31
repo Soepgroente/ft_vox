@@ -50,8 +50,8 @@ Vox::Vox( void ) :
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 
-	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice}});
-	this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice}});
+	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice, ve::TextureType::TEXTURE_PLAIN}});
+	this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice, ve::TextureType::TEXTURE_CUBEMAP}});
 }
 
 /**
@@ -83,6 +83,7 @@ void Vox::run( void ) {
 		);
 		skyboxUboBuffers[i]->map();
 	}
+
 	ui32 maxDescriptors = 2;
 	ui32 nUboBuffers = 2;
 	ui32 nTextures = 2;
@@ -129,26 +130,27 @@ void Vox::run( void ) {
 			.build(skyboxDescriptorSets[i]);
 	}
 
-	ve::VulkanRenderSystem	worldRenderSystem{
+	ve::VulkanRenderSystem	terrainRenderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
-		std::vector{globalSetLayout->getDescriptorSetLayout()},
-		Config::worldVertShaderPath,
-		Config::worldFragShaderPath,
+		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
+		Config::terrainVertShaderPath,
+		Config::terrainFragShaderPath,
+		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
 		ve::TextureType::TEXTURE_PLAIN
 	};
 
-	ve::VulkanRenderSystem	skyRenderSystem{
+	ve::VulkanRenderSystem	skyboxRenderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
-		std::vector{globalSetLayout->getDescriptorSetLayout()},
-		Config::skyVertShaderPath,
-		Config::worldFragShaderPath,
+		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
+		Config::skyboxVertShaderPath,
+		Config::skyboxFragShaderPath,
+		ve::ModelType::VERTEX,
 		ve::TextureType::TEXTURE_CUBEMAP
 	};
 
-	ve::FrameInfo terrainRenderinginfo
-	{
+	ve::FrameInfo terrainRenderinginfo{
 		0,
 		this->camera,
 		nullptr,
@@ -156,8 +158,7 @@ void Vox::run( void ) {
 		ve::VulkanObject::createVulkanObject(),
 	};
 
-	ve::FrameInfo skyboxRenderingInfo
-	{
+	ve::FrameInfo skyboxRenderingInfo{
 		0,
 		this->camera,
 		nullptr,
@@ -201,7 +202,7 @@ void Vox::run( void ) {
 			terrainUboBuffers[terrainRenderinginfo.frameIndex]->flush();
 			terrainRenderinginfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderinginfo.frameIndex];
 
-			worldRenderSystem.renderObject(terrainRenderinginfo);
+			terrainRenderSystem.renderObject(terrainRenderinginfo);
 
 			SkyboxUBO skyboxUbo{};
 			skyboxUbo.view = this->camera.getViewMatrixOnlyRotation();
@@ -211,7 +212,7 @@ void Vox::run( void ) {
 			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->flush();
 			skyboxRenderingInfo.globalDescriptorSet = skyboxDescriptorSets[skyboxRenderingInfo.frameIndex];
 
-			worldRenderSystem.renderObject(skyboxRenderingInfo);
+			skyboxRenderSystem.renderObject(skyboxRenderingInfo);
 
 			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();
@@ -309,10 +310,10 @@ void Vox::resizeWindow( ui32 width, ui32 height ) {
  *
  * @param device vulkan object used to build the buffers
  *
- * @return pointer to the newly created model 
+ * @return pointer to the newly created model
  */
-std::unique_ptr<ve::VulkanModel> Vox::createSkyboxModel( void ) const {
-	return std::make_unique<ve::VulkanModel>(vulkanDevice, VOXEL_VERTEXES, VOXEL_VERTEX_INDEXES);
+std::unique_ptr<ve::VulkanModel> Vox::createSkyboxModel( void ) {
+	return std::make_unique<ve::VulkanModel>(vulkanDevice, getVertexRelative(), getIndexRelative());
 }
 
 }	// namespace vox
