@@ -9,22 +9,6 @@ namespace vox {
 
 std::vector<std::thread> Vox::workerThreads{};
 
-struct TerrainUBO
-{
-	mat4				model{1.0f};
-	mat4				view{1.0f};
-	mat4				projection{1.0f};
-	vec4				ambientLightColor{1.0f, 1.0f, 1.0f, 0.1f};
-	vec3				lightPosition{0.0f, -4.0f, -3.0f};
-	alignas(16)	vec4	lightColor{1.0f};
-};
-
-struct SkyboxUBO
-{
-	mat4				view{1.0f};
-	mat4				projection{1.0f};
-};
-
 /**
  * Create the engine of the game
  */
@@ -36,7 +20,7 @@ Vox::Vox( void ) :
 	navigator{Config::worldSize},
 	inputHandler(
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
-		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
+		[this](i32 width, i32 height) { this->resizeWindow(width, height); }
 	)
 {
 	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
@@ -52,13 +36,11 @@ Vox::Vox( void ) :
 
 	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice, ve::TextureType::TEXTURE_PLAIN}});
 	this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice, ve::TextureType::TEXTURE_CUBEMAP}});
+	this->terrainUboBuffers.reserve(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	this->skyboxUboBuffers.reserve(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 }
 
-/**
- * Run the rendering loop
- */
-void Vox::run( void ) {
-	std::vector<std::unique_ptr<ve::VulkanBuffer>>	terrainUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+void Vox::setupVulkan( void ) {
 	for (size_t i = 0; i < terrainUboBuffers.size(); i++)
 	{
 		terrainUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
@@ -71,7 +53,6 @@ void Vox::run( void ) {
 		terrainUboBuffers[i]->map();
 	}
 
-	std::vector<std::unique_ptr<ve::VulkanBuffer>>	skyboxUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 	for (size_t i = 0; i < skyboxUboBuffers.size(); i++)
 	{
 		skyboxUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
@@ -130,7 +111,7 @@ void Vox::run( void ) {
 			.build(skyboxDescriptorSets[i]);
 	}
 
-	ve::VulkanRenderSystem	terrainRenderSystem{
+	this->terrainPipeline = ve::VulkanRenderSystem{
 		vulkanDevice,
 		vulkanRenderer.getSwapChainRenderPass(),
 		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
@@ -149,10 +130,16 @@ void Vox::run( void ) {
 		ve::ModelType::VERTEX,
 		ve::TextureType::TEXTURE_CUBEMAP
 	};
+}
 
+/**
+ * Run the rendering loop
+ */
+void Vox::run( void ) {
+	
 	ve::FrameInfo terrainRenderingInfo{
 		0,
-		this->camera,
+		// this->camera,
 		nullptr,
 		nullptr,
 		ve::VulkanObject::createVulkanObject(),
@@ -160,7 +147,7 @@ void Vox::run( void ) {
 
 	ve::FrameInfo skyboxRenderingInfo{
 		0,
-		this->camera,
+		// this->camera,
 		nullptr,
 		nullptr,
 		ve::VulkanObject::createVulkanObject(),
@@ -189,26 +176,29 @@ void Vox::run( void ) {
 		VkCommandBuffer commandBuffer = vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
 		{
-			terrainRenderingInfo.commandBuffer = commandBuffer;
-			skyboxRenderingInfo.commandBuffer = commandBuffer;
 			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
-			terrainRenderingInfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
 
+			terrainRenderingInfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
+			terrainRenderingInfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderingInfo.frameIndex];
+			terrainRenderingInfo.commandBuffer = commandBuffer;
 			TerrainUBO terrainUbo{};
 			terrainUbo.model = mat4::idMat();
 			terrainUbo.view = this->camera.getViewMatrix();
 			terrainUbo.projection = this->camera.getProjectionMatrix();
-			terrainUboBuffers[terrainRenderingInfo.frameIndex]->writeToBuffer(&terrainUbo);
-			terrainUboBuffers[terrainRenderingInfo.frameIndex]->flush();
+			this->terrainUboBuffers[terrainRenderingInfo.frameIndex]->writeToBuffer(&terrainUbo);
+			this->terrainUboBuffers[terrainRenderingInfo.frameIndex]->flush();
 			terrainRenderingInfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderingInfo.frameIndex];
 			terrainRenderSystem.renderObject(terrainRenderingInfo);
 
+			skyboxRenderingInfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
+			skyboxRenderingInfo.globalDescriptorSet = skyboxDescriptorSets[skyboxRenderingInfo.frameIndex];
+			skyboxRenderingInfo.commandBuffer = commandBuffer;
 			SkyboxUBO skyboxUbo{};
 			skyboxUbo.view = this->camera.getViewMatrixOnlyRotation();
 			skyboxUbo.projection = this->camera.getProjectionMatrix();
 			skyboxRenderingInfo.frameIndex = terrainRenderingInfo.frameIndex;
-			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->writeToBuffer(&skyboxUbo);
-			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->flush();
+			this->skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->writeToBuffer(&skyboxUbo);
+			this->skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->flush();
 			skyboxRenderingInfo.globalDescriptorSet = skyboxDescriptorSets[skyboxRenderingInfo.frameIndex];
 			skyboxRenderSystem.renderObject(skyboxRenderingInfo);
 

@@ -14,6 +14,7 @@
 namespace vox {
 
 using ui32 = uint32_t;
+using i32 = int32_t;
 
 enum TextureTypes {
 	TEXT_DIRT_1,
@@ -22,6 +23,21 @@ enum TextureTypes {
 	TEXT_STONE_2,
 	TEXT_SKYBOX
 };
+
+
+struct TerrainUBO
+{
+	mat4				model{1.0f};
+	mat4				view{1.0f};
+	mat4				projection{1.0f};
+};
+
+struct SkyboxUBO
+{
+	mat4				view{1.0f};
+	mat4				projection{1.0f};
+};
+
 
 class Vox
 {
@@ -33,6 +49,7 @@ class Vox
 		Vox& operator=( Vox const& ) = delete;
 		Vox& operator=( Vox&& ) = delete;
 
+		void setupVulkan( void );
 		void run( void );
 
 		void moveCamera( float );
@@ -53,6 +70,11 @@ class Vox
 		ThreadManager	threadManager;
 
 		std::map<TextureTypes,ve::VulkanTexture> textures;
+		std::vector<std::unique_ptr<ve::VulkanBuffer>> terrainUboBuffers;
+		std::vector<std::unique_ptr<ve::VulkanBuffer>> skyboxUboBuffers;
+
+		ve::VulkanRenderSystem terrainPipeline;
+		ve::VulkanRenderSystem skyboxPipeline;
 };
 
 }	// namespace vox
