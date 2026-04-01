@@ -3,7 +3,7 @@
 
 namespace ve {
 
-VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device, TextureType type) : 
+VulkanTexture::VulkanTexture(VulkanDevice& device, const std::string& filePath, TextureType type) : 
 	device(device), type(type)
 {
 	textureImage = VK_NULL_HANDLE;
@@ -121,7 +121,7 @@ void	VulkanTexture::createTextureImage()
 		VulkanTexture::sizeOfPixel,
 		nPixels,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 	);
 	stagingBuffer.map();
 
@@ -131,7 +131,7 @@ void	VulkanTexture::createTextureImage()
 	}
 	else if (type == TEXTURE_CUBEMAP)
 	{
-		uint32_t faceWidth  = static_cast<uint32_t>(imageInfo.width) / 4U;
+		uint32_t faceWidth = static_cast<uint32_t>(imageInfo.width) / 4U;
 		uint32_t faceHeight = static_cast<uint32_t>(imageInfo.height) / 3U;
 		uint32_t paddingFace = std::abs(static_cast<int32_t>(faceHeight) - static_cast<int32_t>(faceWidth));
 		if (paddingFace != 0U) {
@@ -167,6 +167,7 @@ void	VulkanTexture::createTextureImage()
 			}
 		}
 	}
+	stagingBuffer.flush();
 
 	free((const_cast<unsigned char*>(imageInfo.imageData)));
 	imageInfo.imageData = nullptr;
@@ -212,12 +213,21 @@ void	VulkanTexture::createTextureImageView()
 	);
 }
 
+VkDescriptorImageInfo	VulkanTexture::getDescriptorImageInfo() const noexcept {
+	VkDescriptorImageInfo imageInfo{};
+
+	imageInfo.sampler = textureSampler;
+	imageInfo.imageView = textureImageView;
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	return imageInfo;
+}
+
 void	VulkanTexture::createTextureSampler()
 {
 	VkSamplerCreateInfo	samplerInfo{};
 	
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;		// VK_FILTER_NEAREST for cubemaps but result is ugly
+	samplerInfo.magFilter = VK_FILTER_LINEAR;		// VK_FILTER_NEAREST for cubemaps (adds padding) but result is ugly
 	samplerInfo.minFilter = VK_FILTER_LINEAR;
 	if (type == TEXTURE_PLAIN)
 	{

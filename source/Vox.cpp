@@ -9,22 +9,6 @@ namespace vox {
 
 std::vector<std::thread> Vox::workerThreads{};
 
-struct TerrainUBO
-{
-	mat4				model{1.0f};
-	mat4				view{1.0f};
-	mat4				projection{1.0f};
-	vec4				ambientLightColor{1.0f, 1.0f, 1.0f, 0.1f};
-	vec3				lightPosition{0.0f, -4.0f, -3.0f};
-	alignas(16)	vec4	lightColor{1.0f};
-};
-
-struct SkyboxUBO
-{
-	mat4				view{1.0f};
-	mat4				projection{1.0f};
-};
-
 /**
  * Create the engine of the game
  */
@@ -32,12 +16,15 @@ Vox::Vox( void ) :
 	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"},
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
+	vulkanSetFactory{vulkanDevice, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT},
 	camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
 	navigator{Config::worldSize},
-	inputHandler(
+	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
-		[this](int32_t width, int32_t height) { this->resizeWindow(width, height); }
-	)
+		[this](i32 width, i32 height) { this->resizeWindow(width, height); }
+
+	},
+	playerMoved{false}
 {
 	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
 
@@ -49,127 +36,59 @@ Vox::Vox( void ) :
 		ve::CameraSettings::projectionFar
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
+}
 
-	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice, ve::TextureType::TEXTURE_PLAIN}});
-	this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice, ve::TextureType::TEXTURE_CUBEMAP}});
+void Vox::setupVulkan( void ) {
+	this->vulkanSetFactory
+		.setMaxSets(2)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
+		.createPool()
+		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
+
+	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet();
+
+	MatrixUBO ubo(this->camera);
+	this->matrixDescriptorSet->addBufferToDescriptor(0, ubo.getSize(), ubo.getData());
+
+	this->vulkanSetFactory
+		.resetBindings()
+		.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
+		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+
+	this->samplersDescriptorSet = this->vulkanSetFactory.createDescriptorSet();
+	this->samplersDescriptorSet->addSamplerToDescriptor(0, Config::texture1VoxelPath, ve::TextureType::TEXTURE_PLAIN);
+	this->samplersDescriptorSet->addSamplerToDescriptor(1, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
+
+	terrainPipeline = std::make_unique<ve::VulkanRenderSystem>(
+		this->vulkanDevice,
+		this->vulkanRenderer.getSwapChainRenderPass(),
+		std::vector<VkDescriptorSetLayout>{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()},
+		Config::terrainVertShaderPath,
+		Config::terrainFragShaderPath,
+		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
+		ve::TextureType::TEXTURE_PLAIN
+	);
+
+	skyboxPipeline = std::make_unique<ve::VulkanRenderSystem>(
+		this->vulkanDevice,
+		this->vulkanRenderer.getSwapChainRenderPass(),
+		std::vector<VkDescriptorSetLayout>{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()},
+		Config::skyboxVertShaderPath,
+		Config::skyboxFragShaderPath,
+		ve::ModelType::VERTEX,
+		ve::TextureType::TEXTURE_CUBEMAP
+	);
 }
 
 /**
  * Run the rendering loop
  */
 void Vox::run( void ) {
-	std::vector<std::unique_ptr<ve::VulkanBuffer>>	terrainUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < terrainUboBuffers.size(); i++)
-	{
-		terrainUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
-			vulkanDevice,
-			sizeof(TerrainUBO),
-			1,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-		);
-		terrainUboBuffers[i]->map();
-	}
-
-	std::vector<std::unique_ptr<ve::VulkanBuffer>>	skyboxUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < skyboxUboBuffers.size(); i++)
-	{
-		skyboxUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
-			vulkanDevice,
-			sizeof(SkyboxUBO),
-			1,
-			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-		);
-		skyboxUboBuffers[i]->map();
-	}
-
-	ui32 maxDescriptors = 2;
-	ui32 nUboBuffers = 2;
-	ui32 nTextures = 2;
-	std::unique_ptr<ve::VulkanDescriptorPool> globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
-		.setMaxSets(maxDescriptors * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nUboBuffers * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nTextures * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
-		.build();
-
-	std::unique_ptr<ve::VulkanDescriptorSetLayout> globalSetLayout = ve::VulkanDescriptorSetLayout::Builder(vulkanDevice)
-		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-		.build();
-
-	std::vector<VkDescriptorSet> terrainDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < terrainDescriptorSets.size(); i++)
-	{
-		VkDescriptorBufferInfo bufferInfo = terrainUboBuffers[i]->descriptorInfo();
-		VkDescriptorImageInfo imageInfo{};
-
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
-		imageInfo.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
-
-		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
-			.writeBuffer(0, &bufferInfo)
-			.writeImage(1, &imageInfo)
-			.build(terrainDescriptorSets[i]);
-	}
-
-	std::vector<VkDescriptorSet> skyboxDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	for (size_t i = 0; i < skyboxDescriptorSets.size(); i++)
-	{
-		VkDescriptorBufferInfo bufferInfo = skyboxUboBuffers[i]->descriptorInfo();
-		VkDescriptorImageInfo imageInfo{};
-
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = this->textures.at(TEXT_SKYBOX).getImageView();
-		imageInfo.sampler = this->textures.at(TEXT_SKYBOX).getSampler();
-
-		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
-			.writeBuffer(0, &bufferInfo)
-			.writeImage(1, &imageInfo)
-			.build(skyboxDescriptorSets[i]);
-	}
-
-	ve::VulkanRenderSystem	terrainRenderSystem{
-		vulkanDevice,
-		vulkanRenderer.getSwapChainRenderPass(),
-		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
-		Config::terrainVertShaderPath,
-		Config::terrainFragShaderPath,
-		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
-		ve::TextureType::TEXTURE_PLAIN
-	};
-
-	ve::VulkanRenderSystem	skyboxRenderSystem{
-		vulkanDevice,
-		vulkanRenderer.getSwapChainRenderPass(),
-		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
-		Config::skyboxVertShaderPath,
-		Config::skyboxFragShaderPath,
-		ve::ModelType::VERTEX,
-		ve::TextureType::TEXTURE_CUBEMAP
-	};
-
-	ve::FrameInfo terrainRenderingInfo{
-		0,
-		this->camera,
-		nullptr,
-		nullptr,
-		ve::VulkanObject::createVulkanObject(),
-	};
-
-	ve::FrameInfo skyboxRenderingInfo{
-		0,
-		this->camera,
-		nullptr,
-		nullptr,
-		ve::VulkanObject::createVulkanObject(),
-	};
-
 	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	terrainRenderingInfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
-	skyboxRenderingInfo.gameObject.model = this->createSkyboxModel();
+	std::unique_ptr<ve::VulkanModel> terrainModel = this->navigator.createNewModel(vulkanDevice);
+	std::unique_ptr<ve::VulkanModel> skyBoxModel = this->createSkyboxModel();
 
 	Stopwatch timer;
 	std::cout << "\n\n\n\n";
@@ -177,6 +96,7 @@ void Vox::run( void ) {
 	{
 		glfwPollEvents();
 		timer.start();
+
 		// do game operations
 		this->moveCamera(timer.elapsed(Seconds));
 		// add chunks of maps if necessary
@@ -184,36 +104,38 @@ void Vox::run( void ) {
 			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 			if (newDataCreated)
-				terrainRenderingInfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+				terrainModel = this->navigator.createNewModel(vulkanDevice);
 		}
-		VkCommandBuffer commandBuffer = vulkanRenderer.beginFrame();
+
+		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
 		{
-			terrainRenderingInfo.commandBuffer = commandBuffer;
-			skyboxRenderingInfo.commandBuffer = commandBuffer;
-			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
-			terrainRenderingInfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
+			uint32_t currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
+			this->vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
 
-			TerrainUBO terrainUbo{};
-			terrainUbo.model = mat4::idMat();
-			terrainUbo.view = this->camera.getViewMatrix();
-			terrainUbo.projection = this->camera.getProjectionMatrix();
-			terrainUboBuffers[terrainRenderingInfo.frameIndex]->writeToBuffer(&terrainUbo);
-			terrainUboBuffers[terrainRenderingInfo.frameIndex]->flush();
-			terrainRenderingInfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderingInfo.frameIndex];
-			terrainRenderSystem.renderObject(terrainRenderingInfo);
+			this->matrixDescriptorSet->setCurrentFrame(currentFrame);
+			this->samplersDescriptorSet->setCurrentFrame(currentFrame);
+			
+			if (this->playerMoved == true) {
+				MatrixUBO ubo(this->camera);
+				this->matrixDescriptorSet->updateUbo(0, ubo.getData());
+				this->playerMoved = false;
+			}
 
-			SkyboxUBO skyboxUbo{};
-			skyboxUbo.view = this->camera.getViewMatrixOnlyRotation();
-			skyboxUbo.projection = this->camera.getProjectionMatrix();
-			skyboxRenderingInfo.frameIndex = terrainRenderingInfo.frameIndex;
-			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->writeToBuffer(&skyboxUbo);
-			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->flush();
-			skyboxRenderingInfo.globalDescriptorSet = skyboxDescriptorSets[skyboxRenderingInfo.frameIndex];
-			skyboxRenderSystem.renderObject(skyboxRenderingInfo);
+			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline);
+			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline);
 
-			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
-			vulkanRenderer.endFrame();
+			this->terrainPipeline->bind(commandBuffer);
+			terrainModel->bind(commandBuffer);
+			terrainModel->draw(commandBuffer);
+
+			this->skyboxPipeline->bind(commandBuffer);
+			skyBoxModel->bind(commandBuffer);
+			skyBoxModel->draw(commandBuffer);
+
+			this->vulkanRenderer.endSwapChainRenderPass(commandBuffer);
+			this->vulkanRenderer.endFrame();
+
 			timer.stop();
 			int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
 			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
@@ -222,7 +144,6 @@ void Vox::run( void ) {
 			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
 		}
 		this->inputHandler.reset();
-		// frameCount++;
 	}
 
 	vkDeviceWaitIdle(vulkanDevice.device());
@@ -236,35 +157,55 @@ void Vox::run( void ) {
  * @note camera rotation using a key will be removed in the final version
  */
 void Vox::moveCamera( float deltaTime ) {
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_W)) {
 		this->camera.moveForward(deltaTime * Config::movementSpeed);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_A))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_A)) {
 		this->camera.moveLeft(deltaTime * Config::movementSpeed);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_S))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_S)) {
 		this->camera.moveBackward(deltaTime * Config::movementSpeed);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_D))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_D)) {
 		this->camera.moveRight(deltaTime * Config::movementSpeed);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_E))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_E)) {
 		this->camera.moveUp(deltaTime * Config::movementSpeed);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q)) {
 		this->camera.moveDown(deltaTime * Config::movementSpeed);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP)) {
 		this->camera.rotate(deltaTime * Config::lookSpeed, 0.0f, 0.0f);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN)) {
 		this->camera.rotate(-deltaTime * Config::lookSpeed, 0.0f, 0.0f);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT)) {
 		this->camera.rotate(0.0f, -deltaTime * Config::lookSpeed, 0.0f);
+		this->playerMoved = true;
+	}
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT))
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) {
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
+		this->playerMoved = true;
+	}
 }
 
 /**
@@ -282,6 +223,7 @@ void Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
 	float yaw = (currPos.x - oldPos.x) * ve::CameraSettings::cameraSensitivity;
 	float pitch = (oldPos.y - currPos.y) * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
+	this->playerMoved = true;
 }
 
 /**
@@ -300,6 +242,7 @@ void Vox::resizeWindow( ui32 width, ui32 height ) {
 		ve::CameraSettings::projectionNear,
 		ve::CameraSettings::projectionFar
 	);
+	this->playerMoved = true;
 }
 
 /**

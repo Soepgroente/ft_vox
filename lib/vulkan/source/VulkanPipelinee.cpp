@@ -65,8 +65,8 @@ void	VulkanRenderSystem::createPipeline(VkRenderPass renderPass, ModelType model
 	assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
 	PipelineConfigInfo	pipelineConfig{};
-	
 	VulkanPipeline::defaultPipelineConfigInfo(pipelineConfig);
+
 	pipelineConfig.pipelineLayout = pipelineLayout;
 	pipelineConfig.renderPass = renderPass;
 
@@ -87,8 +87,8 @@ void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass, ModelTyp
 	VulkanPipeline::defaultPipelineConfigInfo(pipelineConfig);
 	// cubemap config
 	pipelineConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
-	pipelineConfig.depthStencilInfo.depthTestEnable  = VK_TRUE;
-	pipelineConfig.depthStencilInfo.depthCompareOp   = VK_COMPARE_OP_LESS_OR_EQUAL;
+	pipelineConfig.depthStencilInfo.depthTestEnable = VK_TRUE;
+	pipelineConfig.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 	pipelineConfig.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
 
 	pipelineConfig.pipelineLayout = pipelineLayout;
@@ -101,26 +101,6 @@ void	VulkanRenderSystem::createPipelineCubemap(VkRenderPass renderPass, ModelTyp
 		pipelineConfig,
 		modelType
 	);
-}
-
-void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
-{
-	if (frameInfo.gameObject.model == nullptr)
-	{
-		return;
-	}
-
-	vkCmdBindDescriptorSets(
-		frameInfo.commandBuffer,
-		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		pipelineLayout,
-		0, 1, &frameInfo.globalDescriptorSet,
-		0, nullptr
-	);
-	vulkanPipeline->bind(frameInfo.commandBuffer);
-
-	frameInfo.gameObject.model->bind(frameInfo.commandBuffer);
-	frameInfo.gameObject.model->draw(frameInfo.commandBuffer);
 }
 
 } // namespace ve

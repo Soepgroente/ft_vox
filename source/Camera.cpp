@@ -43,31 +43,12 @@ void	Camera::setViewMatrix( void ) noexcept {
 	};
 }
 
-void	Camera::setViewMatrixOnlyRotation( void ) noexcept {
-	vec3 cameraTarget = this->_position + this->_forward;		// position that the camera is watching
-	this->_cameraForward = (cameraTarget - this->_position).normalize();
-	this->_cameraLeft = vec3::cross(this->_cameraForward, this->__up).normalize();
-	this->_cameraUp = vec3::cross(this->_cameraLeft, this->_cameraForward);
-
-	this->viewMatrix = mat4{
-		{this->_cameraLeft.x, this->_cameraUp.x, this->_cameraForward.x, 0.0f},
-		{this->_cameraLeft.y, this->_cameraUp.y, this->_cameraForward.y, 0.0f},
-		{this->_cameraLeft.z, this->_cameraUp.z, this->_cameraForward.z, 0.0f},
-		{0.0f,                0.0f,              0.0f,                   1.0f}
-	};
-}
-
-const mat4&	Camera::getProjectionMatrix( void ) noexcept {
+const mat4&	Camera::getProjectionMatrix( void ) const noexcept {
 	return this->projectionMatrix;
 }
 
 const mat4&	Camera::getViewMatrix( void ) noexcept {
 	this->setViewMatrix();
-	return this->viewMatrix;
-}
-
-const mat4&	Camera::getViewMatrixOnlyRotation( void ) noexcept {
-	this->setViewMatrixOnlyRotation();
 	return this->viewMatrix;
 }
 

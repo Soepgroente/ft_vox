@@ -14,7 +14,13 @@ VulkanRenderer::VulkanRenderer(VulkanWindow& window, VulkanDevice& device)
 
 VulkanRenderer::~VulkanRenderer()
 {
-	freeCommandBuffers();
+	vkFreeCommandBuffers(
+		vulkanDevice.device(),
+		vulkanDevice.getCommandPool(),
+		static_cast<uint32_t>(commandBuffers.size()),
+		commandBuffers.data()
+	);
+	commandBuffers.clear();
 }
 
 void	VulkanRenderer::recreateSwapChain()
@@ -57,17 +63,6 @@ void	VulkanRenderer::createCommandBuffers()
 	{
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
-}
-
-void	VulkanRenderer::freeCommandBuffers()
-{
-	vkFreeCommandBuffers(
-		vulkanDevice.device(),
-		vulkanDevice.getCommandPool(),
-		static_cast<uint32_t>(commandBuffers.size()),
-		commandBuffers.data()
-	);
-	commandBuffers.clear();
 }
 
 VkCommandBuffer	VulkanRenderer::beginFrame()

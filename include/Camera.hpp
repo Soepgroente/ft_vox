@@ -31,9 +31,8 @@ class Camera
 		void	setOrthographicProjection(float left, float right, float top, float bottom, float near, float far);
 		void	setPerspectiveProjection(float fovy, float aspect, float near, float far);
 		void	setViewMatrix( void ) noexcept;
-		void	setViewMatrixOnlyRotation( void ) noexcept;
 
-		const mat4&	getProjectionMatrix( void ) noexcept;
+		const mat4&	getProjectionMatrix( void ) const noexcept;
 		const mat4&	getViewMatrix( void ) noexcept;
 		const mat4&	getViewMatrixOnlyRotation( void ) noexcept;
 

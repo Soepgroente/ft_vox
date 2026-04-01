@@ -49,7 +49,6 @@ class VulkanRenderer
 	private:
 
 	void	createCommandBuffers();
-	void	freeCommandBuffers();
 	void	recreateSwapChain();
 
 	VulkanWindow&	vulkanWindow;

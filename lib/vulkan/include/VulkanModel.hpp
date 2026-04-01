@@ -28,7 +28,7 @@ enum class ModelType : uint32_t {
     VERTEX = 1 << 0,  // 0001
     NORMAL = 1 << 1,  // 0010
     TEXTURE = 1 << 2,  // 0100
-    INDEXED = 1 << 3,  // 1000
+    INDEXED = 1 << 3,  // 1000		 NB ugly, has to go
 };
 
 constexpr ModelType operator|(ModelType a, ModelType b) {
@@ -95,7 +95,9 @@ class VulkanModel
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
+	VulkanModel(VulkanModel&&) = delete;
 	VulkanModel& operator=(const VulkanModel&) = delete;
+	VulkanModel& operator=(VulkanModel&&) = delete;
 
 	void	bind(VkCommandBuffer commandBuffer);
 	void	draw(VkCommandBuffer commandBuffer);
@@ -110,28 +112,27 @@ class VulkanModel
 	const BoundingBox&	getBoundingBox() const noexcept { return boundingBox; }
 
 	private:
-	
+
 	std::string			name;
-	
 	VulkanDevice&		vulkanDevice;
+
 	uint32_t			vertexCount;
-	
+	uint32_t			indexCount;
+
 	std::unique_ptr<VulkanBuffer>	vertexBuffer;
 	std::unique_ptr<VulkanBuffer>	indexBuffer;
-	
-	uint32_t			indexCount;
-	
+
 	vec3			vertexCenter;
 	vec3			boundingCenter;
 	BoundingBox		boundingBox;
 	ModelType		type;
-	
-	void	setObjectCenter() noexcept;
 
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createVertexBuffers(const std::vector<vec3>& vertices);
 	void	createIndexBuffers(const std::vector<uint32_t>& indices);
 	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertexes, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+
+	void	setObjectCenter() noexcept;
 	
 	static vec3	calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept;
 };
