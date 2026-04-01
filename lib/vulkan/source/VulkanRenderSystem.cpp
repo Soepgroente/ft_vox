@@ -118,20 +118,20 @@ void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 	}
 
 	vkCmdBindDescriptorSets(
-		*frameInfo.commandBuffer,
+		frameInfo.commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		pipelineLayout,
 		0, 1, &frameInfo.globalDescriptorSet,
 		0, nullptr
 	);
-	vulkanPipeline->bind(*frameInfo.commandBuffer);
+	vulkanPipeline->bind(frameInfo.commandBuffer);
 
 	SimplePushConstantData	push{};		// NB maybe not necessary
 	push.modelMatrix = frameInfo.gameObject.transform.matrix4(frameInfo.gameObject.model->getBoundingCenter());
 	push.normalMatrix = frameInfo.gameObject.transform.normalMatrix();
 
 	vkCmdPushConstants(
-		*frameInfo.commandBuffer,
+		frameInfo.commandBuffer,
 		pipelineLayout,
 		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 		0,
@@ -139,8 +139,8 @@ void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 		&push
 	);
 	
-	frameInfo.gameObject.model->bind(*frameInfo.commandBuffer);
-	frameInfo.gameObject.model->draw(*frameInfo.commandBuffer);
+	frameInfo.gameObject.model->bind(frameInfo.commandBuffer);
+	frameInfo.gameObject.model->draw(frameInfo.commandBuffer);
 }
 
 } // namespace ve

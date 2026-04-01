@@ -17,11 +17,11 @@ layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 1) uniform sampler2D texSampler;
 
-layout(push_constant) uniform PushConstants
-{
-	mat4	modelMatrix;
-	mat4	normalMatrix;
-}	push;
+// layout(push_constant) uniform PushConstants
+// {
+// 	mat4	modelMatrix;
+// 	mat4	normalMatrix;
+// }	push;
 
 void main()
 {

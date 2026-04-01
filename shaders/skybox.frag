@@ -6,5 +6,12 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    outColor = texture(skybox, fragDir);
+    vec3 dir = fragDir;
+    dir.x = -dir.x;
+    vec3 absDir = abs(dir);
+    if (absDir.y > absDir.x && absDir.y > absDir.z)
+    {
+        dir = vec3(-dir.x, dir.y, -dir.z); // turn by 180° the top cube face
+    }
+    outColor = texture(skybox, dir);
 }

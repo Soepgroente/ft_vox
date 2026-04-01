@@ -9,7 +9,7 @@ struct FrameInfo
 {
 	int					frameIndex;
 	Camera&				camera;
-	VkCommandBuffer*	commandBuffer;
+	VkCommandBuffer		commandBuffer;
 	VkDescriptorSet		globalDescriptorSet;
 	VulkanObject		gameObject;
 };

@@ -41,7 +41,7 @@ struct Config
 
 	static constexpr char const	texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char const	texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
-	static constexpr char const	textureSkyboxPath[] = "textures/skybox.png";
+	static constexpr char const	textureSkyboxPath[] = "textures/skybox1.png";
 };
 
 } // namespace vox

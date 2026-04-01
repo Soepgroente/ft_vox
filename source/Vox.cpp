@@ -117,7 +117,7 @@ void Vox::run( void ) {
 	std::vector<VkDescriptorSet> skyboxDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 	for (size_t i = 0; i < skyboxDescriptorSets.size(); i++)
 	{
-		VkDescriptorBufferInfo bufferInfo = terrainUboBuffers[i]->descriptorInfo();
+		VkDescriptorBufferInfo bufferInfo = skyboxUboBuffers[i]->descriptorInfo();
 		VkDescriptorImageInfo imageInfo{};
 
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -150,7 +150,7 @@ void Vox::run( void ) {
 		ve::TextureType::TEXTURE_CUBEMAP
 	};
 
-	ve::FrameInfo terrainRenderinginfo{
+	ve::FrameInfo terrainRenderingInfo{
 		0,
 		this->camera,
 		nullptr,
@@ -168,7 +168,7 @@ void Vox::run( void ) {
 
 	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	terrainRenderinginfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+	terrainRenderingInfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 	skyboxRenderingInfo.gameObject.model = this->createSkyboxModel();
 
 	Stopwatch timer;
@@ -184,44 +184,42 @@ void Vox::run( void ) {
 			bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 			// bool newDataCreated = this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
 			if (newDataCreated)
-				terrainRenderinginfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
+				terrainRenderingInfo.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 		}
 		VkCommandBuffer commandBuffer = vulkanRenderer.beginFrame();
-		terrainRenderinginfo.commandBuffer = &commandBuffer;
-		skyboxRenderingInfo.commandBuffer = &commandBuffer;
-		if (commandBuffer != nullptr)	// NB when can this give back null?
+		if (commandBuffer != nullptr)
 		{
+			terrainRenderingInfo.commandBuffer = commandBuffer;
+			skyboxRenderingInfo.commandBuffer = commandBuffer;
 			vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
-			terrainRenderinginfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
+			terrainRenderingInfo.frameIndex = vulkanRenderer.getCurrentFrameIndex();
 
-			TerrainUBO	terrainUbo{};
+			TerrainUBO terrainUbo{};
 			terrainUbo.model = mat4::idMat();
 			terrainUbo.view = this->camera.getViewMatrix();
 			terrainUbo.projection = this->camera.getProjectionMatrix();
-			terrainUboBuffers[terrainRenderinginfo.frameIndex]->writeToBuffer(&terrainUbo);
-			terrainUboBuffers[terrainRenderinginfo.frameIndex]->flush();
-			terrainRenderinginfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderinginfo.frameIndex];
-
-			terrainRenderSystem.renderObject(terrainRenderinginfo);
+			terrainUboBuffers[terrainRenderingInfo.frameIndex]->writeToBuffer(&terrainUbo);
+			terrainUboBuffers[terrainRenderingInfo.frameIndex]->flush();
+			terrainRenderingInfo.globalDescriptorSet = terrainDescriptorSets[terrainRenderingInfo.frameIndex];
+			terrainRenderSystem.renderObject(terrainRenderingInfo);
 
 			SkyboxUBO skyboxUbo{};
 			skyboxUbo.view = this->camera.getViewMatrixOnlyRotation();
 			skyboxUbo.projection = this->camera.getProjectionMatrix();
-			skyboxRenderingInfo.frameIndex = terrainRenderinginfo.frameIndex;
-			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->writeToBuffer(&terrainUbo);
+			skyboxRenderingInfo.frameIndex = terrainRenderingInfo.frameIndex;
+			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->writeToBuffer(&skyboxUbo);
 			skyboxUboBuffers[skyboxRenderingInfo.frameIndex]->flush();
 			skyboxRenderingInfo.globalDescriptorSet = skyboxDescriptorSets[skyboxRenderingInfo.frameIndex];
-
 			skyboxRenderSystem.renderObject(skyboxRenderingInfo);
 
 			vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			vulkanRenderer.endFrame();
 			timer.stop();
-			// int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
-			// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
-			// vec3 playerPos = info.camera.getCameraPos();
-			// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-			// std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
+			int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
+			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
+			vec3 playerPos = this->camera.getCameraPos();
+			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
 		}
 		this->inputHandler.reset();
 		// frameCount++;
@@ -313,7 +311,8 @@ void Vox::resizeWindow( ui32 width, ui32 height ) {
  * @return pointer to the newly created model
  */
 std::unique_ptr<ve::VulkanModel> Vox::createSkyboxModel( void ) {
-	return std::make_unique<ve::VulkanModel>(vulkanDevice, getVertexRelative(), getIndexRelative());
+	// return std::make_unique<ve::VulkanModel>(vulkanDevice, getVertexRelative(), getIndexRelative());
+	return std::make_unique<ve::VulkanModel>(vulkanDevice, getVertexRelative(vec3{-0.5f, -0.5f, -0.5f}), getIndexRelative());
 }
 
 }	// namespace vox

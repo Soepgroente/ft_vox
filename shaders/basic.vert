@@ -19,11 +19,11 @@ layout(set = 0, binding = 0) uniform TerrainUBO
 	vec4	lightColor;
 }	ubo;
 
-layout(push_constant) uniform PushConstants
-{
-	mat4	modelMatrix;
-	mat4	normalMatrix;
-}	push;
+// layout(push_constant) uniform PushConstants
+// {
+// 	mat4	modelMatrix;
+// 	mat4	normalMatrix;
+// }	push;
 
 void main()
 {
