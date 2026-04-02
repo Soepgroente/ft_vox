@@ -120,19 +120,32 @@ class VulkanDescriptorWriter
 };
 
 
-class VulkanDescriptorSet;
-
-struct VulkanBindingEntry
+class VulkanDescriptorBinding
 {
-	uint32_t			binding;
-	VkDescriptorType	descriptorType;
-	VkShaderStageFlags	stageFlags;
-	uint32_t			count;
-	union {
-		VkDescriptorBufferInfo	*bufferInfo;
-		VkDescriptorImageInfo	*imageInfo;
-	};
+	public:
+
+	// VulkanDescriptorBinding() = default;
+	// ~VulkanDescriptorBinding() = default;
+	// VulkanDescriptorBinding(const VulkanDescriptorBinding&) = default;
+	// VulkanDescriptorBinding(VulkanDescriptorBinding&&) = default;
+	// VulkanDescriptorBinding& operator=(const VulkanDescriptorBinding&) = default;
+	// VulkanDescriptorBinding& operator=(VulkanDescriptorBinding&&) = default;
+
+	void*												getBindingData(uint32_t binding) const {return bindingData.at(binding); };
+	const std::vector<VkDescriptorSetLayoutBinding>&	getBindingInfo() const noexcept {return bindingInfo; };
+	size_t												getNbindings() const noexcept {return bindingInfo.size(); };
+
+	VulkanDescriptorBinding&	addBinding(uint32_t binding, VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t descriptorCount, void* data);
+	VulkanDescriptorBinding&	resetBindings() noexcept;
+
+	private:
+
+	std::map<uint32_t,VkDescriptorSetLayoutBinding>	bindings1;
+	std::vector<VkDescriptorSetLayoutBinding>		bindingInfo;
+	std::map<uint32_t,void*>						bindingData;
 };
+
+class VulkanDescriptorSet;
 
 class VulkanDescriptorSetFactory
 {
@@ -140,36 +153,31 @@ class VulkanDescriptorSetFactory
 
 	VulkanDescriptorSetFactory() = delete;
 	VulkanDescriptorSetFactory(VulkanDevice& vulkanDevice, uint32_t framesInFlight) :
-		vulkanDevice{vulkanDevice}, framesInFlight{framesInFlight} {};
+		vulkanDevice{vulkanDevice}, framesInFlight{framesInFlight}, poolFlags{0U}, maxSets{1000U} {};
 	~VulkanDescriptorSetFactory();
 	VulkanDescriptorSetFactory(const VulkanDescriptorSetFactory&) = delete;
 	VulkanDescriptorSetFactory(VulkanDescriptorSetFactory&&) = delete;
 	VulkanDescriptorSetFactory& operator=(const VulkanDescriptorSetFactory&) = delete;
 	VulkanDescriptorSetFactory& operator=(VulkanDescriptorSetFactory&&) = delete;
-	// pool
+
 	VulkanDescriptorSetFactory&	addPoolSize(VkDescriptorType descriptorType, uint32_t count);
 	VulkanDescriptorSetFactory&	setPoolFlags(VkDescriptorPoolCreateFlags flags);
 	VulkanDescriptorSetFactory&	setMaxSets(uint32_t count);
-	// writing
-	// VulkanDescriptorSetFactory&	writeBuffer(uint32_t binding, VkDescriptorBufferInfo *bufferInfo);
-	// VulkanDescriptorSetFactory&	writeImage(uint32_t binding, VkDescriptorImageInfo *imageInfo);
+	VulkanDescriptorSetFactory& createPool();
+	void						resetPool();
+	void						freeDescriptors(std::vector<VkDescriptorSet>& descriptors) const;
 
-	void										createPool();
-	// std::unique_ptr<VulkanDescriptorSetLayout>	createLayout(const std::vector<VulkanBindingEntry>& bindings);
-	std::unique_ptr<VulkanDescriptorSet>		createSet(const std::vector<VulkanBindingEntry>& bindings); // <-- ?
+	std::unique_ptr<VulkanDescriptorSet>	createDescriptorSet(const VulkanDescriptorBinding& bindings);
 
 	private:
 
 	VulkanDevice&						vulkanDevice;
-	VkDescriptorPool					descriptorPool;
-	std::vector<VkDescriptorSetLayout>	descriptorSetLayout;
-
-	std::vector<VkDescriptorPoolSize>	poolSizes{};
 	uint32_t							framesInFlight;
+
+	std::vector<VkDescriptorPoolSize>	poolSizes;
+	VkDescriptorPoolCreateFlags			poolFlags;
 	uint32_t							maxSets;
-	// VkDescriptorPoolCreateFlags			poolFlags = 0;
-	// std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings;
-	// std::vector<VkWriteDescriptorSet> writes;
+	VkDescriptorPool					descriptorPool;
 };
 
 class VulkanDescriptorSet
@@ -177,7 +185,6 @@ class VulkanDescriptorSet
 	public:
 
 	VulkanDescriptorSet() = delete;
-	VulkanDescriptorSet(/* ...*/);
 	~VulkanDescriptorSet();
 	VulkanDescriptorSet(const VulkanDescriptorSet&) = delete;
 	VulkanDescriptorSet(VulkanDescriptorSet&&) = delete;
@@ -188,11 +195,30 @@ class VulkanDescriptorSet
 	void	updateUbo(int32_t binding, void* data);
 	void	bind();
 
+	const VkDescriptorSetLayout&	getDescriptorSetLayout() const noexcept {return descriptorSetLayout; };
+	const VkDescriptorSet&			getDescriptorSet() const noexcept {return descriptorSet; };
+
 	private:
 
-	uint32_t										framesInFlight;
-	std::map<int32_t,std::vector<VulkanBuffer>>		buffers;
-	std::map<int32_t,std::vector<VulkanTexture>>	samplers;
+	VulkanDescriptorSet(
+		VulkanDevice& vulkanDevice,
+		VkDescriptorPool descriptorPool,
+		uint32_t framesInFlight,
+		const VulkanDescriptorBinding& bindings
+	);
+
+	void	createDescriptorLayout(const VulkanDescriptorBinding& bindings);
+	void	createDescriptorSet();
+	void	updateDescriptorSet(const VulkanDescriptorBinding& bindings);
+	void	addBuffer(uint32_t binding, uint32_t sizeBuffer);
+
+	VulkanDevice&			vulkanDevice;
+	VkDescriptorPool		descriptorPool;
+	VkDescriptorSetLayout	descriptorSetLayout;
+	VkDescriptorSet			descriptorSet;
+	uint32_t				framesInFlight;
+
+	std::map<int32_t,std::vector<std::unique_ptr<VulkanBuffer>>>	buffers;
 };
 
 }  // namespace ve

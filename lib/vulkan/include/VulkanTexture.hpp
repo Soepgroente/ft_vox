@@ -11,7 +11,7 @@ class VulkanTexture
 	public:
 
 	VulkanTexture() = delete;
-	VulkanTexture(const std::string& filePath, VulkanDevice& device, TextureType = TEXTURE_PLAIN);
+	VulkanTexture(VulkanDevice& device, const std::string& filePath, TextureType = TEXTURE_PLAIN);
 	~VulkanTexture();
 
 	VulkanTexture(const VulkanTexture& other) = delete;

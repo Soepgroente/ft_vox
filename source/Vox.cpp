@@ -34,37 +34,13 @@ Vox::Vox( void ) :
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 
-	this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice, ve::TextureType::TEXTURE_PLAIN}});
-	this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice, ve::TextureType::TEXTURE_CUBEMAP}});
-	this->terrainUboBuffers.reserve(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
-	this->skyboxUboBuffers.reserve(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	// this->textures.insert({TEXT_DIRT_1, ve::VulkanTexture{Config::texture2VoxelPath, vulkanDevice, ve::TextureType::TEXTURE_PLAIN}});
+	// this->textures.insert({TEXT_SKYBOX, ve::VulkanTexture{Config::textureSkyboxPath, vulkanDevice, ve::TextureType::TEXTURE_CUBEMAP}});
+	// this->terrainUboBuffers.reserve(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	// this->skyboxUboBuffers.reserve(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
 }
 
 void Vox::setupVulkan( void ) {
-	// for (size_t i = 0; i < terrainUboBuffers.size(); i++)
-	// {
-	// 	terrainUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
-	// 		vulkanDevice,
-	// 		sizeof(TerrainUBO),
-	// 		1,
-	// 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-	// 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	// 	);
-	// 	terrainUboBuffers[i]->map();
-	// }
-
-	// for (size_t i = 0; i < skyboxUboBuffers.size(); i++)
-	// {
-	// 	skyboxUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
-	// 		vulkanDevice,
-	// 		sizeof(SkyboxUBO),
-	// 		1,
-	// 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-	// 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-	// 	);
-	// 	skyboxUboBuffers[i]->map();
-	// }
-
 	ui32 maxDescriptors = 2;
 	ui32 nUboBuffers = 2;
 	ui32 nTextures = 2;
@@ -76,28 +52,47 @@ void Vox::setupVulkan( void ) {
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nTextures)
 		.createPool();
 
-	// both desc. sets have same layout (1 ubo 1 sampler) so one is enough to spawn both different sets
-	std::vector<ve::VulkanBindingEntry> bindingsLayout(2);
-	bindingsLayout[0].binding = 0;
-	bindingsLayout[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	bindingsLayout[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	bindingsLayout[0].count = 1;
-	bindingsLayout[0].bufferInfo = &terrainUboBuffers[0]->descriptorInfo();
-	bindingsLayout[1].binding = 1;
-	bindingsLayout[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	bindingsLayout[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	bindingsLayout[1].count = 1;
-	bindingsLayout[1].imageInfo = &this->textures.at(TEXT_DIRT_1).getDescriptorImageInfo();
-	this->terrainDescriptorSet = descSetFactory.createSet(bindingsLayout);
+	// NB: buffers and samplers must exist before descriptor set creation
+	ve::VulkanDescriptorBinding bindings;
+	bindings
+		.addBinding(
+			0,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			1,
+			static_cast<void*>(&terrainUboBuffers[0]->descriptorInfo())
+		)
+		.addBinding(
+			1,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			1,
+			static_cast<void*>(&this->textures.at(TEXT_DIRT_1).getDescriptorImageInfo())
+		);
+	this->terrainDescriptorSet = descSetFactory.createDescriptorSet(bindings);
 
-	bindingsLayout[0].bufferInfo = &skyboxUboBuffers[0]->descriptorInfo();
-	bindingsLayout[1].imageInfo = &this->textures.at(TEXT_SKYBOX).getDescriptorImageInfo();
-	this->skyboxDescriptorSet = descSetFactory.createSet(bindingsLayout);
+	bindings
+		.resetBindings()
+		.addBinding(
+			0,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			1,
+			static_cast<void*>(&skyboxUboBuffers[0]->descriptorInfo())
+		)
+		.addBinding(
+			1,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			1,
+			static_cast<void*>(&this->textures.at(TEXT_SKYBOX).getDescriptorImageInfo())
+		);
+	this->skyboxDescriptorSet = descSetFactory.createDescriptorSet(bindings);
 
 	terrainPipeline = std::make_unique<ve::VulkanRenderSystem>(
-		vulkanDevice,
+		this->vulkanDevice,
 		this->vulkanRenderer.getSwapChainRenderPass(),
-		std::vector<VkDescriptorSetLayout>{descriptorSetLayout->getDescriptorSetLayout()},
+		std::vector<VkDescriptorSetLayout>{this->terrainDescriptorSet->getDescriptorSetLayout()},
 		Config::terrainVertShaderPath,
 		Config::terrainFragShaderPath,
 		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
@@ -105,15 +100,109 @@ void Vox::setupVulkan( void ) {
 	);
 
 	skyboxPipeline = std::make_unique<ve::VulkanRenderSystem>(
-		vulkanDevice,
+		this->vulkanDevice,
 		this->vulkanRenderer.getSwapChainRenderPass(),
-		std::vector<VkDescriptorSetLayout>{descriptorSetLayout->getDescriptorSetLayout()},
+		std::vector<VkDescriptorSetLayout>{this->skyboxDescriptorSet->getDescriptorSetLayout()},
 		Config::skyboxVertShaderPath,
 		Config::skyboxFragShaderPath,
 		ve::ModelType::VERTEX,
 		ve::TextureType::TEXTURE_CUBEMAP
 	);
 }
+
+/*
+OLD VULKAN SETUP
+for (size_t i = 0; i < terrainUboBuffers.size(); i++)
+	{
+		terrainUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
+			vulkanDevice,
+			sizeof(TerrainUBO),
+			1,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+		);
+		terrainUboBuffers[i]->map();
+	}
+
+	std::vector<std::unique_ptr<ve::VulkanBuffer>>	skyboxUboBuffers(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < skyboxUboBuffers.size(); i++)
+	{
+		skyboxUboBuffers[i] = std::make_unique<ve::VulkanBuffer>(
+			vulkanDevice,
+			sizeof(SkyboxUBO),
+			1,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+		);
+		skyboxUboBuffers[i]->map();
+	}
+
+	ui32 maxDescriptors = 2;
+	ui32 nUboBuffers = 2;
+	ui32 nTextures = 2;
+	std::unique_ptr<ve::VulkanDescriptorPool> globalDescriptorPool = ve::VulkanDescriptorPool::Builder(vulkanDevice)
+		.setMaxSets(maxDescriptors * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, nUboBuffers * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nTextures * ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.build();
+
+	std::unique_ptr<ve::VulkanDescriptorSetLayout> globalSetLayout = ve::VulkanDescriptorSetLayout::Builder(vulkanDevice)
+		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+		.build();
+
+	std::vector<VkDescriptorSet> terrainDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < terrainDescriptorSets.size(); i++)
+	{
+		VkDescriptorBufferInfo bufferInfo = terrainUboBuffers[i]->descriptorInfo();
+		VkDescriptorImageInfo imageInfo{};
+
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = this->textures.at(TEXT_DIRT_1).getImageView();
+		imageInfo.sampler = this->textures.at(TEXT_DIRT_1).getSampler();
+
+		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
+			.writeBuffer(0, &bufferInfo)
+			.writeImage(1, &imageInfo)
+			.build(terrainDescriptorSets[i]);
+	}
+
+	std::vector<VkDescriptorSet> skyboxDescriptorSets(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT);
+	for (size_t i = 0; i < skyboxDescriptorSets.size(); i++)
+	{
+		VkDescriptorBufferInfo bufferInfo = skyboxUboBuffers[i]->descriptorInfo();
+		VkDescriptorImageInfo imageInfo{};
+
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = this->textures.at(TEXT_SKYBOX).getImageView();
+		imageInfo.sampler = this->textures.at(TEXT_SKYBOX).getSampler();
+
+		ve::VulkanDescriptorWriter(*globalSetLayout, *globalDescriptorPool)
+			.writeBuffer(0, &bufferInfo)
+			.writeImage(1, &imageInfo)
+			.build(skyboxDescriptorSets[i]);
+	}
+
+	ve::VulkanRenderSystem	terrainRenderSystem{
+		vulkanDevice,
+		vulkanRenderer.getSwapChainRenderPass(),
+		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
+		Config::terrainVertShaderPath,
+		Config::terrainFragShaderPath,
+		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
+		ve::TextureType::TEXTURE_PLAIN
+	};
+
+	ve::VulkanRenderSystem	skyboxRenderSystem{
+		vulkanDevice,
+		vulkanRenderer.getSwapChainRenderPass(),
+		std::vector<VkDescriptorSetLayout>{globalSetLayout->getDescriptorSetLayout()},
+		Config::skyboxVertShaderPath,
+		Config::skyboxFragShaderPath,
+		ve::ModelType::VERTEX,
+		ve::TextureType::TEXTURE_CUBEMAP
+	};
+*/
 
 /**
  * Run the rendering loop

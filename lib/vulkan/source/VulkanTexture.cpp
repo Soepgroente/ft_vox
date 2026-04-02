@@ -3,7 +3,7 @@
 
 namespace ve {
 
-VulkanTexture::VulkanTexture(const std::string& filePath, VulkanDevice& device, TextureType type) : 
+VulkanTexture::VulkanTexture(VulkanDevice& device, const std::string& filePath, TextureType type) : 
 	device(device), type(type)
 {
 	textureImage = VK_NULL_HANDLE;
@@ -227,7 +227,7 @@ void	VulkanTexture::createTextureSampler()
 	VkSamplerCreateInfo	samplerInfo{};
 	
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;		// VK_FILTER_NEAREST for cubemaps but result is ugly
+	samplerInfo.magFilter = VK_FILTER_LINEAR;		// VK_FILTER_NEAREST for cubemaps (adds padding) but result is ugly
 	samplerInfo.minFilter = VK_FILTER_LINEAR;
 	if (type == TEXTURE_PLAIN)
 	{

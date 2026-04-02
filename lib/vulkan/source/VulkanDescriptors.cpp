@@ -122,7 +122,7 @@ bool	VulkanDescriptorPool::allocateDescriptor(const VkDescriptorSetLayout descri
 
 void	VulkanDescriptorPool::freeDescriptors(std::vector<VkDescriptorSet>& descriptors) const
 {
-	vkFreeDescriptorSets(
+	vkFreeDescriptorSets(		// NB!!
 		vulkanDevice.device(),
 		descriptorPool,
 		static_cast<uint32_t>(descriptors.size()),
@@ -197,5 +197,200 @@ void	VulkanDescriptorWriter::overwrite(VkDescriptorSet& set)
 	}
 	vkUpdateDescriptorSets(pool.vulkanDevice.device(), writes.size(), writes.data(), 0, nullptr);
 }
+
+
+VulkanDescriptorBinding&	VulkanDescriptorBinding::addBinding(uint32_t binding, VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t descriptorCount, void* data)
+{
+	assert(bindings1.count(binding) == 0 || bindingData.count(binding) == 0 && "Binding already in use");
+	VkDescriptorSetLayoutBinding layoutBinding{};
+	layoutBinding.binding = binding;
+	layoutBinding.descriptorType = descriptorType;
+	layoutBinding.descriptorCount = descriptorCount;
+	layoutBinding.stageFlags = stageFlags;
+
+	bindings1[binding] = layoutBinding;
+	bindingInfo.push_back(layoutBinding);
+	bindingData[binding] = data;
+}
+
+VulkanDescriptorBinding&	VulkanDescriptorBinding::resetBindings() noexcept
+{
+	bindings1.clear();
+	bindingInfo.clear();
+	bindingData.clear();
+}
+
+
+VulkanDescriptorSetFactory::~VulkanDescriptorSetFactory()
+{
+	vkDestroyDescriptorPool(vulkanDevice.device(), descriptorPool, nullptr);
+}
+
+VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::addPoolSize(VkDescriptorType descriptorType, uint32_t count)
+{
+	poolSizes.push_back({descriptorType, count});
+	return *this;
+}
+
+VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::setPoolFlags(VkDescriptorPoolCreateFlags flags)
+{
+	poolFlags |= flags;
+	return *this;
+}
+
+VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::setMaxSets(uint32_t count)
+{
+	maxSets = count;
+	return *this;
+}
+
+VulkanDescriptorSetFactory& VulkanDescriptorSetFactory::createPool()
+{
+	VkDescriptorPoolCreateInfo poolInfo{};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+	poolInfo.pPoolSizes = poolSizes.data();
+	poolInfo.maxSets = maxSets;
+	poolInfo.flags = poolFlags;
+
+	if (vkCreateDescriptorPool(vulkanDevice.device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create descriptor pool!");
+	}
+	return *this;
+}
+
+void VulkanDescriptorSetFactory::resetPool()
+{
+	vkResetDescriptorPool(vulkanDevice.device(), descriptorPool, 0);
+}
+
+std::unique_ptr<VulkanDescriptorSet> VulkanDescriptorSetFactory::createDescriptorSet(const VulkanDescriptorBinding& bindings)
+{
+	return std::make_unique<VulkanDescriptorSet>(
+		vulkanDevice,
+		descriptorPool,
+		framesInFlight,
+		bindings
+	);
+}
+
+VulkanDescriptorSet::VulkanDescriptorSet(
+	VulkanDevice& vulkanDevice,
+	VkDescriptorPool descriptorPool,
+	uint32_t framesInFlight,
+	const VulkanDescriptorBinding& bindings
+) :
+	vulkanDevice{vulkanDevice},
+	descriptorPool{descriptorPool},
+	descriptorSetLayout{VK_NULL_HANDLE},
+	descriptorSet{VK_NULL_HANDLE},
+	framesInFlight{framesInFlight}
+{
+	createDescriptorLayout(bindings);
+	createDescriptorSet();
+	updateDescriptorSet(bindings);
+}
+
+VulkanDescriptorSet::~VulkanDescriptorSet()
+{
+	vkDestroyDescriptorSetLayout(vulkanDevice.device(), descriptorSetLayout, nullptr);
+}
+
+void VulkanDescriptorSet::setCurrentFrame(int32_t framesInFlight) noexcept
+{
+
+}
+
+void VulkanDescriptorSet::updateUbo(int32_t binding, void* data)
+{
+
+}
+
+void VulkanDescriptorSet::bind()
+{
+
+}
+
+void VulkanDescriptorSet::createDescriptorLayout(const VulkanDescriptorBinding& bindings)
+{
+	VkDescriptorSetLayoutCreateInfo	descriptorSetLayoutInfo;
+	descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	descriptorSetLayoutInfo.bindingCount = bindings.getNbindings();
+	descriptorSetLayoutInfo.pBindings = bindings.getBindingInfo().data();
+
+	if (vkCreateDescriptorSetLayout(
+		vulkanDevice.device(),
+		&descriptorSetLayoutInfo,
+		nullptr,
+		&descriptorSetLayout) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create descriptor set layout");
+	}
+}
+
+void VulkanDescriptorSet::createDescriptorSet()
+{
+	assert(descriptorSetLayout == VK_NULL_HANDLE && "Descriptor set layout not initialized");
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.pSetLayouts = &descriptorSetLayout;
+	allocInfo.descriptorSetCount = 1;
+
+	if (vkAllocateDescriptorSets(vulkanDevice.device(), &allocInfo, &descriptorSet) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create descriptor set");
+	}
+}
+
+void VulkanDescriptorSet::updateDescriptorSet(const VulkanDescriptorBinding& bindings)
+{
+	assert(descriptorSetLayout == VK_NULL_HANDLE && "Descriptor set layout not initialized");
+	assert(descriptorSet == VK_NULL_HANDLE && "Descriptor set not initialized");
+
+	const std::vector<VkDescriptorSetLayoutBinding>& bindInfo = bindings.getBindingInfo();
+	std::vector<VkWriteDescriptorSet> writes(bindInfo.size());
+
+	for (uint32_t i = 0U; i < bindInfo.size(); i++)
+	{
+		writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writes[i].dstBinding = bindInfo[i].binding;
+		writes[i].descriptorType = bindInfo[i].descriptorType;
+		writes[i].descriptorCount = 1;
+		writes[i].dstSet = descriptorSet;
+
+		void* bindingInfoData = bindings.getBindingData(bindInfo[i].binding);
+		if (bindInfo[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			writes[i].pBufferInfo = static_cast<VkDescriptorBufferInfo*>(bindingInfoData);
+			addBuffer(bindInfo[i].binding, writes[i].pBufferInfo->range);
+		}
+		else if (bindInfo[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		{
+			writes[i].pImageInfo = static_cast<VkDescriptorImageInfo*>(bindingInfoData);
+		}
+	}
+
+	vkUpdateDescriptorSets(vulkanDevice.device(), writes.size(), writes.data(), 0, nullptr);
+}
+
+void VulkanDescriptorSet::addBuffer(uint32_t binding, uint32_t sizeBuffer)
+{
+	buffers[binding].reserve(framesInFlight);
+	for (uint32_t i = 0; i < framesInFlight; i++)
+	{
+		buffers[binding][i] = std::make_unique<ve::VulkanBuffer>(
+			vulkanDevice.device(),
+			sizeBuffer,
+			1,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+		buffers[binding][i]->map();
+	}
+}
+
 
 }	// namespace ve
