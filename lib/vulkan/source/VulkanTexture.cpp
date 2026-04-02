@@ -121,7 +121,7 @@ void	VulkanTexture::createTextureImage()
 		VulkanTexture::sizeOfPixel,
 		nPixels,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 	);
 	stagingBuffer.map();
 
@@ -131,7 +131,7 @@ void	VulkanTexture::createTextureImage()
 	}
 	else if (type == TEXTURE_CUBEMAP)
 	{
-		uint32_t faceWidth  = static_cast<uint32_t>(imageInfo.width) / 4U;
+		uint32_t faceWidth = static_cast<uint32_t>(imageInfo.width) / 4U;
 		uint32_t faceHeight = static_cast<uint32_t>(imageInfo.height) / 3U;
 		uint32_t paddingFace = std::abs(static_cast<int32_t>(faceHeight) - static_cast<int32_t>(faceWidth));
 		if (paddingFace != 0U) {
@@ -167,6 +167,7 @@ void	VulkanTexture::createTextureImage()
 			}
 		}
 	}
+	stagingBuffer.flush();
 
 	free((const_cast<unsigned char*>(imageInfo.imageData)));
 	imageInfo.imageData = nullptr;
@@ -210,6 +211,15 @@ void	VulkanTexture::createTextureImageView()
 		info.arrayLayers,
 		type
 	);
+}
+
+VkDescriptorImageInfo	VulkanTexture::getDescriptorImageInfo() const noexcept {
+	VkDescriptorImageInfo imageInfo{};
+
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = textureImageView;
+	imageInfo.sampler = textureSampler;
+	return imageInfo;
 }
 
 void	VulkanTexture::createTextureSampler()

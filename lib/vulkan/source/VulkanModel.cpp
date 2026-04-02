@@ -63,11 +63,12 @@ void	VulkanModel::createVertexBuffers(const std::vector<Vertex>& vertices)
 		vertexSize,
 		vertexCount,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 	);
 
 	stagingBuffer.map();
 	stagingBuffer.writeToBuffer(static_cast<const void*>(vertices.data()));
+	stagingBuffer.flush();
 
 	vertexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,
@@ -92,11 +93,12 @@ void	VulkanModel::createVertexBuffers(const std::vector<vec3>& vertices)
 		vertexSize,
 		vertexCount,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 	);
 
 	stagingBuffer.map();
 	stagingBuffer.writeToBuffer(static_cast<const void*>(vertices.data()));
+	stagingBuffer.flush();
 
 	vertexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,
@@ -121,11 +123,12 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 		indexSize,
 		indexCount,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 	);
 
 	stagingBuffer.map();
 	stagingBuffer.writeToBuffer(static_cast<const void*>(indices.data()));
+	stagingBuffer.flush();
 
 	indexBuffer = std::make_unique<VulkanBuffer>(
 		vulkanDevice,

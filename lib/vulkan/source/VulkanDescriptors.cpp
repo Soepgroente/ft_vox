@@ -28,8 +28,7 @@ std::unique_ptr<VulkanDescriptorSetLayout>	VulkanDescriptorSetLayout::Builder::b
 	return std::make_unique<VulkanDescriptorSetLayout>(vulkanDevice, bindings);
 }
 
-VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
-	VulkanDevice& vulkanDevice, std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings)
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VulkanDevice& vulkanDevice, std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings)
 	: vulkanDevice{vulkanDevice}, bindings{bindings}
 {
 	std::vector<VkDescriptorSetLayoutBinding>	setLayoutBindings{};
@@ -94,7 +93,7 @@ VulkanDescriptorPool::VulkanDescriptorPool(
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = maxSets;
-	poolInfo.flags = poolFlags;
+	poolInfo.flags = poolFlags;	// NB could also be left to hardcoded 0
 
 	if (vkCreateDescriptorPool(vulkanDevice.device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 	{
@@ -107,8 +106,7 @@ VulkanDescriptorPool::~VulkanDescriptorPool()
 	vkDestroyDescriptorPool(vulkanDevice.device(), descriptorPool, nullptr);
 }
 
-bool	VulkanDescriptorPool::allocateDescriptor(
-	const VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSet& descriptor) const
+bool	VulkanDescriptorPool::allocateDescriptor(const VkDescriptorSetLayout descriptorSetLayout, VkDescriptorSet& descriptor) const
 {
 	VkDescriptorSetAllocateInfo allocInfo{};
 
@@ -136,8 +134,8 @@ void	VulkanDescriptorPool::resetPool()
 	vkResetDescriptorPool(vulkanDevice.device(), descriptorPool, 0);
 }
 
-VulkanDescriptorWriter::VulkanDescriptorWriter(VulkanDescriptorSetLayout &setLayout, VulkanDescriptorPool &pool)
-	: setLayout{setLayout}, pool{pool}
+VulkanDescriptorWriter::VulkanDescriptorWriter(VulkanDescriptorSetLayout &setLayout, VulkanDescriptorPool &pool, int32_t framesInFlight)
+	: setLayout{setLayout}, pool{pool}, framesInFlight{framesInFlight}
 {
 }
 

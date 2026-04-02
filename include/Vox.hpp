@@ -16,7 +16,7 @@ namespace vox {
 using ui32 = uint32_t;
 using i32 = int32_t;
 
-enum TextureTypes {
+enum TextureType {
 	TEXT_DIRT_1,
 	TEXT_DIRT_2,
 	TEXT_STONE_1,
@@ -60,21 +60,24 @@ class Vox
 		static std::vector<std::thread>	workerThreads;
 
 	private:
-		ve::VulkanWindow							vulkanWindow;
-		ve::VulkanDevice							vulkanDevice;
-		ve::VulkanRenderer							vulkanRenderer;
+		ve::VulkanWindow	vulkanWindow;
+		ve::VulkanDevice	vulkanDevice;
+		ve::VulkanRenderer	vulkanRenderer;
 
 		ve::Camera		camera;
 		WorldNavigator	navigator;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
 
-		std::map<TextureTypes,ve::VulkanTexture> textures;
-		std::vector<std::unique_ptr<ve::VulkanBuffer>> terrainUboBuffers;
-		std::vector<std::unique_ptr<ve::VulkanBuffer>> skyboxUboBuffers;
+		std::map<TextureType,ve::VulkanTexture>		textures;
+		std::vector<std::unique_ptr<ve::VulkanBuffer>>	terrainUboBuffers;
+		std::vector<std::unique_ptr<ve::VulkanBuffer>>	skyboxUboBuffers;
 
-		ve::VulkanRenderSystem terrainPipeline;
-		ve::VulkanRenderSystem skyboxPipeline;
+		std::unique_ptr<ve::VulkanDescriptorSet> terrainDescriptorSet;
+		std::unique_ptr<ve::VulkanDescriptorSet> skyboxDescriptorSet;
+
+		std::unique_ptr<ve::VulkanRenderSystem> terrainPipeline;
+		std::unique_ptr<ve::VulkanRenderSystem> skyboxPipeline;
 };
 
 }	// namespace vox

@@ -95,7 +95,9 @@ class VulkanModel
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
+	VulkanModel(VulkanModel&&) = delete;
 	VulkanModel& operator=(const VulkanModel&) = delete;
+	VulkanModel& operator=(VulkanModel&&) = delete;
 
 	void	bind(VkCommandBuffer commandBuffer);
 	void	draw(VkCommandBuffer commandBuffer);
@@ -110,22 +112,22 @@ class VulkanModel
 	const BoundingBox&	getBoundingBox() const noexcept { return boundingBox; }
 
 	private:
-	
+
 	std::string			name;
-	
+
 	VulkanDevice&		vulkanDevice;
 	uint32_t			vertexCount;
-	
+
 	std::unique_ptr<VulkanBuffer>	vertexBuffer;
 	std::unique_ptr<VulkanBuffer>	indexBuffer;
-	
-	uint32_t			indexCount;
-	
+
+	uint32_t		indexCount;
+
 	vec3			vertexCenter;
 	vec3			boundingCenter;
 	BoundingBox		boundingBox;
 	ModelType		type;
-	
+
 	void	setObjectCenter() noexcept;
 
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
