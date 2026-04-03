@@ -35,9 +35,11 @@ class VulkanPipelinee
 	VulkanPipelinee(const VulkanPipelinee&) = delete;
 	VulkanPipelinee& operator=(const VulkanPipelinee&) = delete;
 
-	void	bind(VkCommandBuffer commandBuffer);
+	const VkPipelineLayout&	getPipelineLayout() const noexcept {return pipelineLayout; };
+
+	void		bind(VkCommandBuffer commandBuffer);
 	static void	defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
-	void	renderObject(FrameInfo& frameInfo);
+	void		renderObject(FrameInfo& frameInfo);
 
 	private:
 
