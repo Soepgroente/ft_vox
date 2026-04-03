@@ -28,11 +28,6 @@ struct Config
 	static constexpr ui32	chunkLength = 16U;
 	static constexpr ui32	chunkHeight = 256U;
 	static constexpr ui32	seaLevel = 64U;
-	static constexpr vec3		startingPos{		// NB this is ugly, y should depend on ground lvl
-		0,
-		255.0f,
-		0
-	};
 
 	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;

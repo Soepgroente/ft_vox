@@ -41,7 +41,6 @@ class Vox
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool;
 		
 		ve::Camera		camera;
-		WorldNavigator	navigator;
 		VoxelMap		voxelMap;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;

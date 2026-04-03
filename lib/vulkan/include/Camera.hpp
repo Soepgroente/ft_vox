@@ -21,7 +21,7 @@ class Camera
 	public:
 		Camera( vec3 const& pos, vec3 const& forward, vec3 const& limits ) : 
 			_position(pos),
-			_forward(forward),
+			_forward(forward.normalized()),
 			_limits(limits),
 			// the up depends on what axis the camera is watching (so it depends on forward): 
 			// camera looks (forward) along x or z -> __up is non-null in y, 

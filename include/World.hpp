@@ -118,32 +118,6 @@ class World {
 };
 
 
-class WorldNavigator {
-	public:
-		explicit WorldNavigator() : 
-			worldSize(Config::chunkLength, Config::chunkHeight, Config::chunkLength),
-			totVoxels(0U),
-			currentWorldPos(0U) {};
-		~WorldNavigator( void ) = default;
-		WorldNavigator( WorldNavigator const& ) = delete;
-		WorldNavigator( WorldNavigator&& ) = delete;
-		WorldNavigator& operator=( WorldNavigator const& ) = delete;
-		WorldNavigator& operator=( WorldNavigator&& ) = delete;
-
-		size_t	getMemoryUsed( void ) const noexcept;
-
-		// std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
-
-	private:
-
-		vec3ui							worldSize;			// 3D dimension of every world
-		uint32_t						totVoxels;			// total voxel generated in every world
-		// map of the existing chunks/worlds (note: positions are stored using integers, that 
-		// represent the 3D indexes of the world, not their actual distance frm the origin)
-		std::unordered_map<vec3i,World>	worlds;
-		vec3i							currentWorldPos;	// last position known of the player
-};
-
 float	perlin(float x, float y, float z);
 float	randomNoise(float, float, ui32& seed);
 

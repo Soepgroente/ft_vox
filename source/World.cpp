@@ -107,31 +107,4 @@ IndexVector getIndexRelative( uint32_t start ) {
 	return indexes;
 }
 
-
-/**
- * @return the size of memory, in bytes, used by the chunks
- */
-size_t WorldNavigator::getMemoryUsed( void ) const noexcept {
-	size_t size = 0U;
-	size += this->totVoxels * VERTEX_PER_VOXEL * sizeof(ve::VulkanModel::Vertex);
-	size += this->totVoxels * INDEX_PER_VOXEL * sizeof(uint32_t);
-	return size;
-}
-
-/**
- * Creates a new ve::VulkanModel, that loads vertex data into the GPU. It shall be called everytime
- * a new world/chunks is created (i.e. whenever WorldNavigator::spawnCloseByWorlds() returns true)
- *
- * @param device vulkan object used to build the buffers
- *
- * @return pointer to the newly created model 
- */
-// std::unique_ptr<ve::VulkanModel> WorldNavigator::createNewModel( ve::VulkanDevice& device ) const {
-// 	std::vector<VertexVector const*>	vertexes(this->worlds.size());
-// 	uint32_t i = 0U;
-// 	for (auto const& [pos , _] : this->worlds)
-// 		vertexes[i++] = &this->worlds.at(pos).getVertexes();
-// 	return std::make_unique<ve::VulkanModel>(device, vertexes, VOXEL_VERTEX_INDEXES);
-// }
-
 }	// namespace vox
