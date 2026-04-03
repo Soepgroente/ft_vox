@@ -189,13 +189,13 @@ VulkanDescriptorSetFactory::~VulkanDescriptorSetFactory()
 
 VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::addPoolSize(VkDescriptorType descriptorType, uint32_t count)
 {
-	VkDescriptorPoolSize poolSize;
+	VkDescriptorPoolSize poolSize{};
 	poolSize.type = descriptorType;
 	poolSize.descriptorCount = count;
 
 	poolSizes.push_back(poolSize);
 	return *this;
-}//
+}
 
 VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::setPoolFlags(VkDescriptorPoolCreateFlags flags)
 {
@@ -216,7 +216,7 @@ VulkanDescriptorSetFactory& VulkanDescriptorSetFactory::createPool()
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = maxSets;
-	poolInfo.flags = poolFlags;//
+	poolInfo.flags = poolFlags;
 
 	if (vkCreateDescriptorPool(vulkanDevice.device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 	{
@@ -236,7 +236,7 @@ VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::addBinding(uint32_t bind
 	for (const VkDescriptorSetLayoutBinding& existingBindings : bindings)
 		assert(existingBindings.binding != binding && "Binding already in use");
 
-	VkDescriptorSetLayoutBinding layoutBinding;
+	VkDescriptorSetLayoutBinding layoutBinding{};
 	layoutBinding.binding = binding;
 	layoutBinding.descriptorType = descriptorType;
 	layoutBinding.descriptorCount = descriptorCount;
@@ -252,12 +252,13 @@ VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::resetBindings() noexcept
 	return *this;
 }
 
-std::unique_ptr<VulkanDescriptorSet> VulkanDescriptorSetFactory::createDescriptorSet()
+std::unique_ptr<VulkanDescriptorSet> VulkanDescriptorSetFactory::createDescriptorSet(VkDescriptorSetLayoutCreateFlags flags)
 {
-	VkDescriptorSetLayoutCreateInfo	descriptorSetLayoutInfo;
+	VkDescriptorSetLayoutCreateInfo	descriptorSetLayoutInfo{};
 	descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptorSetLayoutInfo.bindingCount = bindings.size();
-	descriptorSetLayoutInfo.pBindings = bindings.data();//
+	descriptorSetLayoutInfo.pBindings = bindings.data();
+	descriptorSetLayoutInfo.flags = flags;
 
 	VkDescriptorSetLayout descriptorSetLayout;
 	if (vkCreateDescriptorSetLayout(
@@ -336,13 +337,13 @@ void VulkanDescriptorSet::updateUbo(int32_t binding, void const* data)
 	buffers[binding][currentFrame]->writeToBuffer(data);
 }
 
-void VulkanDescriptorSet::bind(VkCommandBuffer commandBuffer, const VulkanPipelinee& pipeline)
+void VulkanDescriptorSet::bind(VkCommandBuffer commandBuffer, const VulkanPipeline& pipeline, uint32_t binding)
 {
 	vkCmdBindDescriptorSets(
 		commandBuffer,
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
 		pipeline.getPipelineLayout(),
-		0,
+		binding,
 		1,
 		&descriptorSets[currentFrame],
 		0,

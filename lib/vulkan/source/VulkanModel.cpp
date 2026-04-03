@@ -45,7 +45,7 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}, type{defaultModelType | ModelType::INDEXED}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}, type{DEFAULT_MESH_LAYOUT | ModelType::INDEXED}
 {
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
@@ -211,12 +211,14 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 	vulkanDevice.copyBuffer(stagingBufferIndex.getBuffer(), indexBuffer->getBuffer(), this->indexCount * indexSize);
 }
 
-void	VulkanModel::bind(VkCommandBuffer commandBuffer)
+// NB many similiarities with binding descriptorSets
+// NB move the binding to the VulkanBuffer class?
+void	VulkanModel::bind(VkCommandBuffer commandBuffer, uint32_t binding)
 {
 	VkBuffer		buffers[] = {vertexBuffer->getBuffer()};
 	VkDeviceSize	offsets[] = {0};
 
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, binding, 1, buffers, offsets);
 	if (this->type & ModelType::INDEXED)
 	{
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);

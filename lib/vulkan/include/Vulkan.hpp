@@ -14,7 +14,6 @@
 #include "VulkanModel.hpp"
 #include "VulkanObject.hpp"
 #include "VulkanRenderer.hpp"
-#include "VulkanRenderSystem.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanFrameInfo.hpp"
 #include "VulkanUtils.hpp"

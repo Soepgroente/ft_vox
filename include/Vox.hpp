@@ -70,8 +70,8 @@ class Vox
 		std::unique_ptr<ve::VulkanDescriptorSet> matrixDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> samplersDescriptorSet;
 
-		std::unique_ptr<ve::VulkanPipelinee> terrainPipeline;
-		std::unique_ptr<ve::VulkanPipelinee> skyboxPipeline;
+		std::unique_ptr<ve::VulkanPipeline> terrainPipeline;
+		std::unique_ptr<ve::VulkanPipeline> skyboxPipeline;
 
 		bool	playerMoved;
 };
