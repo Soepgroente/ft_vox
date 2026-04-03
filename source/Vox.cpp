@@ -4,7 +4,7 @@
 #include "Utils.hpp"
 
 #include <chrono>
-
+#include <cassert>
 
 namespace vox {
 
@@ -44,12 +44,9 @@ Vox::Vox( void ) :
 		ve::CameraSettings::projectionNear,
 		ve::CameraSettings::projectionFar
 	);
-	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 	voxelMap.init();
-	// vec3 mapMiddle = voxelMap.getMapMiddle();
-	// this->camera.moveBackward(mapMiddle.z);
-	// this->camera.moveLeft(mapMiddle.x);
-	// this->camera.moveUp(mapMiddle.y);
+	assert(voxelMap.isReady() == true && "map wasn't ready");
+	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 }
 
 /**

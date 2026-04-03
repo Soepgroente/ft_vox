@@ -27,9 +27,9 @@ struct Config
 		-100000.0f
 	};
 
-	static constexpr ui32	chunkLength = 16U;
-	static constexpr ui32	chunkHeight = 256U;
-	static constexpr ui32	seaLevel = 64U;
+	static constexpr i32	chunkLength = 16U;
+	static constexpr i32	chunkHeight = 256U;
+	static constexpr i32	seaLevel = 64U;
 
 	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;

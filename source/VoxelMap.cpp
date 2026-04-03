@@ -22,7 +22,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	i32 visibleChunks = visibleWidth * visibleWidth;
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
-	chunkDimensions = vec3ui{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
+	chunkDimensions = vec3i{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
 	std::cout << "Chunk dimensions: " << chunkDimensions << std::endl;
 	chunkSize = Config::chunkLength * Config::chunkHeight * Config::chunkLength;
 
@@ -69,7 +69,6 @@ void	VoxelMap::init()
 	{
 		for (i32 x = 0; x < squareSize; x++)
 		{
-			// std::cout << "generating chunk: " << pos << "storing it at index: " << getChunkIndex(pos) << std::endl;
 			VoxelType* chunkData = getChunk(pos);
 			// threadManager.enqueue([this, pos, chunkData] {
 			generateChunk(chunkData, pos);
@@ -83,6 +82,7 @@ void	VoxelMap::init()
 	threadManager.waitIdle();
 	timer.stop();
 	std::cout << "Initial voxel map generation took: " << timer << std::endl;
+	ready = true;
 }
 
 VoxelMap::~VoxelMap()
@@ -102,15 +102,6 @@ ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 	ui32 chunkX = positiveModulo(position.width, squareSize);
 	ui32 chunkZ = positiveModulo(position.depth, squareSize);
 
-	if (position.x < 0)
-	{
-		std::cout << "pos.x(" << position.x << ") turns into " << chunkX << std::endl;
-	}
-	if (position.y < 0)
-	{
-		std::cout << "pos.y(" << position.y << ") turns into " << chunkZ << std::endl;
-	}
-	// std::cout << "array index: " << chunkZ * squareSize + chunkX << std::endl;
 	return chunkZ * squareSize + chunkX;
 }
 
@@ -127,20 +118,19 @@ ui32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
 
 void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 {
-	ui32 y = 0;
+	i32 y = 0;
 	float	positionX = static_cast<float>(pos.width * chunkDimensions.width);
 	float	positionZ = static_cast<float>(pos.depth * chunkDimensions.depth);
 
-	for (ui32 z = 0; z < chunkDimensions.z; z++)
+	for (i32 z = 0; z < chunkDimensions.z; z++)
 	{
-		for (ui32 x = 0; x < chunkDimensions.x; x++)
+		for (i32 x = 0; x < chunkDimensions.x; x++)
 		{
 			float noiseValue = perlin(
-				static_cast<float>((positionX + x) * Config::noiseScalar),
-				static_cast<float>((positionZ + z) * Config::noiseScalar),
+				static_cast<float>((positionX + static_cast<float>(x)) * Config::noiseScalar),
+				static_cast<float>((positionZ + static_cast<float>(z)) * Config::noiseScalar),
 				static_cast<float>(worldSeed));
-			noiseValue = std::clamp(noiseValue, -1.0f, 1.0f);
-			ui32 heightValue = static_cast<ui32>((noiseValue + 1.0f) * 0.5f * static_cast<float>(chunkDimensions.height));
+			i32 heightValue = static_cast<i32>(noiseValue * static_cast<float>(chunkDimensions.height));
 
 			assert(heightValue <= chunkDimensions.height && "height value out of range");
 			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
@@ -154,7 +144,6 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 			}
 			for (; y < chunkDimensions.height; y++)
 			{
-				assert(y != 0 && "messed up!");
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
 			}
 		}
@@ -164,13 +153,9 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 vec2i	VoxelMap::voxelToChunkPosition(const vec3& position)
 {
 	vec2i	chunkPos{
-		static_cast<i32>(position.x / chunkDimensions.x),
-		static_cast<i32>(position.z / chunkDimensions.z)
+		static_cast<i32>(std::floor(position.x / static_cast<float>(chunkDimensions.x))),
+		static_cast<i32>(std::floor(position.z / static_cast<float>(chunkDimensions.z)))
 	};
-	if (position.x < 0.0f)
-		chunkPos.width -= 1;
-	if (position.z < 0.0f)
-		chunkPos.depth -= 1;
 	return chunkPos;
 }
 
@@ -182,7 +167,7 @@ bool	VoxelMap::update(const vec3& newPosition)
 	{
 		return false;
 	}
-	std::cout << "Moved from: " << playerOnChunk;
+	// std::cout << "Moved from: " << playerOnChunk;
 	playerOnChunk = playerOnChunk + moveDirection;
 	std::cout << " to: " << playerOnChunk << std::endl;
 	rawPosition = newPosition;
@@ -206,7 +191,7 @@ bool	VoxelMap::update(const vec3& newPosition)
 		north();
 		moveDirection.depth--;
 	}
-	std::cout << "New map limits: " << minPositions << " to " << maxPositions << std::endl;
+	// std::cout << "New map limits: " << minPositions << " to " << maxPositions << std::endl;
 	assert(minPositions.x + squareSize - 1 == maxPositions.x && "Error: min/max X don't line up");
 	assert(minPositions.y + squareSize - 1 == maxPositions.y && "Error: min/max Y don't line up");
 	return true;
@@ -218,11 +203,11 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& po
 
 	ui32 index = 0;
 
-	for (ui32 z = 0; z < chunkDimensions.z; z++)
+	for (i32 z = 0; z < chunkDimensions.z; z++)
 	{
-		for (ui32 x = 0; x < chunkDimensions.x; x++)
+		for (i32 x = 0; x < chunkDimensions.x; x++)
 		{
-			for (ui32 y = 0; y < chunkDimensions.y; y++)
+			for (i32 y = 0; y < chunkDimensions.y; y++)
 			{
 				if (data[index] == VoxelMap::VoxelType::Air ||
 					(y < chunkDimensions.y - 1 && data[index + 1] != VoxelMap::VoxelType::Air))
@@ -231,9 +216,9 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& po
 					continue;
 				}
 				vec3 relativePos{
-					static_cast<float>(x + pos.width * Config::chunkLength),
+					static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength)),
 					static_cast<float>(y),
-					static_cast<float>(z + pos.depth * Config::chunkLength)
+					static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength))
 				};
 				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
 				chunk.insert(chunk.end(), voxelVertexes.begin(), voxelVertexes.end());

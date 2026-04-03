@@ -52,13 +52,15 @@ class VoxelMap
 		vec3	getMapMiddle() const noexcept;
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
 
+		bool	isReady() const noexcept { return this->ready; }
+
 		
 	private:
 		
 		VoxelType*	map;
 		ui32	worldSeed;
 		ui32	chunkSize;
-		vec3ui	chunkDimensions;
+		vec3i	chunkDimensions;
 		i32 	squareSize;
 		ui32	totalChunks;
 		vec2i	minPositions;
@@ -66,6 +68,8 @@ class VoxelMap
 		vec2i	playerOnChunk;
 		vec3	rawPosition;
 		
+		bool	ready = false;
+
 		ThreadManager&	threadManager;
 		std::vector<VoxelChunk>	chunksAsVectors;
 

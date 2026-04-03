@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cmath>
 
+using i32 = int32_t;
+
 class vec3i
 {
 	public:
@@ -16,6 +18,12 @@ class vec3i
 			int	x;
 			int	y;
 			int	z;
+		};
+		struct
+		{
+			i32	width;
+			i32	height;
+			i32	depth;
 		};
 	};
 
