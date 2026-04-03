@@ -41,7 +41,7 @@ constexpr bool operator&(ModelType a, ModelType b) {
     return static_cast<uint32_t>(a) & static_cast<uint32_t>(b);
 }
 
-constexpr inline ModelType defaultModelType = ModelType::VERTEX | ModelType::NORMAL | ModelType::TEXTURE;
+constexpr inline ModelType DEFAULT_MESH_LAYOUT = ModelType::VERTEX | ModelType::NORMAL | ModelType::TEXTURE;
 
 
 class VulkanModel
@@ -88,8 +88,8 @@ class VulkanModel
 	};
 
 	VulkanModel() = delete;
-	VulkanModel(VulkanDevice& device, const Builder& builder, ModelType = defaultModelType);
-	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, ModelType = defaultModelType);
+	VulkanModel(VulkanDevice& device, const Builder& builder, ModelType = DEFAULT_MESH_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, ModelType = DEFAULT_MESH_LAYOUT);
 	VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, ModelType = ModelType::VERTEX | ModelType::INDEXED);
 	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
 	~VulkanModel() noexcept = default;
@@ -99,7 +99,7 @@ class VulkanModel
 	VulkanModel& operator=(const VulkanModel&) = delete;
 	VulkanModel& operator=(VulkanModel&&) = delete;
 
-	void	bind(VkCommandBuffer commandBuffer);
+	void	bind(VkCommandBuffer commandBuffer, uint32_t binding = 0U);
 	void	draw(VkCommandBuffer commandBuffer);
 	void	setName(const std::string& name) { this->name = name; }
 	void	setBoundingBox(const std::vector<Vertex>& vertices) noexcept;

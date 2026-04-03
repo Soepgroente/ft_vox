@@ -3,6 +3,7 @@
 #include "Vox.hpp"
 #include "Stopwatch.hpp"
 
+#include <iostream>
 #include <chrono>
 #include <mutex>
 #include <atomic>

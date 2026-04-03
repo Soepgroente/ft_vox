@@ -3,7 +3,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanTexture.hpp"
-#include "VulkanPipelinee.hpp"
+#include "VulkanPipeline.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -168,9 +168,7 @@ class VulkanDescriptorSetFactory
 		VulkanDescriptorSetFactory&	addBinding(uint32_t binding, VkDescriptorType descriptorType, VkShaderStageFlags stageFlags, uint32_t descriptorCount);
 		VulkanDescriptorSetFactory&	resetBindings() noexcept;
 
-		void						freeDescriptors(std::vector<VkDescriptorSet>& descriptors) const;
-
-		std::unique_ptr<VulkanDescriptorSet>	createDescriptorSet();
+		std::unique_ptr<VulkanDescriptorSet>	createDescriptorSet(VkDescriptorSetLayoutCreateFlags flags = 0);
 
 	private:
 		VulkanDevice&						vulkanDevice;
@@ -203,11 +201,11 @@ class VulkanDescriptorSet
 
 		void	setCurrentFrame(uint32_t frame) noexcept;
 		void	updateUbo(int32_t binding, void const* data);
-		void	bind(VkCommandBuffer commandBuffer, const VulkanPipelinee& pipeline);
+		void	bind(VkCommandBuffer commandBuffer, const VulkanPipeline& pipeline, uint32_t binding = 0U);
 
-		const VkDescriptorSetLayout&	getDescriptorSetLayout() const noexcept { return descriptorSetLayout; };
-		void							addBufferToDescriptor(uint32_t binding, uint32_t bufferSize, void const* data);
-		void							addSamplerToDescriptor(uint32_t binding, const std::string& texturePath, TextureType type);
+		VkDescriptorSetLayout	getDescriptorSetLayout() const noexcept { return descriptorSetLayout; };
+		void					addBufferToDescriptor(uint32_t binding, uint32_t bufferSize, void const* data);
+		void					addSamplerToDescriptor(uint32_t binding, const std::string& texturePath, TextureType type);
 
 	private:
 		VulkanDevice&					vulkanDevice;

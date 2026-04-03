@@ -2,6 +2,7 @@
 #include "Stopwatch.hpp"
 #include "Utils.hpp"
 
+#include <iostream>
 #include <chrono>
 
 
@@ -60,24 +61,25 @@ void Vox::setupVulkan( void ) {
 	this->samplersDescriptorSet->addSamplerToDescriptor(0, Config::texture1VoxelPath, ve::TextureType::TEXTURE_PLAIN);
 	this->samplersDescriptorSet->addSamplerToDescriptor(1, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
 
-	terrainPipeline = std::make_unique<ve::VulkanRenderSystem>(
+	std::vector<VkDescriptorSetLayout> descriptorSets = std::vector<VkDescriptorSetLayout>{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()};
+	terrainPipeline = ve::VulkanPipeline::createPipeline(
 		this->vulkanDevice,
-		this->vulkanRenderer.getSwapChainRenderPass(),
-		std::vector<VkDescriptorSetLayout>{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()},
+		descriptorSets,
 		Config::terrainVertShaderPath,
 		Config::terrainFragShaderPath,
+		this->vulkanRenderer.getSwapChainRenderPass(),
 		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
-		ve::TextureType::TEXTURE_PLAIN
+		false
 	);
 
-	skyboxPipeline = std::make_unique<ve::VulkanRenderSystem>(
+	skyboxPipeline = ve::VulkanPipeline::createPipeline(
 		this->vulkanDevice,
-		this->vulkanRenderer.getSwapChainRenderPass(),
-		std::vector<VkDescriptorSetLayout>{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()},
+		descriptorSets,
 		Config::skyboxVertShaderPath,
 		Config::skyboxFragShaderPath,
+		this->vulkanRenderer.getSwapChainRenderPass(),
 		ve::ModelType::VERTEX,
-		ve::TextureType::TEXTURE_CUBEMAP
+		true
 	);
 }
 
@@ -95,8 +97,8 @@ void Vox::run( void ) {
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
-		timer.start();
 
+		timer.start();
 		// do game operations
 		this->moveCamera(timer.elapsed(Seconds));
 		// add chunks of maps if necessary
@@ -121,7 +123,6 @@ void Vox::run( void ) {
 				this->matrixDescriptorSet->updateUbo(0, ubo.getData());
 				this->playerMoved = false;
 			}
-
 			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline);
 			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline);
 
@@ -135,17 +136,16 @@ void Vox::run( void ) {
 
 			this->vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			this->vulkanRenderer.endFrame();
-
-			timer.stop();
-			int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
-			std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
-			vec3 playerPos = this->camera.getCameraPos();
-			std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-			std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
 		}
 		this->inputHandler.reset();
-	}
+		timer.stop();
 
+		int	fps = static_cast<int> (1.0f / timer.elapsed(Seconds));
+		std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Milliseconds) << "ms " << std::endl;
+		vec3 playerPos = this->camera.getCameraPos();
+		std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
+		std::cout << "\033[K" << "GPU memory used: " << formatBytes(this->navigator.getMemoryUsed()) << std::endl;
+	}
 	vkDeviceWaitIdle(vulkanDevice.device());
 }
 
