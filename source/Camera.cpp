@@ -104,7 +104,7 @@ void Camera::moveLeft( float delta ) noexcept {
 }
 
 void Camera::moveUp( float delta ) noexcept {
-	vec3 progression = this->_position + this->__up * delta;
+	vec3 progression = this->_position + this->_cameraUp * delta;
 	if (progression.x < this->_limits.x)
 		progression.x = this->_limits.x;
 	if (progression.y < this->_limits.y)
@@ -115,7 +115,7 @@ void Camera::moveUp( float delta ) noexcept {
 }
 
 void Camera::moveDown( float delta ) noexcept {
-	vec3 progression = this->_position - this->__up * delta;
+	vec3 progression = this->_position - this->_cameraUp * delta;
 	if (progression.x < this->_limits.x)
 		progression.x = this->_limits.x;
 	if (progression.y < this->_limits.y)
