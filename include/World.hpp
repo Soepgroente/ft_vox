@@ -95,27 +95,27 @@ VertexVector	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
 VertexVector	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
 IndexVector		getIndexRelative( uint32_t = 0U );
 
-class VoxelMap;
+// class VoxelMap;
 
-class World {
-	public:
-		explicit World( vec2i const&, vec3ui const& );
-		World( void ) = default;
-		~World( void ) noexcept = default;
-		World( World const& ) = delete;
-		World( World&& ) = default;
-		World& operator=( World const& ) = delete;
-		World& operator=( World&& ) = default;
+// class World {
+// 	public:
+// 		explicit World( vec2i const&, vec3ui const& );
+// 		World( void ) = default;
+// 		~World( void ) noexcept = default;
+// 		World( World const& ) = delete;
+// 		World( World&& ) = default;
+// 		World& operator=( World const& ) = delete;
+// 		World& operator=( World&& ) = default;
 
-		VertexVector const&	getVertexes( void ) const noexcept { return this->vertexes; };
-		VertexVector&		getVertexes( void ) noexcept { return this->vertexes; };
-		IndexVector			getIndexes( u_int32_t start ) const noexcept { return getIndexRelative(start); };
-		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
+// 		VertexVector const&	getVertexes( void ) const noexcept { return this->vertexes; };
+// 		VertexVector&		getVertexes( void ) noexcept { return this->vertexes; };
+// 		IndexVector			getIndexes( u_int32_t start ) const noexcept { return getIndexRelative(start); };
+// 		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
 
-	private:
-		vec3ui			worldSize;
-		VertexVector	vertexes;
-};
+// 	private:
+// 		vec3ui			worldSize;
+// 		VertexVector	vertexes;
+// };
 
 
 float	perlin(float x, float y, float z);

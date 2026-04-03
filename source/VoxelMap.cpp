@@ -38,6 +38,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	totalChunks = visibleChunks;
 	minPositions = vec2i{0, 0};
 	maxPositions = vec2i{minPositions.x + visibleWidth - 1, minPositions.y + visibleWidth - 1};
+	std::cout << "Map ranges from: " << minPositions << " to: " << maxPositions << std::endl;
 	worldSeed = 0;
 }
 
@@ -67,10 +68,11 @@ void	VoxelMap::init()
 	{
 		for (i32 x = 0; x < squareSize; x++)
 		{
+			std::cout << "generating chunk: " << pos << "storing it at index: " << getChunkIndex(pos) << std::endl;
 			VoxelType* chunkData = getChunk(pos);
+			// threadManager.enqueue([this, pos, chunkData] {
 			generateChunk(chunkData, pos);
 			mapToVertexes(chunkData, chunksAsVectors.at(getChunkIndex(pos)), pos);
-			// threadManager.enqueue([this, pos] {
 			// });
 			pos.width += 1;
 		}
@@ -226,19 +228,19 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& po
 	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
 }
 
-/*	Mapped like x/y graph in math, from -x (left/west) to +x (right/east) horizontally, -y (up/north) to +y (down/south) vertically. */
+/*	From -x (left/west) to +x (right/east) horizontally, y (up/north) to -y (down/south) vertically. */
 
 void	VoxelMap::north()
 {
-	minPositions.y -= 1;
-	maxPositions.y -= 1;
-	vec2i	pos = vec2i{minPositions.x, minPositions.y};
+	minPositions.y += 1;
+	maxPositions.y += 1;
+	vec2i	pos = vec2i{minPositions.x, maxPositions.y};
 
 	for (i32 i = 0; i < squareSize; i++)
 	{
 		ui32	index = getChunkIndex(pos);
 		VoxelType*	ptrToData = map + index * chunkSize;
-		
+
 		generateChunk(ptrToData, pos);
 		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
 		pos.x += 1;
@@ -247,9 +249,9 @@ void	VoxelMap::north()
 
 void	VoxelMap::south()
 {
-	minPositions.y += 1;
-	maxPositions.y += 1;
-	vec2i	pos = vec2i{minPositions.x, maxPositions.y};
+	minPositions.y -= 1;
+	maxPositions.y -= 1;
+	vec2i	pos = vec2i{minPositions.x, minPositions.y};
 
 	for (i32 i = 0; i < squareSize; i++)
 	{

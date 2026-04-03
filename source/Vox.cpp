@@ -24,7 +24,7 @@ Vox::Vox( void ) :
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	globalDescriptorPool{},
-	camera{vec3::zero(), ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
+	camera{vec3{165.0f, 225.0f, 165.0f}, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
 	voxelMap{threadManager},
 	inputHandler(
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
@@ -46,10 +46,10 @@ Vox::Vox( void ) :
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 	voxelMap.init();
-	vec3 mapMiddle = voxelMap.getMapMiddle();
-	this->camera.moveBackward(mapMiddle.z);
-	this->camera.moveLeft(mapMiddle.x);
-	this->camera.moveUp(mapMiddle.y);
+	// vec3 mapMiddle = voxelMap.getMapMiddle();
+	// this->camera.moveBackward(mapMiddle.z);
+	// this->camera.moveLeft(mapMiddle.x);
+	// this->camera.moveUp(mapMiddle.y);
 }
 
 /**

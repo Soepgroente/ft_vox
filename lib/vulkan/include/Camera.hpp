@@ -11,7 +11,7 @@ struct CameraSettings {
 	static constexpr float	projectionFar = 1000.0f;
 	static constexpr float	cameraDistance = 50.0f;
 	static constexpr float	cameraSensitivity = 0.1f;
-	static constexpr vec3	cameraForward{0.0f, -5.0f, 10.0f};
+	static constexpr vec3	cameraForward{0.0f, 0.0f, 10.0f};
 	static constexpr vec3	cameraUpDefault{0.0f, 1.0f, 0.0f};
 };
 
@@ -21,7 +21,7 @@ class Camera
 	public:
 		Camera( vec3 const& pos, vec3 const& forward, vec3 const& limits ) : 
 			_position(pos),
-			_forward(forward.normalized()),
+			_forward(forward),
 			_limits(limits),
 			// the up depends on what axis the camera is watching (so it depends on forward): 
 			// camera looks (forward) along x or z -> __up is non-null in y, 
