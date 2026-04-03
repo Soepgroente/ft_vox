@@ -40,6 +40,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	maxPositions = vec2i{minPositions.x + visibleWidth - 1, minPositions.y + visibleWidth - 1};
 	std::cout << "Map ranges from: " << minPositions << " to: " << maxPositions << std::endl;
 	worldSeed = 0;
+	playerOnChunk = vec2i{minPositions.x + visibleWidth / 2, minPositions.y + visibleWidth / 2};
 }
 
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const {
@@ -101,17 +102,21 @@ ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 	ui32 chunkX = positiveModulo(position.width, squareSize);
 	ui32 chunkZ = positiveModulo(position.depth, squareSize);
 
+	std::cout << "pos.x(" << position.x << ") turns into " << chunkX << std::endl;
+	std::cout << "pos.y(" << position.y << ") turns into " << chunkZ << std::endl;
+	std::cout << "array index: " << chunkZ * squareSize + chunkX << std::endl;
 	return chunkZ * squareSize + chunkX;
 }
 
 ui32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
 {
 	assert(modulus > 0 && "modulus must be positive");
+	value = value % modulus;
 	if (value < 0)
 	{
-		return (value % modulus) + modulus;
+		return value + modulus;
 	}
-	return value % modulus;
+	return value;
 }
 
 void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
