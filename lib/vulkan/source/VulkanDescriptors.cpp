@@ -189,13 +189,13 @@ VulkanDescriptorSetFactory::~VulkanDescriptorSetFactory()
 
 VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::addPoolSize(VkDescriptorType descriptorType, uint32_t count)
 {
-	VkDescriptorPoolSize poolSize;
+	VkDescriptorPoolSize poolSize{};
 	poolSize.type = descriptorType;
 	poolSize.descriptorCount = count;
 
 	poolSizes.push_back(poolSize);
 	return *this;
-}//
+}
 
 VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::setPoolFlags(VkDescriptorPoolCreateFlags flags)
 {
@@ -216,7 +216,7 @@ VulkanDescriptorSetFactory& VulkanDescriptorSetFactory::createPool()
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = maxSets;
-	poolInfo.flags = poolFlags;//
+	poolInfo.flags = poolFlags;
 
 	if (vkCreateDescriptorPool(vulkanDevice.device(), &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 	{
@@ -236,7 +236,7 @@ VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::addBinding(uint32_t bind
 	for (const VkDescriptorSetLayoutBinding& existingBindings : bindings)
 		assert(existingBindings.binding != binding && "Binding already in use");
 
-	VkDescriptorSetLayoutBinding layoutBinding;
+	VkDescriptorSetLayoutBinding layoutBinding{};
 	layoutBinding.binding = binding;
 	layoutBinding.descriptorType = descriptorType;
 	layoutBinding.descriptorCount = descriptorCount;
@@ -254,7 +254,7 @@ VulkanDescriptorSetFactory&	VulkanDescriptorSetFactory::resetBindings() noexcept
 
 std::unique_ptr<VulkanDescriptorSet> VulkanDescriptorSetFactory::createDescriptorSet()
 {
-	VkDescriptorSetLayoutCreateInfo	descriptorSetLayoutInfo;
+	VkDescriptorSetLayoutCreateInfo	descriptorSetLayoutInfo{};
 	descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptorSetLayoutInfo.bindingCount = bindings.size();
 	descriptorSetLayoutInfo.pBindings = bindings.data();//

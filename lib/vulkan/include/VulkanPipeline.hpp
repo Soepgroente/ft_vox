@@ -55,7 +55,7 @@ class VulkanPipeline
 
 	private:
 
-	static std::vector<char>	readFile(const std::string& filePath);
+	static std::vector<char> readFile(const std::string& filePath);
 
 	void	createGraphicsPipeline(
 		const std::string& vertPath,

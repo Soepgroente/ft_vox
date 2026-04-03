@@ -27,23 +27,6 @@ void	VulkanPipeline::bind(VkCommandBuffer commandBuffer)
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 }
 
-std::vector<char>	VulkanPipeline::readFile(const std::string& filePath)
-{
-	std::ifstream	file(filePath, std::ios::ate | std::ios::binary);
-
-	if (file.is_open() == false)
-	{
-		throw std::runtime_error("failed to open file: " + filePath);
-	}
-	size_t fileSize = static_cast<size_t>(file.tellg());
-	std::vector<char>	buffer(fileSize);
-
-	file.seekg(0);
-	file.read(buffer.data(), fileSize);
-	file.close();
-
-	return buffer;
-}
 
 void	VulkanPipeline::createGraphicsPipeline(
 	const std::string& vertPath,
@@ -138,6 +121,24 @@ void	VulkanPipeline::createGraphicsPipeline(
 	}
 	vkDestroyShaderModule(vulkanDevice.device(), vertexShaderModule, nullptr);
 	vkDestroyShaderModule(vulkanDevice.device(), fragmentShaderModule, nullptr);
+}
+
+std::vector<char>	VulkanPipeline::readFile(const std::string& filePath)
+{
+	std::ifstream	file(filePath, std::ios::ate | std::ios::binary);
+
+	if (file.is_open() == false)
+	{
+		throw std::runtime_error("failed to open file: " + filePath);
+	}
+	size_t fileSize = static_cast<size_t>(file.tellg());
+	std::vector<char>	buffer(fileSize);
+
+	file.seekg(0);
+	file.read(buffer.data(), fileSize);
+	file.close();
+
+	return buffer;
 }
 
 void	VulkanPipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
