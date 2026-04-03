@@ -49,7 +49,7 @@ class VoxelMap
 		
 		bool	update(const vec3& newPosition);
 		void	init();
-		vec3	getMapMiddle() const noexcept { return vec3((maxPositions.x - minPositions.x) * chunkDimensions.x / 2.0f, chunkDimensions.height - 1.0f, (maxPositions.y - minPositions.y) * chunkDimensions.z / 2.0f); }
+		vec3	getMapMiddle() const noexcept;
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
 
 		
