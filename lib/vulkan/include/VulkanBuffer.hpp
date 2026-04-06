@@ -59,7 +59,7 @@ class VulkanBuffer
 	uint32_t		instanceCount;
 	VkDeviceSize	alignmentSize;
 
-	VkBufferUsageFlags	usageFlags;
+	VkBufferUsageFlags		usageFlags;
 	VkMemoryPropertyFlags	memoryPropertyFlags;
 };
 

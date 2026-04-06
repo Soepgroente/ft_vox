@@ -8,32 +8,25 @@
 
 namespace ve {
 
-VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder, ModelType type) : vulkanDevice{device}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	createVertexBuffers(builder.vertices);
-	if (builder.indices.size() > 2U) {
-		this->type = this->type | ModelType::INDEXED;
+	if (builder.indices.size() > 2U)
 		createIndexBuffers(builder.indices);
-	}
 }
 
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, ModelType type) : vulkanDevice{device}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	createVertexBuffers(vertices);
-	if (indices.size() > 2U) {
-		this->type = this->type | ModelType::INDEXED;
+	if (indices.size() > 2U)
 		createIndexBuffers(indices);
-	}
 }
 
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, ModelType type) : vulkanDevice{device}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	createVertexBuffers(vertices);
-	if (indices.size() > 2U) {
-		this->type = this->type | ModelType::INDEXED;
+	if (indices.size() > 2U)
 		createIndexBuffers(indices);
-	}
-
 }
 
 /**
@@ -45,7 +38,7 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel) : vulkanDevice{device}, type{DEFAULT_MESH_LAYOUT | ModelType::INDEXED}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
@@ -114,6 +107,7 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 {
 	indexCount = static_cast<uint32_t>(indices.size());
 	assert(indexCount >= 3 && "Index count must be at least 3");
+	isIndexed = true;
 
 	uint32_t		indexSize = sizeof(uint32_t);
 	VkDeviceSize	bufferSize = indexSize * indexCount;
@@ -142,6 +136,7 @@ void	VulkanModel::createIndexBuffers(const std::vector<uint32_t>& indices)
 
 void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel)
 {
+	this->isIndexed = true;
 	this->vertexCount = 0U;
 	this->indexCount = 0U;
 	for (std::vector<Vertex> const* worldVertexes : vertices) {
@@ -211,15 +206,13 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 	vulkanDevice.copyBuffer(stagingBufferIndex.getBuffer(), indexBuffer->getBuffer(), this->indexCount * indexSize);
 }
 
-// NB many similiarities with binding descriptorSets
-// NB move the binding to the VulkanBuffer class?
-void	VulkanModel::bind(VkCommandBuffer commandBuffer, uint32_t binding)
+void	VulkanModel::bind(VkCommandBuffer commandBuffer)
 {
 	VkBuffer		buffers[] = {vertexBuffer->getBuffer()};
 	VkDeviceSize	offsets[] = {0};
 
 	vkCmdBindVertexBuffers(commandBuffer, binding, 1, buffers, offsets);
-	if (this->type & ModelType::INDEXED)
+	if (this->isIndexed == true)
 	{
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 	}
@@ -227,7 +220,7 @@ void	VulkanModel::bind(VkCommandBuffer commandBuffer, uint32_t binding)
 
 void	VulkanModel::draw(VkCommandBuffer commandBuffer)
 {
-	if (this->type & ModelType::INDEXED)
+	if (this->isIndexed == true)
 	{
 		vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
 	}
@@ -253,34 +246,34 @@ void	VulkanModel::setBoundingBox(const std::vector<Vertex>& vertices) noexcept
 		[](const Vertex& a, const Vertex& b) { return a.pos.z < b.pos.z; })->pos.z;
 }
 
-std::vector<VkVertexInputBindingDescription>	VulkanModel::getBindingDescriptions()
+std::vector<VkVertexInputBindingDescription>	VulkanModel::getBindingDescriptions() const noexcept
 {
 	std::vector<VkVertexInputBindingDescription>	bindingDescriptions(1);
 
 	bindingDescriptions[0].binding = 0;
 	bindingDescriptions[0].stride = 0;
-	if (this->type & ModelType::VERTEX)
+	if (this->type & MeshLayout::VERTEX)
 		bindingDescriptions[0].stride += sizeof(vec3);
-	if (this->type & ModelType::NORMAL)
+	if (this->type & MeshLayout::NORMAL)
 		bindingDescriptions[0].stride += sizeof(vec3);
-	if (this->type & ModelType::TEXTURE)
+	if (this->type & MeshLayout::TEXTURE)
 		bindingDescriptions[0].stride += sizeof(vec2);
 	bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	return bindingDescriptions;
 }
 
-std::vector<VkVertexInputAttributeDescription>	VulkanModel::getAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription>	VulkanModel::getAttributeDescriptions() const noexcept
 {
 	std::vector<VkVertexInputAttributeDescription>	attributeDescriptions;
 
-	if (this->type & ModelType::VERTEX)
+	if (this->type & MeshLayout::VERTEX)
 		attributeDescriptions.push_back(
 			VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)});
-	if (this->type & ModelType::NORMAL)
+	if (this->type & MeshLayout::NORMAL)
 		attributeDescriptions.push_back(
 			VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}
 		);
-	if (this->type & ModelType::TEXTURE)
+	if (this->type & MeshLayout::TEXTURE)
 		attributeDescriptions.push_back(
 			VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, textureUv)}
 		);

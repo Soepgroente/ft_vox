@@ -18,6 +18,7 @@ namespace ve {
 
 struct VulkanPipelineConfig
 {
+	VkPipelineVertexInputStateCreateInfo 	vertexInputInfo;
 	VkPipelineViewportStateCreateInfo		viewportInfo;
 	VkPipelineInputAssemblyStateCreateInfo	inputAssemblyInfo;
 	VkPipelineRasterizationStateCreateInfo	rasterizationInfo;
@@ -27,29 +28,31 @@ struct VulkanPipelineConfig
 	VkPipelineDepthStencilStateCreateInfo	depthStencilInfo;
 	std::vector<VkDynamicState>				dynamicStateEnables;
 	VkPipelineDynamicStateCreateInfo		dynamicStateInfo;
-	VkPipelineLayout						pipelineLayout = nullptr;
-	VkRenderPass							renderPass = nullptr;
-	uint32_t								subpass = 0;
+
+	std::vector<VkVertexInputBindingDescription>	bindingVboConfig;
+	std::vector<VkVertexInputAttributeDescription>	attributeVboConfig;
+	std::vector<VkPipelineShaderStageCreateInfo>	shadersConfig;
 };
 
 class VulkanShader
 {
 	public:
-		VulkanShader( VulkanDevice& device, std::string const& shaderPath );
+		VulkanShader( VulkanDevice& device, VkShaderStageFlagBits shaderStageFlag, std::string const& shaderPath );
 		~VulkanShader( void );
 		VulkanShader( VulkanShader const& other ) = delete;
 		VulkanShader( VulkanShader&& other );		// NB add move csts in the others classes
 		VulkanShader& operator=( VulkanShader const& other ) = delete;
 
-		VkShaderModule	getModule( void ) const noexcept { return this->shaderModule; };
+		VkShaderModule			getModule( void ) const noexcept { return this->shaderModule; };
+		VkShaderStageFlagBits	getStageFlag( void ) const noexcept { return this->shaderStageFlag; };
 
 	private:
-		std::vector<char>	readFile(std::string const& filePath);
-		void				createModule(std::vector<char> const& fileContent);
+		void	createModule(std::vector<char> const& fileContent);
 
-		VulkanDevice&	vulkanDevice;
-		std::string		shaderPath;
-		VkShaderModule	shaderModule;
+		VulkanDevice&			vulkanDevice;
+		VkShaderStageFlagBits	shaderStageFlag;
+		std::string				shaderPath;
+		VkShaderModule			shaderModule;
 };
 
 class VulkanPipeline
@@ -59,41 +62,37 @@ class VulkanPipeline
 		VulkanPipeline(
 			VulkanDevice& device,
 			std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts,
+			VkRenderPass renderPass,
 			std::string const& vertexShaderFile,
 			std::string const& fragmentShaderFile,
-			VkRenderPass renderPass,
-			ModelType meshType,
+			VulkanModel const& mesh,
 			bool hasCubemapsTexture
 		);
 		VulkanPipeline() = delete;
 		VulkanPipeline(VulkanPipeline const&) = delete;
 		VulkanPipeline& operator=(VulkanPipeline const&) = delete;
 
-		VkPipelineLayout const&	getPipelineLayout() const noexcept { return pipelineLayout; };
-		void					bind(VkCommandBuffer commandBuffer) const noexcept;
+		VkPipelineLayout	getPipelineLayout() const noexcept { return pipelineLayout; };
+		void				bind(VkCommandBuffer commandBuffer) const noexcept;
 
 		static std::unique_ptr<VulkanPipeline> createPipeline(
 			VulkanDevice& device,
 			std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts,
+			VkRenderPass renderPass,
 			std::string const& vertexShaderFile,
 			std::string const& fragmentShaderFile,
-			VkRenderPass renderPass,
-			ModelType meshType = DEFAULT_MESH_LAYOUT,
+			VulkanModel const& mesh,
 			bool hasCubemapsTexture = false
 		);
 
 	private:
-		void	setupPipelineLayout(std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts);
-		void	setupPipeline(std::string const& vertexShaderFile, std::string const& fragmentShaderFile, ModelType meshType, VkRenderPass renderPass);
-
-		std::vector<VkPipelineShaderStageCreateInfo>	getShadersConfig( std::map<VkShaderStageFlagBits,VulkanShader> const& shaders ) const noexcept; 
-		VkPipelineVertexInputStateCreateInfo			getVertexBufferConfig( ModelType meshType ) const noexcept;
-		VulkanPipelineConfig							getPipelineConfig(VkRenderPass renderPass) const noexcept;
+		void					setupPipelineLayout( std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts );
+		void					setupPipeline( std::string const& vertexShaderFile, std::string const& fragmentShaderFile, VulkanModel const& mesh, bool hasCubemapsTexture, VkRenderPass renderPass );
+		VulkanPipelineConfig	getPipelineConfig( std::vector<VulkanShader> const& shaders, VulkanModel const& mesh, bool hasCubemapsTexture ) const noexcept;
 
 		VulkanDevice&		vulkanDevice;
-		bool				hasCubemapsTexture;
-		VkPipeline			pipeline;
 		VkPipelineLayout	pipelineLayout;
+		VkPipeline			pipeline;
 };
 
 }

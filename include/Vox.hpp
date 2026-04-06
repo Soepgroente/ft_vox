@@ -67,6 +67,9 @@ class Vox
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
 
+		std::unique_ptr<ve::VulkanModel> terrainModel;
+		std::unique_ptr<ve::VulkanModel> skyBoxModel;
+
 		std::unique_ptr<ve::VulkanDescriptorSet> matrixDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> samplersDescriptorSet;
 

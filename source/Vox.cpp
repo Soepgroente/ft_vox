@@ -17,7 +17,7 @@ Vox::Vox( void ) :
 	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"},
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
-	vulkanSetFactory{vulkanDevice, ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT},
+	vulkanSetFactory{vulkanDevice},
 	camera{Config::startingPos, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
 	navigator{Config::worldSize},
 	inputHandler{
@@ -37,48 +37,54 @@ Vox::Vox( void ) :
 		ve::CameraSettings::projectionFar
 	);
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
+	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
+	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
 }
 
 void Vox::setupVulkan( void ) {
+	ve::VulkanBindingSet terrainSetBindings;
+	terrainSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+
+	ve::VulkanBindingSet skyboxSetBindings;
+	skyboxSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	skyboxSetBindings.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
 	this->vulkanSetFactory
 		.setMaxSets(2)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2)
-		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)
-		.createPool()
-		.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1);
+		.setFramesInFlight(ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT)
+		.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, terrainSetBindings.getbindings().size())
+		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, skyboxSetBindings.getbindings().size())
+		.createPool();
 
-	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet();
-
+	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet(terrainSetBindings);
 	MatrixUBO ubo(this->camera);
-	this->matrixDescriptorSet->addBufferToDescriptor(0, ubo.getSize(), ubo.getData());
+	this->matrixDescriptorSet->addBufferToDescriptor(0, sizeof(ubo), static_cast<void*>(&ubo));		// NB not filling the UBO makes the result weird, why?
 
-	this->vulkanSetFactory
-		.resetBindings()
-		.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
-		.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-
-	this->samplersDescriptorSet = this->vulkanSetFactory.createDescriptorSet();
-	this->samplersDescriptorSet->addSamplerToDescriptor(0, Config::texture1VoxelPath, ve::TextureType::TEXTURE_PLAIN);
+	this->samplersDescriptorSet = this->vulkanSetFactory.createDescriptorSet(skyboxSetBindings);
+	this->samplersDescriptorSet->addSamplerToDescriptor(0, Config::texture2VoxelPath, ve::TextureType::TEXTURE_PLAIN);
 	this->samplersDescriptorSet->addSamplerToDescriptor(1, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
 
-	std::vector<VkDescriptorSetLayout> descriptorSets = std::vector<VkDescriptorSetLayout>{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()};
+	this->terrainModel = this->navigator.createNewModel(vulkanDevice);
+	this->skyBoxModel = this->createSkyboxModel();
+
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()};
 	terrainPipeline = ve::VulkanPipeline::createPipeline(
 		this->vulkanDevice,
-		descriptorSets,
+		descriptorSetLayouts,
+		this->vulkanRenderer.getSwapChainRenderPass(),
 		Config::terrainVertShaderPath,
 		Config::terrainFragShaderPath,
-		this->vulkanRenderer.getSwapChainRenderPass(),
-		ve::ModelType::VERTEX | ve::ModelType::NORMAL | ve::ModelType::TEXTURE,
+		*this->terrainModel,
 		false
 	);
 
 	skyboxPipeline = ve::VulkanPipeline::createPipeline(
 		this->vulkanDevice,
-		descriptorSets,
+		descriptorSetLayouts,
+		this->vulkanRenderer.getSwapChainRenderPass(),
 		Config::skyboxVertShaderPath,
 		Config::skyboxFragShaderPath,
-		this->vulkanRenderer.getSwapChainRenderPass(),
-		ve::ModelType::VERTEX,
+		*this->skyBoxModel,
 		true
 	);
 }
@@ -87,12 +93,8 @@ void Vox::setupVulkan( void ) {
  * Run the rendering loop
  */
 void Vox::run( void ) {
-	this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	std::unique_ptr<ve::VulkanModel> terrainModel = this->navigator.createNewModel(vulkanDevice);
-	std::unique_ptr<ve::VulkanModel> skyBoxModel = this->createSkyboxModel();
-
 	Stopwatch timer;
+
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
@@ -112,19 +114,21 @@ void Vox::run( void ) {
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
 		{
-			uint32_t currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
 			this->vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
-
+			
+			uint32_t currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
 			this->matrixDescriptorSet->setCurrentFrame(currentFrame);
 			this->samplersDescriptorSet->setCurrentFrame(currentFrame);
-			
+
 			if (this->playerMoved == true) {
 				MatrixUBO ubo(this->camera);
 				this->matrixDescriptorSet->updateUbo(0, ubo.getData());
 				this->playerMoved = false;
 			}
-			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline);
-			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline);
+
+			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
+			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
+
 
 			this->terrainPipeline->bind(commandBuffer);
 			terrainModel->bind(commandBuffer);

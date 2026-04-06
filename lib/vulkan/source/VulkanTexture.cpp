@@ -135,7 +135,6 @@ void	VulkanTexture::createTextureImage()
 		uint32_t faceHeight = static_cast<uint32_t>(imageInfo.height) / 3U;
 		uint32_t paddingFace = std::abs(static_cast<int32_t>(faceHeight) - static_cast<int32_t>(faceWidth));
 		if (paddingFace != 0U) {
-			std::cout << "padding: " << paddingFace << std::endl;
 			faceWidth = std::min(faceWidth, faceHeight);
 			faceHeight = faceWidth;
 		}

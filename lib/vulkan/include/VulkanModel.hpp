@@ -24,24 +24,24 @@ struct	BoundingBox
 	vec3	max;
 };
 
-enum class ModelType : uint32_t {
-    VERTEX = 1 << 0,  // 0001
-    NORMAL = 1 << 1,  // 0010
-    TEXTURE = 1 << 2,  // 0100
-    INDEXED = 1 << 3,  // 1000		 NB ugly, has to go
+enum class MeshLayout : uint32_t {
+	UNSET = 0,
+	VERTEX = 1 << 0,  // 0001
+	NORMAL = 1 << 1,  // 0010
+	TEXTURE = 1 << 2,  // 0100
 };
 
-constexpr ModelType operator|(ModelType a, ModelType b) {
-    return static_cast<ModelType>(
-        static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
-    );
+constexpr MeshLayout operator|(MeshLayout a, MeshLayout b) {
+	return static_cast<MeshLayout>(
+		static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
+	);
 }
 
-constexpr bool operator&(ModelType a, ModelType b) {
-    return static_cast<uint32_t>(a) & static_cast<uint32_t>(b);
+constexpr bool operator&(MeshLayout a, MeshLayout b) {
+	return static_cast<uint32_t>(a) & static_cast<uint32_t>(b);
 }
 
-constexpr inline ModelType DEFAULT_MESH_LAYOUT = ModelType::VERTEX | ModelType::NORMAL | ModelType::TEXTURE;
+constexpr inline MeshLayout DEFAULT_MESH_LAYOUT = MeshLayout::VERTEX | MeshLayout::NORMAL | MeshLayout::TEXTURE;
 
 
 class VulkanModel
@@ -88,10 +88,10 @@ class VulkanModel
 	};
 
 	VulkanModel() = delete;
-	VulkanModel(VulkanDevice& device, const Builder& builder, ModelType = DEFAULT_MESH_LAYOUT);
-	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, ModelType = DEFAULT_MESH_LAYOUT);
-	VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, ModelType = ModelType::VERTEX | ModelType::INDEXED);
-	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+	VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding = 0U, MeshLayout = DEFAULT_MESH_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, MeshLayout = DEFAULT_MESH_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, MeshLayout = MeshLayout::VERTEX);
+	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding = 0U, MeshLayout = DEFAULT_MESH_LAYOUT);
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
@@ -99,13 +99,13 @@ class VulkanModel
 	VulkanModel& operator=(const VulkanModel&) = delete;
 	VulkanModel& operator=(VulkanModel&&) = delete;
 
-	void	bind(VkCommandBuffer commandBuffer, uint32_t binding = 0U);
+	void	bind(VkCommandBuffer commandBuffer);
 	void	draw(VkCommandBuffer commandBuffer);
 	void	setName(const std::string& name) { this->name = name; }
 	void	setBoundingBox(const std::vector<Vertex>& vertices) noexcept;
 
-	std::vector<VkVertexInputBindingDescription>	getBindingDescriptions();
-	std::vector<VkVertexInputAttributeDescription>	getAttributeDescriptions();
+	std::vector<VkVertexInputBindingDescription>	getBindingDescriptions() const noexcept;
+	std::vector<VkVertexInputAttributeDescription>	getAttributeDescriptions() const noexcept;
 
 	const vec3&	getVertexCenter() const noexcept { return vertexCenter; }
 	const vec3&	getBoundingCenter() const noexcept { return boundingCenter; }
@@ -115,6 +115,8 @@ class VulkanModel
 
 	std::string			name;
 	VulkanDevice&		vulkanDevice;
+	uint32_t			binding;
+	MeshLayout			type;
 
 	uint32_t			vertexCount;
 	uint32_t			indexCount;
@@ -125,7 +127,7 @@ class VulkanModel
 	vec3			vertexCenter;
 	vec3			boundingCenter;
 	BoundingBox		boundingBox;
-	ModelType		type;
+	bool			isIndexed;
 
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createVertexBuffers(const std::vector<vec3>& vertices);

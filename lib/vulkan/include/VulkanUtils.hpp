@@ -2,6 +2,7 @@
 
 #include <random>
 #include <chrono>
+#include <vector>
 
 #include "Vectors.hpp"
 
@@ -18,5 +19,7 @@ float	randomFloat();
 vec3	generateRandomColor();
 vec3	generateRandomGreyscale();
 vec3	generateSoftGreyscale();
+
+std::vector<char>	readFile(std::string const& filePath);
 
 } // namespace ve
