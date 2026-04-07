@@ -1,6 +1,7 @@
 #include "VoxelMap.hpp"
 #include "Config.hpp"
 #include "Utils.hpp"
+#include "World.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -185,7 +186,7 @@ bool	VoxelMap::update(const vec3& newPosition)
 	return true;
 }
 
-void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
+/* void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
 {
 	chunk.clear();
 
@@ -211,6 +212,159 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& po
 				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
 				chunk.insert(chunk.end(), voxelVertexes.begin(), voxelVertexes.end());
 				index++;
+			}
+		}
+	}
+	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
+} */
+
+static VertexVector	getBottomFace(const vec3& location)
+{
+	constexpr float W = 1.0f / 4.0f;  // width of a tile
+	constexpr float H = 1.0f / 3.0f;  // height of a tile
+	constexpr float padding = 0.004f;
+	VertexVector vertexes(4);
+	size_t	bottom = static_cast<size_t>(VertexFaces::BOTTOM);
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		vertexes[i].pos.x = VOXEL_VERTEXES[bottom + i].pos.x + VOXEL_SIZE * 0.5f + location.x;
+		vertexes[i].pos.y = VOXEL_VERTEXES[bottom + i].pos.y + VOXEL_SIZE * 0.5f + location.y;
+		vertexes[i].pos.z = VOXEL_VERTEXES[bottom + i].pos.z + VOXEL_SIZE * 0.5f + location.z;
+		vertexes[i].normal = vec3::zero();
+	}
+
+	vertexes[0].textureUv = vec2{3 * W + padding, H + padding};
+	vertexes[0 + 1].textureUv = vec2{3 * W + padding, 2 * H - padding};
+	vertexes[0 + 2].textureUv = vec2{4 * W - padding, 2 * H - padding};
+	vertexes[0 + 3].textureUv = vec2{4 * W - padding, H + padding};
+
+	return vertexes;
+}
+
+static VertexVector	getTopFace(const vec3& location)
+{
+	constexpr float W = 1.0f / 4.0f;
+	constexpr float H = 1.0f / 3.0f;
+	constexpr float padding = 0.004f;
+	VertexVector vertexes(4);
+	size_t	top = static_cast<size_t>(VertexFaces::TOP);
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		vertexes[i].pos.x = VOXEL_VERTEXES[top + i].pos.x + VOXEL_SIZE * 0.5f + location.x;
+		vertexes[i].pos.y = VOXEL_VERTEXES[top + i].pos.y + VOXEL_SIZE * 0.5f + location.y;
+		vertexes[i].pos.z = VOXEL_VERTEXES[top + i].pos.z + VOXEL_SIZE * 0.5f + location.z;
+		vertexes[i].normal = vec3::zero();
+	}
+
+	vertexes[0].textureUv = vec2{W + padding, 2 * H - padding};
+	vertexes[0 + 1].textureUv = vec2{2 * W - padding, 2 * H - padding};
+	vertexes[0 + 2].textureUv = vec2{2 * W - padding, H + padding};
+	vertexes[0 + 3].textureUv = vec2{W + padding, H + padding};
+
+	return vertexes;
+}
+
+static void addOtherFaces(VertexVector& vertexes, const vec3& bottomLoc, const vec3& topLoc)
+{
+	constexpr float W = 1.0f / 4.0f;
+	constexpr float H = 1.0f / 3.0f;
+	constexpr float padding = 0.004f;
+	std::array<size_t, 4>	faces = {
+		static_cast<size_t>(VertexFaces::FRONT),
+		static_cast<size_t>(VertexFaces::BACK),
+		static_cast<size_t>(VertexFaces::LEFT),
+		static_cast<size_t>(VertexFaces::RIGHT),
+	};
+	
+	for (size_t face = 0; face < 4; face++)
+	{
+		VertexVector toAdd(4);
+		
+		for (size_t i = 0; i < 2; i++)
+		{
+			toAdd[i].pos.x = VOXEL_VERTEXES[faces[face] + i].pos.x + VOXEL_SIZE * 0.5f + bottomLoc.x;
+			toAdd[i].pos.y = VOXEL_VERTEXES[faces[face] + i].pos.y + VOXEL_SIZE * 0.5f + bottomLoc.y;
+			toAdd[i].pos.z = VOXEL_VERTEXES[faces[face] + i].pos.z + VOXEL_SIZE * 0.5f + bottomLoc.z;
+			toAdd[i].normal = vec3::zero();
+		}
+		for (size_t i = 0; i < 2; i++)
+		{
+			toAdd[i].pos.x = VOXEL_VERTEXES[faces[face] + i].pos.x + VOXEL_SIZE * 0.5f + topLoc.x;
+			toAdd[i].pos.y = VOXEL_VERTEXES[faces[face] + i].pos.y + VOXEL_SIZE * 0.5f + topLoc.y;
+			toAdd[i].pos.z = VOXEL_VERTEXES[faces[face] + i].pos.z + VOXEL_SIZE * 0.5f + topLoc.z;
+			toAdd[i].normal = vec3::zero();
+		}
+		toAdd[0].textureUv = vec2{3 * W + padding, H + padding};
+		toAdd[0 + 1].textureUv = vec2{3 * W + padding, 2 * H - padding};
+		toAdd[0 + 2].textureUv = vec2{4 * W - padding, 2 * H - padding};
+		toAdd[0 + 3].textureUv = vec2{4 * W - padding, H + padding};
+		vertexes.insert(
+			vertexes.end(),
+			std::make_move_iterator(toAdd.begin()),
+			std::make_move_iterator(toAdd.end())
+		);
+	}
+}
+
+void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
+{
+	chunk.clear();
+
+	ui32 index = 0;
+
+	for (i32 z = 0; z < chunkDimensions.z; z++)
+	{
+		for (i32 x = 0; x < chunkDimensions.x; x++)
+		{
+			for (i32 y = 0; y < chunkDimensions.y; y++)
+			{
+				if (data[index] == VoxelMap::VoxelType::Air)
+				{
+					index++;
+					continue;
+				}
+				vec3 bot = {
+					x + pos.width * static_cast<i32>(Config::chunkLength),
+					y,
+					z + pos.depth * static_cast<i32>(Config::chunkLength)
+				};
+				VertexVector bottomVertexes = getBottomFace(bot);
+				chunk.insert(
+					chunk.end(),
+					std::make_move_iterator(bottomVertexes.begin()),
+					std::make_move_iterator(bottomVertexes.end())
+				);
+				while (y < chunkDimensions.y && data[index] != VoxelMap::VoxelType::Air)
+				{
+					index++;
+					y++;
+				}
+				vec3 top = {
+					x + pos.width * static_cast<i32>(Config::chunkLength),
+					y - 1,
+					z + pos.depth * static_cast<i32>(Config::chunkLength)
+				};
+				VertexVector topVertexes = getTopFace(top);
+				chunk.insert(
+					chunk.end(),
+					std::make_move_iterator(topVertexes.begin()),
+					std::make_move_iterator(topVertexes.end())
+				);
+
+				addOtherFaces(chunk, bot, top);
+				// vec3 relativePos{
+				// 	static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength)),
+				// 	static_cast<float>(y),
+				// 	static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength))
+				// };
+				// VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
+				// chunk.insert(chunk.end(), voxelVertexes.begin(), voxelVertexes.end());
+				if (y < chunkDimensions.y)
+				{
+					index++;
+				}
 			}
 		}
 	}

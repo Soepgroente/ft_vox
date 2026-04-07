@@ -18,6 +18,36 @@ inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxe
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
 inline constexpr float		VOXEL_SIZE = 1.0f;		// length of a voxel edge
 
+/*
+ * 1 voxel corresponds to:
+ * vertexes = 24 (vertexes per voxel) * 32 (bytes per vertex) = 768 b
+ * indexes = 36 (indexes per voxel) * 4 (bytes per index [uint]) = 144 b
+ * total = 912 b
+ *
+ * 32 * 32 voxels correspond to:
+ * vertexes = 32 * 32 * 768 b = 786432 b = 768 KiB
+ * indexes = 32 * 32 * 144 b = 147456 b = 144 KiB
+ * total = 933888 b = 912 KiB
+ *
+ * an arbitrary limit of 114 MiB, means 128 (worlds) * 32 * 32 (voxels per chunk) = 2^17 voxels
+ * vertexes = 128 * 32 * 32 * 768 b = 100663296 b = 98304 KiB = 96 MiB
+ * indexes = 128 * 32 * 32 * 144 b = 18874368 b = 18432 KiB = 18 MiB
+ * total = 119537664 b = 116736 KiB = 114 MiB
+ * 
+ * @note this will change since the size of a world will not always be 32 * 32 voxels
+ */
+inline constexpr uint32_t	MAX_WORLDS = 128U;
+
+enum class VertexFaces : size_t
+{
+	FRONT = 0,
+	BACK = 4,
+	LEFT = 8,
+	RIGHT = 12,
+	TOP = 16,
+	BOTTOM = 20
+};
+
 // Hard-coded VBO (vertex+normal+textureUV data) of a voxel
 inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
 	// face FRONT (z = +0.5)
