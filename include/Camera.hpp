@@ -2,8 +2,7 @@
 
 #include "Vectors.hpp"
 
-
-namespace ve {
+namespace vox {
 
 struct CameraSettings {
 	static constexpr float	projectionFov = 50.0f;

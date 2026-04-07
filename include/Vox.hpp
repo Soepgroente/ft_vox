@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Vulkan.hpp"
+#include "Camera.hpp"
+
 #include "Vectors.hpp"
 #include "Config.hpp"
 #include "World.hpp"
@@ -64,7 +66,7 @@ class Vox
 		ve::VulkanRenderer				vulkanRenderer;
 		ve::VulkanDescriptorSetFactory	vulkanSetFactory;
 
-		ve::Camera		camera;
+		Camera			camera;
 		VoxelMap		voxelMap;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
