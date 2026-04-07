@@ -6,10 +6,10 @@
 #include "World.hpp"
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"
+#include "VoxelMap.hpp"
 
 #include <cstdint>
 #include <thread>
-
 
 namespace vox {
 
@@ -31,16 +31,17 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( uint32_t, uint32_t );
 
-		static std::vector<std::thread>	workerThreads;
-
-	private:
+		/*	Temporarily global for testing	*/
+		VoxelMap&	getMap() { return voxelMap; };
+		
+		private:
 		ve::VulkanWindow							vulkanWindow;
 		ve::VulkanDevice							vulkanDevice;
 		ve::VulkanRenderer							vulkanRenderer;
 		std::unique_ptr<ve::VulkanDescriptorPool>	globalDescriptorPool;
-
+		
 		ve::Camera		camera;
-		WorldNavigator	navigator;
+		VoxelMap		voxelMap;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
 };

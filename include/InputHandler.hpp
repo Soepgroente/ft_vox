@@ -12,6 +12,7 @@ class InputHandler
 {
 	public:
 
+	InputHandler() = default;
 	InputHandler(std::function<void(vec2 const&)> mouseCb, std::function<void(int32_t, int32_t)> resizeCb) noexcept :
 		fpsMode(false),
 		mouseCallback(mouseCb),

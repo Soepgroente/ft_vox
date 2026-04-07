@@ -5,10 +5,15 @@
 
 namespace vox {
 
+using ui32 = uint32_t;
+
 struct Config
 {
-	static constexpr uint32_t	defaultWindowWidth = 1300;
-	static constexpr uint32_t	defaultWindowHeight = 1300;
+	static constexpr ui32	defaultWindowWidth = 1300;
+	static constexpr ui32	defaultWindowHeight = 1300;
+	static constexpr ui32	minimumViewingDistance = 160;
+
+	static constexpr float	noiseScalar = 0.01f;
 
 	static constexpr vec3ui	mapLimits{
 		16384U,
@@ -22,12 +27,9 @@ struct Config
 		-100000.0f
 	};
 
-	static constexpr uint32_t	worldSize = 32U;
-	static constexpr vec3		startingPos{		// NB this is ugly, y should depend on ground lvl
-		worldSize / 2.0f + 0.5f,
-		128.0f,
-		worldSize / 2.0f + 0.5f
-	};
+	static constexpr i32	chunkLength = 16U;
+	static constexpr i32	chunkHeight = 256U;
+	static constexpr i32	seaLevel = 64U;
 
 	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;
@@ -37,7 +39,6 @@ struct Config
 
 	static constexpr char const	texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char const	texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
-	static constexpr float	noiseScalar = 0.01f;
 };
 
 } // namespace vox

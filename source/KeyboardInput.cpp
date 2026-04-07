@@ -19,6 +19,7 @@ KeyboardInput::KeyboardInput() noexcept
 void	KeyboardInput::reset() noexcept
 {
 	keyStates.fill(false);
+	// keysPressed.fill(false);
 	keysReleased.fill(false);
 }
 

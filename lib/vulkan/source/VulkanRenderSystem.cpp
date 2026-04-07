@@ -99,7 +99,7 @@ void	VulkanRenderSystem::renderObject(FrameInfo& frameInfo)
 		sizeof(SimplePushConstantData),
 		&push
 	);
-	
+
 	frameInfo.gameObject.model->bind(frameInfo.commandBuffer);
 	frameInfo.gameObject.model->draw(frameInfo.commandBuffer);
 }

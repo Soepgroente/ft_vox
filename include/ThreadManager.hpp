@@ -30,7 +30,7 @@ class ThreadManager
 		/*	Adds a task to the pool and activates an idle thread to execute it. */
 
 		template <class F>
-		auto enqueue(F&& function) -> std::future<std::invoke_result_t<F>>
+		std::future<std::invoke_result_t<F>> enqueue(F&& function) // -> std::future<std::invoke_result_t<F>>
 		{
 			using R = std::invoke_result_t<F>;
 
