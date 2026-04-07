@@ -34,12 +34,14 @@ struct Config
 	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;
 
-	static constexpr char const	vertShaderPath[] = "build/basic.vert.spv";
-	static constexpr char const	fragShaderPath[] = "build/basic.frag.spv";
+	static constexpr char const	terrainVertShaderPath[] = "build/basic.vert.spv";
+	static constexpr char const	terrainFragShaderPath[] = "build/basic.frag.spv";
+	static constexpr char const	skyboxVertShaderPath[] = "build/skybox.vert.spv";
+	static constexpr char const	skyboxFragShaderPath[] = "build/skybox.frag.spv";
 
 	static constexpr char const	texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char const	texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
-	static constexpr char const	textureSkyboxPath[] = "textures/skybox.png";
+	static constexpr char const	textureSkyboxPath[] = "textures/skybox1.png";
 };
 
 } // namespace vox

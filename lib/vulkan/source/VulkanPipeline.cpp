@@ -148,6 +148,7 @@ void VulkanPipeline::setupPipeline(std::string const& vertexShaderFile, std::str
 			nullptr,
 			&this->pipeline) != VK_SUCCESS)
 	{
+		vkDestroyPipelineLayout(this->vulkanDevice.device(), this->pipelineLayout, nullptr);
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 }

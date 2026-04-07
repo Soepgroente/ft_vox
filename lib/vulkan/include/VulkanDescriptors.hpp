@@ -10,7 +10,8 @@
 
 namespace ve {
 
-class VulkanBindingSet {
+class VulkanBindingSet
+{
 	public:
 		VulkanBindingSet&									addBinding( uint32_t binding, VkDescriptorType type, VkShaderStageFlags stage, uint32_t count = 1U );
 		std::vector<VkDescriptorSetLayoutBinding> const&	getbindings( void ) const noexcept { return this->bindings; };
@@ -46,7 +47,7 @@ class VulkanDescriptorSetFactory
 		uint32_t							maxSets = 100U;
 
 		std::vector<VkDescriptorPoolSize>	poolSizes;
-		VkDescriptorPool					descriptorPool{};
+		VkDescriptorPool					descriptorPool = VK_NULL_HANDLE;
 };
 
 class VulkanDescriptorSet
@@ -55,7 +56,6 @@ class VulkanDescriptorSet
 		VulkanDescriptorSet( void ) = delete;
 		VulkanDescriptorSet(
 			VulkanDevice& 			vulkanDevice,
-			VkDescriptorSetLayout	descriptorSetLayout,
 			uint32_t				framesInFlight,
 			VkDescriptorPool		descriptorPool,
 			VulkanBindingSet const&	bindings
@@ -67,17 +67,17 @@ class VulkanDescriptorSet
 
 		void	setCurrentFrame( uint32_t frame ) noexcept;
 		void	updateUbo( int32_t binding, void const* data );
-		void	bind( VkCommandBuffer commandBuffer, const VulkanPipeline& pipeline, uint32_t setIndex );
+		void	bind( VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex );
 
 		VkDescriptorSetLayout	getDescriptorSetLayout( void ) const noexcept { return descriptorSetLayout; };
 		void					addBufferToDescriptor( uint32_t binding, uint32_t bufferSize, void const* data );
 		void					addSamplerToDescriptor( uint32_t binding, const std::string& texturePath, TextureType type );
 
 	private:
-		VulkanDevice&					vulkanDevice;
-		VkDescriptorSetLayout			descriptorSetLayout;
-		uint32_t						framesInFlight = 1U;
-		uint32_t						currentFrame = 0U;
+		VulkanDevice&			vulkanDevice;
+		uint32_t				framesInFlight;
+		VkDescriptorSetLayout	descriptorSetLayout;
+		uint32_t				currentFrame = 0U;
 
 		std::vector<VkDescriptorSet>									descriptorSets;
 		std::map<int32_t,std::vector<std::unique_ptr<VulkanBuffer>>>	buffers;
@@ -85,7 +85,5 @@ class VulkanDescriptorSet
 
 		friend class VulkanDescriptorSetFactory;
 };
-
-
 
 }  // namespace ve
