@@ -4,7 +4,7 @@
 #include <cmath>
 #include <iostream>
 
-namespace ve {
+namespace vox {
 
 void	Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near, float far)
 {

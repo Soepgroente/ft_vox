@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cassert>
+#include <functional>
 
 
 namespace vox {
@@ -44,17 +45,9 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	playerOnChunk = vec2i{minPositions.x + visibleWidth / 2, minPositions.y + visibleWidth / 2};
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const {
-
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const
+{
 	std::unique_ptr<ve::VulkanModel> model;
-
-	// std::cout << "Vectors: " << chunksAsVectors.size() << std::endl;
-
-
-	// for (size_t i = 0; i < chunksAsVectors.size(); i++)
-	// {
-	// 	std::cout << "Vectors[i] size: " << chunksAsVectors[i].size() << std::endl;
-	// }
 
 	model = std::make_unique<ve::VulkanModel>(device, chunksAsVectors, VOXEL_VERTEX_INDEXES);
 	return model;
@@ -73,7 +66,23 @@ void	VoxelMap::init()
 			VoxelType* chunkData = getChunk(pos);
 			// threadManager.enqueue([this, pos, chunkData] {
 			generateChunk(chunkData, pos);
+			// });
+			pos.width += 1;
+		}
+		pos.width = minPositions.width;
+		pos.depth += 1;
+	}
+	pos = minPositions;
+	std::cout << "Initial chunk generation complete" << std::endl;
+	for (i32 z = 0; z < squareSize; z++)
+	{
+		for (i32 x = 0; x < squareSize; x++)
+		{
+			VoxelType* chunkData = getChunk(pos);
+			// threadManager.enqueue([this, pos, chunkData] {
 			mapToVertexes(chunkData, chunksAsVectors.at(getChunkIndex(pos)), pos);
+
+			std::cout << "Generated: " << x << ", " << z << std::endl;
 			// });
 			pos.width += 1;
 		}
@@ -96,7 +105,7 @@ VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
 	return map + getChunkIndex(position) * chunkSize;
 }
 
-ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
+i32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 {
 	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
 	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
@@ -106,7 +115,7 @@ ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 	return chunkZ * squareSize + chunkX;
 }
 
-ui32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
+i32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
 {
 	assert(modulus > 0 && "modulus must be positive");
 	value = value % modulus;
@@ -151,7 +160,7 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 	}
 }
 
-vec2i	VoxelMap::voxelToChunkPosition(const vec3& position)
+vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
 {
 	vec2i	chunkPos{
 		static_cast<i32>(std::floor(position.x / static_cast<float>(chunkDimensions.x))),
@@ -168,7 +177,6 @@ bool	VoxelMap::update(const vec3& newPosition)
 	{
 		return false;
 	}
-	// std::cout << "Moved from: " << playerOnChunk;
 	playerOnChunk = playerOnChunk + moveDirection;
 	rawPosition = newPosition;
 	while (moveDirection.width > 0)
@@ -197,39 +205,160 @@ bool	VoxelMap::update(const vec3& newPosition)
 	return true;
 }
 
-/* void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
+VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
+{
+	if (y < 0 || y >= chunkDimensions.y)
+	{
+		return VoxelType::Air;
+	}
+
+	const i32 width = chunkDimensions.x;
+	const i32 depth = chunkDimensions.z;
+
+	
+	const i32 chunkX = (x - positiveModulo(x, width)) / width;
+	const i32 chunkZ = (z - positiveModulo(z, depth)) / depth;
+	const i32 localX = positiveModulo(x, width);
+	const i32 localZ = positiveModulo(z, depth);
+	
+	if (chunkX < minPositions.width || chunkX > maxPositions.width ||
+		chunkZ < minPositions.depth || chunkZ > maxPositions.depth)
+	{
+		return VoxelType::Air;
+	}
+
+	const VoxelType* chunk = getChunk(vec2i{chunkX, chunkZ});
+
+	const size_t index =
+		(static_cast<size_t>(localZ) * static_cast<size_t>(width) + static_cast<size_t>(localX)) *
+			static_cast<size_t>(chunkDimensions.y) +
+		static_cast<size_t>(y);
+
+	return chunk[index];
+}
+
+
+bool	VoxelMap::isVisible(const vec3& pos) const noexcept
+{
+	vec3i p = {
+		static_cast<i32>(pos.x),
+		static_cast<i32>(pos.y),
+		static_cast<i32>(pos.z)
+	};
+
+	return	getVoxelType(p.x - 1, p.y, p.z) == VoxelType::Air ||
+			getVoxelType(p.x + 1, p.y, p.z) == VoxelType::Air ||
+			getVoxelType(p.x, p.y - 1, p.z) == VoxelType::Air ||
+			getVoxelType(p.x, p.y + 1, p.z) == VoxelType::Air ||
+			getVoxelType(p.x, p.y, p.z - 1) == VoxelType::Air ||
+			getVoxelType(p.x, p.y, p.z + 1) == VoxelType::Air;
+}
+
+bool	VoxelMap::localIsVisible(const VoxelType* data, ui32 index) const noexcept
+{
+	const ui32 x = chunkDimensions.y;
+	const ui32 z = chunkDimensions.z * chunkDimensions.y;
+
+	if (data[index] == VoxelType::Air)
+	{
+		return false;
+	}
+	return	data[index - x] == VoxelType::Air ||
+			data[index + x] == VoxelType::Air ||
+			data[index - z] == VoxelType::Air ||
+			data[index + z] == VoxelType::Air ||
+			data[index + 1] == VoxelType::Air ||
+			data[index - 1] == VoxelType::Air;
+}
+
+void	VoxelMap::addEdges(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
+{
+	const i32 width = chunkDimensions.x;
+	const i32 height = chunkDimensions.y;
+	const i32 depth = chunkDimensions.z;
+
+	auto emitIfVisible = [&](i32 x, i32 y, i32 z)
+	{
+		const ui32 i = index(x, y, z);
+
+		if (data[i] == VoxelType::Air)
+		{
+			return;
+		}
+
+		const i32 wx = x + pos.width * static_cast<i32>(Config::chunkLength);
+		const i32 wz = z + pos.depth * static_cast<i32>(Config::chunkLength);
+
+		vec3 worldPos{ static_cast<float>(wx), static_cast<float>(y), static_cast<float>(wz) };
+
+		if (isVisible(worldPos) == false)
+		{
+			return;
+		}
+		VertexVector vertexes = getVertexRelativeAtlasTexture(worldPos);
+
+		chunk.insert(chunk.end(), vertexes.begin(), vertexes.end());
+	};
+
+	for (i32 z = 0; z < depth; z++)
+	{
+		for (i32 loopY = 0; loopY < height; loopY++)
+		{
+			emitIfVisible(0, loopY, z);
+			emitIfVisible(width - 1, loopY, z);
+		}
+	}
+
+	for (i32 x = 1; x < width - 1; x++)
+	{
+		for (i32 loopY = 0; loopY < height; loopY++)
+		{
+			emitIfVisible(x, loopY, 0);
+			emitIfVisible(x, loopY, depth - 1);
+		}
+	}
+
+	for (i32 z = 1; z < depth - 1; z++)
+	{
+		for (i32 x = 1; x < width - 1; x++)
+		{
+			emitIfVisible(x, 0, z);
+			emitIfVisible(x, height - 1, z);
+		}
+	}	
+}
+
+void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
 {
 	chunk.clear();
 
-	ui32 index = 0;
+	vec3 relativePosition = vec3::zero();
 
-	for (i32 z = 0; z < chunkDimensions.z; z++)
+	addEdges(data, chunk, pos);
+	for (i32 z = 1; z < chunkDimensions.z - 1; z++)
 	{
-		for (i32 x = 0; x < chunkDimensions.x; x++)
+		relativePosition.z = static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength));
+		for (i32 x = 1; x < chunkDimensions.x - 1; x++)
 		{
-			for (i32 y = 0; y < chunkDimensions.y; y++)
+			relativePosition.x = static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength));
+			for (i32 y = 1; y < chunkDimensions.y - 1; y++)
 			{
-				if (data[index] == VoxelMap::VoxelType::Air ||
-					(y < chunkDimensions.y - 1 && data[index + 1] != VoxelMap::VoxelType::Air))
+				relativePosition.y = static_cast<float>(y);
+				if (localIsVisible(data, index(x, y, z)) == false)
 				{
-					index++;
 					continue;
 				}
-				vec3 relativePos{
-					static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength)),
-					static_cast<float>(y),
-					static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength))
-				};
-				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
-				chunk.insert(chunk.end(), voxelVertexes.begin(), voxelVertexes.end());
-				index++;
+				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePosition);
+				chunk.insert(
+					chunk.end(),
+					std::make_move_iterator(voxelVertexes.begin()),
+					std::make_move_iterator(voxelVertexes.end()));
 			}
 		}
 	}
-	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
-} */
+}
 
-static VertexVector	getBottomFace(const vec3& location)
+/* static VertexVector	getBottomFace(const vec3& location)
 {
 	constexpr float W = 1.0f / 4.0f;  // width of a tile
 	constexpr float H = 1.0f / 3.0f;  // height of a tile
@@ -380,7 +509,7 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& po
 		}
 	}
 	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
-}
+} */
 
 /*	From -x (left/west) to +x (right/east) horizontally, y (up/north) to -y (down/south) vertically. */
 

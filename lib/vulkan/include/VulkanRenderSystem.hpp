@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Camera.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanFrameInfo.hpp"
 #include "VulkanModel.hpp"

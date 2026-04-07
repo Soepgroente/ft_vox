@@ -8,7 +8,7 @@ namespace ve {
 struct FrameInfo
 {
 	int					frameIndex;
-	Camera&				camera;
+	vox::Camera			camera;
 	VkCommandBuffer		commandBuffer;
 	VkDescriptorSet		globalDescriptorSet;
 	VulkanObject		gameObject;

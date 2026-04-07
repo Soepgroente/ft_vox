@@ -24,7 +24,7 @@ Vox::Vox( void ) :
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	globalDescriptorPool{},
-	camera{vec3{165.0f, 225.0f, 165.0f}, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
+	camera{vec3{165.0f, 225.0f, 165.0f}, CameraSettings::cameraForward, Config::cameraLimitsMov},
 	voxelMap{threadManager},
 	inputHandler(
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
@@ -39,10 +39,10 @@ Vox::Vox( void ) :
 
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
-		radians(ve::CameraSettings::projectionFov),
+		radians(CameraSettings::projectionFov),
 		this->vulkanWindow.getAspectRatio(),
-		ve::CameraSettings::projectionNear,
-		ve::CameraSettings::projectionFar
+		CameraSettings::projectionNear,
+		CameraSettings::projectionFar
 	);
 	voxelMap.init();
 	assert(voxelMap.isReady() == true && "map wasn't ready");
@@ -224,8 +224,8 @@ void	Vox::moveCamera( float deltaTime ) {
 void	Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
 	vec2 const& oldPos = this->inputHandler.getCursorPos();
 
-	float yaw = (currPos.x - oldPos.x) * ve::CameraSettings::cameraSensitivity;
-	float pitch = (oldPos.y - currPos.y) * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
+	float yaw = (currPos.x - oldPos.x) * CameraSettings::cameraSensitivity;
+	float pitch = (oldPos.y - currPos.y) * CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
 }
 
@@ -240,10 +240,10 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos ) {
 void	Vox::resizeWindow( uint32_t width, uint32_t height ) {
 	this->vulkanWindow.resetWindowSize(width, height);
 	this->camera.setPerspectiveProjection(
-		radians(ve::CameraSettings::projectionFov),
+		radians(CameraSettings::projectionFov),
 		this->vulkanWindow.getAspectRatio(),
-		ve::CameraSettings::projectionNear,
-		ve::CameraSettings::projectionFar
+		CameraSettings::projectionNear,
+		CameraSettings::projectionFar
 	);
 }
 
