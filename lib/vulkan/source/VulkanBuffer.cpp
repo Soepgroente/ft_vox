@@ -38,8 +38,27 @@ VkDeviceSize	VulkanBuffer::getAlignment(VkDeviceSize instanceSize, VkDeviceSize 
 VulkanBuffer::~VulkanBuffer()
 {
 	unmap();
-	vkDestroyBuffer(vulkanDevice.device(), buffer, nullptr);
-	vkFreeMemory(vulkanDevice.device(), memory, nullptr);
+	if (this->buffer != VK_NULL_HANDLE)
+		vkDestroyBuffer(vulkanDevice.device(), buffer, nullptr);
+	if (this->memory != VK_NULL_HANDLE)
+		vkFreeMemory(vulkanDevice.device(), memory, nullptr);
+}
+
+VulkanBuffer::VulkanBuffer( VulkanBuffer&& other ) :
+	vulkanDevice{other.vulkanDevice},
+	mapped{other.mapped},
+	buffer{other.buffer},
+	memory{other.memory},
+	bufferSize{other.bufferSize},
+	instanceSize{other.instanceSize},
+	instanceCount{other.instanceCount},
+	alignmentSize{other.alignmentSize},
+	usageFlags{other.usageFlags},
+	memoryPropertyFlags{other.memoryPropertyFlags}
+{
+	other.mapped = nullptr;
+	other.buffer = VK_NULL_HANDLE;
+	other.memory = VK_NULL_HANDLE;
 }
 
 /**

@@ -145,7 +145,20 @@ VulkanDescriptorSet::VulkanDescriptorSet(
 
 VulkanDescriptorSet::~VulkanDescriptorSet()
 {
-	vkDestroyDescriptorSetLayout(this->vulkanDevice.device(), this->descriptorSetLayout, nullptr);
+	if (this->descriptorSetLayout != VK_NULL_HANDLE)
+		vkDestroyDescriptorSetLayout(this->vulkanDevice.device(), this->descriptorSetLayout, nullptr);
+}
+
+VulkanDescriptorSet::VulkanDescriptorSet( VulkanDescriptorSet&& other ) :
+	vulkanDevice{other.vulkanDevice},
+	descriptorSetLayout{other.descriptorSetLayout},
+	framesInFlight{other.framesInFlight},
+	currentFrame{other.currentFrame},
+	descriptorSets{other.descriptorSets},
+	buffers{std::move(other.buffers)},
+	textures{std::move(other.textures)}
+{
+	other.descriptorSetLayout = VK_NULL_HANDLE;
 }
 
 void VulkanDescriptorSet::setCurrentFrame(uint32_t frame) noexcept

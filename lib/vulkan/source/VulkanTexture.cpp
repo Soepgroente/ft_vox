@@ -93,27 +93,6 @@ VulkanTexture::VulkanTexture(VulkanTexture&& other) :
 	other.textureImageMemory = VK_NULL_HANDLE;
 }
 
-VulkanTexture&	VulkanTexture::operator=(VulkanTexture&& other)
-{
-	if (this != &other)
-	{
-		imageInfo = other.imageInfo;
-		nPixels = other.nPixels;
-		textureImage = other.textureImage;
-		textureImageView = other.textureImageView;
-		textureSampler = other.textureSampler;
-		info = other.info;
-
-		other.imageInfo = {};
-		other.nPixels = 0;
-		other.textureImage = VK_NULL_HANDLE;
-		other.textureImageView = VK_NULL_HANDLE;
-		other.textureSampler = VK_NULL_HANDLE;
-		other.textureImageMemory = VK_NULL_HANDLE;
-	}
-	return *this;
-}
-
 void	VulkanTexture::createTextureImage()
 {
 	VulkanBuffer	stagingBuffer(

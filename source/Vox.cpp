@@ -129,7 +129,6 @@ void Vox::run( void ) {
 			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
 			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 
-
 			this->terrainPipeline->bind(commandBuffer);
 			terrainModel->bind(commandBuffer);
 			terrainModel->draw(commandBuffer);

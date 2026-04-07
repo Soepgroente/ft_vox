@@ -30,17 +30,18 @@ struct VulkanPipelineConfig
 class VulkanShader
 {
 	public:
+		VulkanShader( void ) = delete;
 		VulkanShader( VulkanDevice& device, VkShaderStageFlagBits shaderStageFlag, std::string const& shaderPath );
 		~VulkanShader( void );
 		VulkanShader( VulkanShader const& other ) = delete;
-		VulkanShader( VulkanShader&& other );		// NB add move csts in the others classes
+		VulkanShader( VulkanShader&& other );
 		VulkanShader& operator=( VulkanShader const& other ) = delete;
 
 		VkShaderModule			getModule( void ) const noexcept { return this->shaderModule; };
 		VkShaderStageFlagBits	getStageFlag( void ) const noexcept { return this->shaderStageFlag; };
 
 	private:
-		void	createModule(std::vector<char> const& fileContent);
+		void createModule(std::vector<char> const& fileContent);
 
 		VulkanDevice&			vulkanDevice;
 		VkShaderStageFlagBits	shaderStageFlag;
@@ -51,7 +52,7 @@ class VulkanShader
 class VulkanPipeline
 {
 	public:
-		~VulkanPipeline();
+		VulkanPipeline( void ) = delete;
 		VulkanPipeline(
 			VulkanDevice& device,
 			std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts,
@@ -61,11 +62,12 @@ class VulkanPipeline
 			VulkanModel const& mesh,
 			bool hasCubemapsTexture
 		);
-		VulkanPipeline() = delete;
+		~VulkanPipeline( void );
 		VulkanPipeline(VulkanPipeline const&) = delete;
+		VulkanPipeline(VulkanPipeline&&);
 		VulkanPipeline& operator=(VulkanPipeline const&) = delete;
 
-		VkPipelineLayout	getPipelineLayout() const noexcept { return pipelineLayout; };
+		VkPipelineLayout	getPipelineLayout( void ) const noexcept { return pipelineLayout; };
 		void				bind(VkCommandBuffer commandBuffer) const noexcept;
 
 		static std::unique_ptr<VulkanPipeline> createPipeline(

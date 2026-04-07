@@ -81,8 +81,17 @@ VulkanPipeline::VulkanPipeline(
 
 VulkanPipeline::~VulkanPipeline()
 {
-	vkDestroyPipeline(this->vulkanDevice.device(), this->pipeline, nullptr);
-	vkDestroyPipelineLayout(this->vulkanDevice.device(), this->pipelineLayout, nullptr);
+	if (this->pipeline != VK_NULL_HANDLE)
+		vkDestroyPipeline(this->vulkanDevice.device(), this->pipeline, nullptr);
+	if (this->pipelineLayout != VK_NULL_HANDLE)
+		vkDestroyPipelineLayout(this->vulkanDevice.device(), this->pipelineLayout, nullptr);
+}
+
+VulkanPipeline::VulkanPipeline(VulkanPipeline&& other) :
+	vulkanDevice{other.vulkanDevice}, pipelineLayout{other.pipelineLayout}, pipeline{other.pipeline}
+{
+	other.pipelineLayout = VK_NULL_HANDLE;
+	other.pipeline = VK_NULL_HANDLE;
 }
 
 void VulkanPipeline::bind(VkCommandBuffer commandBuffer) const noexcept

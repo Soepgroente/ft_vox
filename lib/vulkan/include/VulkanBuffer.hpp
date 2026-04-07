@@ -20,6 +20,7 @@ class VulkanBuffer
 
 	VulkanBuffer() = delete;
 	VulkanBuffer(const VulkanBuffer&) = delete;
+	VulkanBuffer(VulkanBuffer&&);
 	VulkanBuffer& operator=(const VulkanBuffer&) = delete;
 
 	VkResult	map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);

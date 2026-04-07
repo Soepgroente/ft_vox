@@ -13,12 +13,9 @@ class VulkanTexture
 	VulkanTexture() = delete;
 	VulkanTexture(VulkanDevice& device, const std::string& filePath, TextureType = TEXTURE_PLAIN);
 	~VulkanTexture();
-
 	VulkanTexture(const VulkanTexture& other) = delete;
-	VulkanTexture&	operator=(const VulkanTexture& other) = delete;
-
 	VulkanTexture(VulkanTexture&&);
-	VulkanTexture&	operator=(VulkanTexture&&);
+	VulkanTexture&	operator=(const VulkanTexture& other) = delete;
 
 	void	createTextureImage();
 	void	createTextureImageView();
