@@ -2,7 +2,6 @@
 #include "Config.hpp"
 #include "Utils.hpp"
 #include "World.hpp"
-#include "Vulkan.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -162,13 +161,6 @@ vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
 		static_cast<i32>(std::floor(position.z / static_cast<float>(VoxelChunk::chunkDimensions.z)))
 	};
 	return chunkPos;
-}
-
-vec3	VoxelMap::getMapMiddle() const noexcept
-{
-	return vec3((maxPositions.x + minPositions.x + 1) * VoxelChunk::chunkDimensions.x / 2.0f,
-				VoxelChunk::chunkDimensions.height - 1.0f,
-				(maxPositions.y + minPositions.y + 1) * VoxelChunk::chunkDimensions.z / 2.0f);
 }
 
 }	// namespace vox
