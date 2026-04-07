@@ -4,12 +4,7 @@
 #include "VulkanDevice.hpp"
 #include "VulkanUtils.hpp"
 
-#include "Vectors.hpp"
-
-#include <cassert>
-#include <cstring>
 #include <memory>
-#include <vector>
 #include <unordered_map>
 
 
@@ -24,24 +19,24 @@ struct	BoundingBox
 	vec3	max;
 };
 
-enum class MeshLayout : uint32_t {
+enum class ModelLayout : uint32_t {
 	UNSET = 0,
-	VERTEX = 1 << 0,  // 0001
-	NORMAL = 1 << 1,  // 0010
-	TEXTURE = 1 << 2,  // 0100
+	VERTEX = 1 << 0,
+	NORMAL = 1 << 1,
+	TEXTURE = 1 << 2
 };
 
-constexpr MeshLayout operator|(MeshLayout a, MeshLayout b) {
-	return static_cast<MeshLayout>(
+constexpr ModelLayout operator|(ModelLayout a, ModelLayout b) {
+	return static_cast<ModelLayout>(
 		static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
 	);
 }
 
-constexpr bool operator&(MeshLayout a, MeshLayout b) {
+constexpr bool operator&(ModelLayout a, ModelLayout b) {
 	return static_cast<uint32_t>(a) & static_cast<uint32_t>(b);
 }
 
-constexpr inline MeshLayout DEFAULT_MESH_LAYOUT = MeshLayout::VERTEX | MeshLayout::NORMAL | MeshLayout::TEXTURE;
+constexpr inline ModelLayout DEFAULT_MODEL_LAYOUT = ModelLayout::VERTEX | ModelLayout::NORMAL | ModelLayout::TEXTURE;
 
 
 class VulkanModel
@@ -88,10 +83,10 @@ class VulkanModel
 	};
 
 	VulkanModel() = delete;
-	VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding = 0U, MeshLayout = DEFAULT_MESH_LAYOUT);
-	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, MeshLayout = DEFAULT_MESH_LAYOUT);
-	VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, MeshLayout = MeshLayout::VERTEX);
-	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding = 0U, MeshLayout = DEFAULT_MESH_LAYOUT);
+	VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding = 0U, ModelLayout = DEFAULT_MODEL_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, ModelLayout = DEFAULT_MODEL_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, ModelLayout = ModelLayout::VERTEX);
+	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding = 0U, ModelLayout = DEFAULT_MODEL_LAYOUT);
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
@@ -113,13 +108,14 @@ class VulkanModel
 
 	private:
 
-	std::string			name;
-	VulkanDevice&		vulkanDevice;
-	uint32_t			binding;
-	MeshLayout			type;
+	std::string		name;
+	VulkanDevice&	vulkanDevice;
+	uint32_t		binding;
+	ModelLayout		type;
+	bool			isIndexed;
 
-	uint32_t			vertexCount;
-	uint32_t			indexCount;
+	uint32_t		vertexCount;
+	uint32_t		indexCount;
 
 	std::unique_ptr<VulkanBuffer>	vertexBuffer;
 	std::unique_ptr<VulkanBuffer>	indexBuffer;
@@ -127,7 +123,6 @@ class VulkanModel
 	vec3			vertexCenter;
 	vec3			boundingCenter;
 	BoundingBox		boundingBox;
-	bool			isIndexed;
 
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createVertexBuffers(const std::vector<vec3>& vertices);

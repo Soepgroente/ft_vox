@@ -1,7 +1,7 @@
 #include "VulkanPipeline.hpp"
 #include "VulkanUtils.hpp"
 
-#include <iostream>
+#include <cassert>
 
 
 namespace ve {

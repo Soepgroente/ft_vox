@@ -1,16 +1,9 @@
 #pragma once
 
-#include "Camera.hpp"
 #include "VulkanDevice.hpp"
-// #include "VulkanFrameInfo.hpp"
 #include "VulkanModel.hpp"
-// #include "VulkanObject.hpp"
-// #include "VulkanPipeline.hpp"
 #include "VulkanTexture.hpp"
 
-#include <GLFW/glfw3.h>
-#include <array>
-#include <memory>
 #include <vector>
 
 

@@ -1,28 +1,26 @@
-#include "Vectors.hpp"
 #include "VulkanModel.hpp"
 #include "VulkanObject.hpp"
 
-#include <iostream>
-#include <set>
+#include <cassert>
 
 
 namespace ve {
 
-VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding, ModelLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	createVertexBuffers(builder.vertices);
 	if (builder.indices.size() > 2U)
 		createIndexBuffers(builder.indices);
 }
 
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding, ModelLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	createVertexBuffers(vertices);
 	if (indices.size() > 2U)
 		createIndexBuffers(indices);
 }
 
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding, ModelLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	createVertexBuffers(vertices);
 	if (indices.size() > 2U)
@@ -38,7 +36,7 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding, MeshLayout type) : vulkanDevice{device}, binding{binding}, type{type}
+VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex> const*>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding, ModelLayout type) : vulkanDevice{device}, binding{binding}, type{type}
 {
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
@@ -252,11 +250,11 @@ std::vector<VkVertexInputBindingDescription>	VulkanModel::getBindingDescriptions
 
 	bindingDescriptions[0].binding = 0;
 	bindingDescriptions[0].stride = 0;
-	if (this->type & MeshLayout::VERTEX)
+	if (this->type & ModelLayout::VERTEX)
 		bindingDescriptions[0].stride += sizeof(vec3);
-	if (this->type & MeshLayout::NORMAL)
+	if (this->type & ModelLayout::NORMAL)
 		bindingDescriptions[0].stride += sizeof(vec3);
-	if (this->type & MeshLayout::TEXTURE)
+	if (this->type & ModelLayout::TEXTURE)
 		bindingDescriptions[0].stride += sizeof(vec2);
 	bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	return bindingDescriptions;
@@ -266,14 +264,14 @@ std::vector<VkVertexInputAttributeDescription>	VulkanModel::getAttributeDescript
 {
 	std::vector<VkVertexInputAttributeDescription>	attributeDescriptions;
 
-	if (this->type & MeshLayout::VERTEX)
+	if (this->type & ModelLayout::VERTEX)
 		attributeDescriptions.push_back(
 			VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos)});
-	if (this->type & MeshLayout::NORMAL)
+	if (this->type & ModelLayout::NORMAL)
 		attributeDescriptions.push_back(
 			VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}
 		);
-	if (this->type & MeshLayout::TEXTURE)
+	if (this->type & ModelLayout::TEXTURE)
 		attributeDescriptions.push_back(
 			VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, textureUv)}
 		);

@@ -116,7 +116,7 @@ void Vox::run( void ) {
 		{
 			this->vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
 			
-			uint32_t currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
+			ui32 currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
 			this->matrixDescriptorSet->setCurrentFrame(currentFrame);
 			this->samplersDescriptorSet->setCurrentFrame(currentFrame);
 

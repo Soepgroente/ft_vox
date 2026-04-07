@@ -7,9 +7,6 @@
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"
 
-#include <cstdint>
-#include <thread>
-
 
 namespace vox {
 
