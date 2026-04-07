@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Camera.hpp"
-#include "Vectors.hpp"
 #include "Vulkan.hpp"
+#include "Camera.hpp"
 #include "Config.hpp"
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"

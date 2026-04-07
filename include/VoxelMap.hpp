@@ -39,6 +39,18 @@ class VoxelMap
 		private:
 
 		std::vector<VoxelChunk>	map;
+		
+		// bool	update(const vec3& newPosition);
+		// void	init();
+		// vec3	getMapMiddle() const noexcept;
+		// std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
+		
+		// bool		isReady() const noexcept { return this->ready; }
+		// VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
+		
+		// private:
+		
+		// VoxelType*	map;
 		ui32	worldSeed;
 
 		i32 	squareSize;
