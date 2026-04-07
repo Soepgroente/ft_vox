@@ -3,23 +3,30 @@
 #include <ostream>
 #include <cstdint>
 
+using i32 = int32_t;
+
 class vec2i
 {
 	public:
 
 	union
 	{
-		int	data[2];
+		i32	data[2];
 		struct
 		{
-			int	x;
-			int	y;
+			i32	x;
+			i32	y;
+		};
+		struct
+		{
+			i32 width;
+			i32 depth;
 		};
 	};
 
 	constexpr vec2i() : x(0), y(0) {}
-	constexpr explicit vec2i(int val) : x(val), y(val) {}
-	constexpr vec2i(int x, int y) : x(x), y(y) {}
+	constexpr explicit vec2i(i32 val) : x(val), y(val) {}
+	constexpr vec2i(i32 x, i32 y) : x(x), y(y) {}
 	constexpr vec2i(const vec2i&) noexcept = default;
 	constexpr vec2i(vec2i&&) noexcept = default;
 	vec2i&	operator=(const vec2i&) noexcept = default;
@@ -38,8 +45,8 @@ class vec2i
 	bool	operator>(const vec2i& other) const noexcept { return !(*this <= other); }
 	bool	operator>=(const vec2i& other) const noexcept { return !(*this < other); }
 
-	int&		operator[](int index) noexcept { return data[index]; }
-	const int&	operator[](int index) const noexcept { return data[index]; }
+	i32&		operator[](i32 index) noexcept { return data[index]; }
+	const i32&	operator[](i32 index) const noexcept { return data[index]; }
 	
 	vec2i	clone() const noexcept { return vec2i(x, y); }
 	
@@ -59,8 +66,8 @@ struct hash<vec2i>
 {
 	size_t operator()(const vec2i& v) const noexcept
 	{
-		size_t h1 = hash<int32_t>{}(v.x);
-		size_t h2 = hash<int32_t>{}(v.y);
+		size_t h1 = hash<i32>{}(v.x);
+		size_t h2 = hash<i32>{}(v.y);
 		size_t seed = h1;
 
 		seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);

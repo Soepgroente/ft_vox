@@ -3,6 +3,9 @@
 #include "ThreadManager.hpp"
 #include "Vulkan.hpp"
 #include "Vectors.hpp"
+#include "Stopwatch.hpp"
+#include "VoxelMap.hpp"
+#include "Config.hpp"
 
 #include <cstdint>
 #include <unordered_map>
@@ -92,67 +95,28 @@ VertexVector	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
 VertexVector	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
 IndexVector		getIndexRelative( uint32_t = 0U );
 
+// class VoxelMap;
 
-class World {
-	public:
-		explicit World( vec3i const&, vec3ui const& );
-		World( void ) = default;
-		~World( void ) noexcept = default;
-		World( World const& ) = delete;
-		World( World&& ) = default;
-		World& operator=( World const& ) = delete;
-		World& operator=( World&& ) = default;
+// class World {
+// 	public:
+// 		explicit World( vec2i const&, vec3ui const& );
+// 		World( void ) = default;
+// 		~World( void ) noexcept = default;
+// 		World( World const& ) = delete;
+// 		World( World&& ) = default;
+// 		World& operator=( World const& ) = delete;
+// 		World& operator=( World&& ) = default;
 
-		VertexVector const&	getVertexes( void ) const noexcept { return this->vertexes; };
-		VertexVector&		getVertexes( void ) noexcept { return this->vertexes; };
-		IndexVector			getIndexes( u_int32_t start ) const noexcept { return getIndexRelative(start); };
-		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
-		float				getWeight( vec3i const& ) const noexcept;
-		void				updateLastAccess( void ) noexcept;
+// 		VertexVector const&	getVertexes( void ) const noexcept { return this->vertexes; };
+// 		VertexVector&		getVertexes( void ) noexcept { return this->vertexes; };
+// 		IndexVector			getIndexes( u_int32_t start ) const noexcept { return getIndexRelative(start); };
+// 		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
 
-		static constexpr float ALPHA = 0.8f;	// weight for distance
-		static constexpr float BETA = 0.2f;		// weight for the time
+// 	private:
+// 		vec3ui			worldSize;
+// 		VertexVector	vertexes;
+// };
 
-	private:
-		vec3i										worldPos;
-		vec3ui										worldSize;
-		VertexVector								vertexes;
-		std::chrono::steady_clock::time_point		lastAccess;
-
-};
-
-
-class WorldNavigator {
-	public:
-		explicit WorldNavigator( uint32_t worldSize ) : 
-			worldSize(worldSize, 256, worldSize),
-			totVoxels(0U),
-			currentWorldPos(0U) {};
-		~WorldNavigator( void ) = default;
-		WorldNavigator( WorldNavigator const& ) = delete;
-		WorldNavigator( WorldNavigator&& ) = delete;
-		WorldNavigator& operator=( WorldNavigator const& ) = delete;
-		WorldNavigator& operator=( WorldNavigator&& ) = delete;
-
-		bool	spawnCloseByWorlds( vec3 const& );
-		bool 	spawnCloseByWorlds(vec3 const& start, ThreadManager& threads);
-		size_t	getMemoryUsed( void ) const noexcept;
-		bool	borderCrossed( vec3 const& ) const noexcept;
-
-		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& ) const;
-
-	private:
-		bool	addNewWorld( vec3i const& );
-		vec3i	findFurthestWorld( void ) const noexcept;
-		vec3i	worldPosFromPlayerPos( vec3 const& ) const noexcept;
-
-		vec3ui							worldSize;			// 3D dimension of every world
-		uint32_t						totVoxels;			// total voxel generated in every world
-		// map of the existing chunks/worls (note: positions are stored using integers, that 
-		// represent the 3D indexes of the world, not their actual distance frm the origin)
-		std::unordered_map<vec3i,World>	worlds;
-		vec3i							currentWorldPos;	// last position known of the player
-};
 
 float	perlin(float x, float y, float z);
 float	randomNoise(float, float, ui32& seed);

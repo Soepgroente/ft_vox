@@ -6,9 +6,10 @@
 
 int	main( void )
 {
-	vox::Vox app;
 	try
 	{
+		vox::Vox app;
+
 		app.run();
 	}
 	catch (const std::exception& e)

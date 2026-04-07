@@ -6,7 +6,7 @@ using Clock = std::chrono::steady_clock;
 using Time = Clock::time_point;
 using Duration = Clock::duration;
 
-enum Unit
+enum class Unit
 {
 	Nanoseconds,
 	Microseconds,
@@ -29,7 +29,7 @@ class Stopwatch
 		void	reset() noexcept;
 
 		Duration	elapsed() const noexcept { return elapsedTime; }
-		float		elapsed(Unit type) const noexcept;
+		double		elapsed(Unit type) const noexcept;
 		
 	private:
 		Time	startTime;
@@ -37,10 +37,10 @@ class Stopwatch
 		Duration	elapsedTime;
 		
 		Time	now() const noexcept { return Clock::now(); }
-		float	ns() const noexcept { return static_cast<float>(elapsedTime.count()); }
-		float	us() const noexcept { return static_cast<float>(elapsedTime.count()) / 1000.0f; }
-		float	ms() const noexcept { return static_cast<float>(elapsedTime.count()) / 1000000.0f; }
-		float	s() const noexcept { return static_cast<float>(elapsedTime.count()) / 1000000000.0f; }
+		double	ns() const noexcept { return std::chrono::duration<double, std::nano>(elapsedTime).count(); }
+		double	us() const noexcept { return std::chrono::duration<double, std::micro>(elapsedTime).count(); }
+		double	ms() const noexcept { return std::chrono::duration<double, std::milli>(elapsedTime).count(); }
+		double	s() const noexcept { return std::chrono::duration<double>(elapsedTime).count(); }
 };
 
 std::ostream&	operator<<(std::ostream& os, const Stopwatch& stopwatch);

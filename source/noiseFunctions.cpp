@@ -139,16 +139,22 @@ float	perlin(float x, float y, float z)
 {
 	if (repeat > 0)
 	{
-		x = std::fmod(x, repeat);
-		y = std::fmod(y, repeat);
-		z = std::fmod(z, repeat);
+        x = std::fmod(x, repeat); if (x < 0) x += repeat;
+        y = std::fmod(y, repeat); if (y < 0) y += repeat;
+        z = std::fmod(z, repeat); if (z < 0) z += repeat;
 	}
-	int xi = (int)x & 255;								// Calculate the "unit cube" that the point asked will be located in
-	int yi = (int)y & 255;								// The left bound is ( |_x_|,|_y_|,|_z_| ) and the right bound is that
-	int zi = (int)z & 255;								// plus 1.  Next we calculate the location (from 0.0 to 1.0) in that cube.
-	float xf = x-(int)x;								// We also fade the location to smooth the result.
-	float yf = y-(int)y;
-	float zf = z-(int)z;
+	int X = static_cast<int>(std::floor(x));
+	int Y = static_cast<int>(std::floor(y));
+	int Z = static_cast<int>(std::floor(z));
+
+	int xi = X & 255;
+	int yi = Y & 255;
+	int zi = Z & 255;
+
+	float xf = x - static_cast<float>(X);
+	float yf = y - static_cast<float>(Y);
+	float zf = z - static_cast<float>(Z);
+
 	float u = fade(xf);
 	float v = fade(yf);
 	float w = fade(zf);
