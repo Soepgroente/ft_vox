@@ -43,20 +43,9 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	playerOnChunk = vec2i{minPositions.x + visibleWidth / 2, minPositions.y + visibleWidth / 2};
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const {
-
-	std::unique_ptr<ve::VulkanModel> model;
-
-	// std::cout << "Vectors: " << chunksAsVectors.size() << std::endl;
-
-
-	// for (size_t i = 0; i < chunksAsVectors.size(); i++)
-	// {
-	// 	std::cout << "Vectors[i] size: " << chunksAsVectors[i].size() << std::endl;
-	// }
-
-	model = std::make_unique<ve::VulkanModel>(device, chunksAsVectors, VOXEL_VERTEX_INDEXES);
-	return model;
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const
+{
+	return std::make_unique<ve::VulkanModel>(device, chunksAsVectors, VOXEL_VERTEX_INDEXES);
 }
 
 void	VoxelMap::init()

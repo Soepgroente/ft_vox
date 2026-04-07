@@ -32,8 +32,9 @@ class Camera
 		void	setPerspectiveProjection(float fovy, float aspect, float near, float far);
 		void	setViewMatrix( void ) noexcept;
 
-		const mat4&	getProjectionMatrix( bool recalculate = false ) noexcept;
-		const mat4&	getViewMatrix( bool recalculate = true) noexcept;
+		const mat4&	getProjectionMatrix( void ) const noexcept;
+		const mat4&	getViewMatrix( void ) noexcept;
+		const mat4&	getViewMatrixOnlyRotation( void ) noexcept;
 
 		vec3 const&	getCameraPos( void ) noexcept;
 

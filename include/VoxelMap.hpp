@@ -2,7 +2,6 @@
 
 #include "ThreadManager.hpp"
 #include "Vectors.hpp"
-// #include "VoxelChunk.hpp"
 #include "World.hpp"
 
 namespace vox {

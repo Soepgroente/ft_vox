@@ -43,15 +43,12 @@ void	Camera::setViewMatrix( void ) noexcept {
 	};
 }
 
-const mat4&	Camera::getProjectionMatrix( bool recalculate ) noexcept {
-	if (recalculate)
-		this->setViewMatrix();
+const mat4&	Camera::getProjectionMatrix( void ) const noexcept {
 	return this->projectionMatrix;
 }
 
-const mat4&	Camera::getViewMatrix( bool recalculate ) noexcept {
-	if (recalculate)
-		this->setViewMatrix();
+const mat4&	Camera::getViewMatrix( void ) noexcept {
+	this->setViewMatrix();
 	return this->viewMatrix;
 }
 

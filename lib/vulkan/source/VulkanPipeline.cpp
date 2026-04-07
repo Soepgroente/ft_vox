@@ -1,153 +1,193 @@
 #include "VulkanPipeline.hpp"
-#include "VulkanModel.hpp"
+#include "VulkanUtils.hpp"
+
+#include <cassert>
+
 
 namespace ve {
 
-VulkanPipeline::VulkanPipeline(
-	VulkanDevice& device,
-	const std::string& vertPath,
-	const std::string& fragPath,
-	const PipelineConfigInfo& configInfo
-) : vulkanDevice{device}
+VulkanShader::VulkanShader( VulkanDevice& device, VkShaderStageFlagBits	shaderStageFlag, std::string const& shaderPath) : 
+	vulkanDevice{device}, shaderStageFlag{shaderStageFlag}, shaderPath{shaderPath}, shaderModule{VK_NULL_HANDLE}
 {
-	createGraphicsPipeline(vertPath, fragPath, configInfo);
+	std::vector<char> content = readFile(shaderPath);
+	this->createModule(content);
 }
 
-VulkanPipeline::~VulkanPipeline()
+VulkanShader::VulkanShader( VulkanShader&& other ) :
+	vulkanDevice{other.vulkanDevice}, shaderStageFlag{other.shaderStageFlag}, shaderPath{other.shaderPath}, shaderModule{other.shaderModule}
 {
-	vkDestroyShaderModule(vulkanDevice.device(), vertexShaderModule, nullptr);
-	vkDestroyShaderModule(vulkanDevice.device(), fragmentShaderModule, nullptr);
-	vkDestroyPipeline(vulkanDevice.device(), graphicsPipeline, nullptr);
+	other.shaderModule = VK_NULL_HANDLE;
 }
 
-void	VulkanPipeline::bind(VkCommandBuffer commandBuffer)
+VulkanShader::~VulkanShader( void )
 {
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+	if (this->shaderModule != VK_NULL_HANDLE)
+		vkDestroyShaderModule(this->vulkanDevice.device(), this->shaderModule, nullptr);
 }
 
-std::vector<char>	VulkanPipeline::readFile(const std::string& filePath)
-{
-	std::ifstream	file(filePath, std::ios::ate | std::ios::binary);
-
-	if (file.is_open() == false)
-	{
-		throw std::runtime_error("failed to open file: " + filePath);
-	}
-	size_t fileSize = static_cast<size_t>(file.tellg());
-	std::vector<char>	buffer(fileSize);
-
-	file.seekg(0);
-	file.read(buffer.data(), fileSize);
-	file.close();
-
-	return buffer;
-}
-
-void	VulkanPipeline::createGraphicsPipeline(
-	const std::string& vertPath,
-	const std::string& fragPath,
-	const PipelineConfigInfo& configInfo
-)
-{
-	assert(configInfo.pipelineLayout != VK_NULL_HANDLE && "Cannot create graphics pipeline: no pipeline layout provided in config info");
-	assert(configInfo.renderPass != VK_NULL_HANDLE && "Cannot create graphics pipeline: no render pass provided in config info");
-
-	std::vector<char>	vertexShaderCode = readFile(vertPath);
-	std::vector<char>	fragmentShaderCode = readFile(fragPath);
-
-	createShaderModule(vertexShaderCode, &vertexShaderModule);
-	createShaderModule(fragmentShaderCode, &fragmentShaderModule);
-
-	VkPipelineShaderStageCreateInfo	shaderStages[2]{};
-
-	shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	shaderStages[0].module = vertexShaderModule;
-	shaderStages[0].pName = "main";
-	shaderStages[0].flags = 0;
-	shaderStages[0].pNext = nullptr;
-	shaderStages[0].pSpecializationInfo = nullptr;
-
-	shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	shaderStages[1].module = fragmentShaderModule;
-	shaderStages[1].pName = "main";
-	shaderStages[1].flags = 0;
-	shaderStages[1].pNext = nullptr;
-	shaderStages[1].pSpecializationInfo = nullptr;
-
-	std::vector<VkVertexInputBindingDescription>	bindingDescriptions = VulkanModel::Vertex::getBindingDescriptions();
-	std::vector<VkVertexInputAttributeDescription>	attributeDescriptions = VulkanModel::Vertex::getAttributeDescriptions();
-	VkPipelineVertexInputStateCreateInfo	vertexInputInfo{};
-
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-	vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
-
-	VkGraphicsPipelineCreateInfo	pipelineInfo{};
-
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages;
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &configInfo.inputAssemblyInfo;
-	pipelineInfo.pViewportState = &configInfo.viewportInfo;
-	pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
-	pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
-	pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
-	pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
-	pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
-
-	pipelineInfo.layout = configInfo.pipelineLayout;
-	pipelineInfo.renderPass = configInfo.renderPass;
-	pipelineInfo.subpass = configInfo.subpass;
-
-	pipelineInfo.basePipelineIndex = -1;
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-	if (vkCreateGraphicsPipelines(
-			vulkanDevice.device(),
-			VK_NULL_HANDLE,
-			1,
-			&pipelineInfo,
-			nullptr,
-			&graphicsPipeline) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create graphics pipeline!");
-	}
-}
-
-void	VulkanPipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
+void VulkanShader::createModule(std::vector<char> const& fileContent)
 {
 	VkShaderModuleCreateInfo createInfo{};
-
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	createInfo.codeSize = fileContent.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(fileContent.data());
 
 	if (vkCreateShaderModule(
 			vulkanDevice.device(),
 			&createInfo,
 			nullptr,
-			shaderModule) != VK_SUCCESS)
+			&this->shaderModule) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create shader module!");
 	}
 }
 
-void	VulkanPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
+
+std::unique_ptr<VulkanPipeline> VulkanPipeline::createPipeline(
+	VulkanDevice& device,
+	std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts,
+	VkRenderPass renderPass,
+	std::string const& vertexShaderFile,
+	std::string const& fragmentShaderFile,
+	VulkanModel const& mesh,
+	bool hasCubemapsTexture
+)
 {
-	configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+	return std::make_unique<VulkanPipeline>(
+		device,
+		descriptorSetLayouts,
+		renderPass,
+		vertexShaderFile,
+		fragmentShaderFile,
+		mesh,
+		hasCubemapsTexture
+	);
+}
+
+VulkanPipeline::VulkanPipeline(
+		VulkanDevice& device,
+		std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts,
+		VkRenderPass renderPass,
+		std::string const& vertexShaderFile,
+		std::string const& fragmentShaderFile,
+		VulkanModel const& mesh,
+		bool hasCubemapsTexture
+	) :
+	vulkanDevice{device}
+{
+	this->setupPipelineLayout(descriptorSetLayouts);
+	this->setupPipeline(vertexShaderFile, fragmentShaderFile, mesh, hasCubemapsTexture, renderPass);
+}
+
+VulkanPipeline::~VulkanPipeline()
+{
+	if (this->pipeline != VK_NULL_HANDLE)
+		vkDestroyPipeline(this->vulkanDevice.device(), this->pipeline, nullptr);
+	if (this->pipelineLayout != VK_NULL_HANDLE)
+		vkDestroyPipelineLayout(this->vulkanDevice.device(), this->pipelineLayout, nullptr);
+}
+
+VulkanPipeline::VulkanPipeline(VulkanPipeline&& other) :
+	vulkanDevice{other.vulkanDevice}, pipelineLayout{other.pipelineLayout}, pipeline{other.pipeline}
+{
+	other.pipelineLayout = VK_NULL_HANDLE;
+	other.pipeline = VK_NULL_HANDLE;
+}
+
+void VulkanPipeline::bind(VkCommandBuffer commandBuffer) const noexcept
+{
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+}
+
+void VulkanPipeline::setupPipelineLayout(std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts)
+{
+	VkPipelineLayoutCreateInfo	pipelineLayoutInfo{};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+
+	if (vkCreatePipelineLayout(this->vulkanDevice.device(), &pipelineLayoutInfo, nullptr, &this->pipelineLayout) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create pipeline layout!");
+	}
+}
+
+void VulkanPipeline::setupPipeline(std::string const& vertexShaderFile, std::string const& fragmentShaderFile, VulkanModel const& mesh, bool hasCubemapsTexture, VkRenderPass renderPass)
+{
+	assert(this->pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+	std::vector<ve::VulkanShader> shaders;
+	shaders.emplace_back(this->vulkanDevice, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFile);
+	shaders.emplace_back(this->vulkanDevice, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFile);
+
+	VulkanPipelineConfig pipelineConfig = this->getPipelineConfig(shaders, mesh, hasCubemapsTexture);
+
+	VkGraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = pipelineConfig.shadersConfig.size();
+	pipelineInfo.pStages = pipelineConfig.shadersConfig.data();
+	pipelineInfo.pVertexInputState = &pipelineConfig.vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &pipelineConfig.inputAssemblyInfo;
+	pipelineInfo.pViewportState = &pipelineConfig.viewportInfo;
+	pipelineInfo.pRasterizationState = &pipelineConfig.rasterizationInfo;
+	pipelineInfo.pMultisampleState = &pipelineConfig.multisampleInfo;
+	pipelineInfo.pColorBlendState = &pipelineConfig.colorBlendInfo;
+	pipelineInfo.pDepthStencilState = &pipelineConfig.depthStencilInfo;
+	pipelineInfo.pDynamicState = &pipelineConfig.dynamicStateInfo;
+	pipelineInfo.layout = this->pipelineLayout;
+	pipelineInfo.renderPass = renderPass;
+	pipelineInfo.subpass = 0;
+	pipelineInfo.basePipelineIndex = -1;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+	if (vkCreateGraphicsPipelines(
+			this->vulkanDevice.device(),
+			VK_NULL_HANDLE,
+			1,
+			&pipelineInfo,
+			nullptr,
+			&this->pipeline) != VK_SUCCESS)
+	{
+		vkDestroyPipelineLayout(this->vulkanDevice.device(), this->pipelineLayout, nullptr);
+		throw std::runtime_error("failed to create graphics pipeline!");
+	}
+}
+
+VulkanPipelineConfig VulkanPipeline::getPipelineConfig( std::vector<VulkanShader> const& shaders, VulkanModel const& mesh, bool hasCubemapsTexture ) const noexcept
+{
+	assert(this->pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+
+	VulkanPipelineConfig configInfo{};
+	configInfo.bindingVboConfig = mesh.getBindingDescriptions();
+	configInfo.attributeVboConfig = mesh.getAttributeDescriptions();
+	configInfo.vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	configInfo.vertexInputInfo.pNext = nullptr;
+	configInfo.vertexInputInfo.flags = 0U;
+	configInfo.vertexInputInfo.vertexBindingDescriptionCount = configInfo.bindingVboConfig.size();
+	configInfo.vertexInputInfo.pVertexBindingDescriptions = configInfo.bindingVboConfig.data();
+	configInfo.vertexInputInfo.vertexAttributeDescriptionCount = configInfo.attributeVboConfig.size();
+	configInfo.vertexInputInfo.pVertexAttributeDescriptions = configInfo.attributeVboConfig.data();
+
+	configInfo.shadersConfig.resize(shaders.size());
+	for (uint32_t i = 0U; i < shaders.size(); i++) {
+		configInfo.shadersConfig[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		configInfo.shadersConfig[i].pNext = nullptr;
+		configInfo.shadersConfig[i].flags = 0;
+		configInfo.shadersConfig[i].stage = shaders[i].getStageFlag();
+		configInfo.shadersConfig[i].module = shaders[i].getModule();
+		configInfo.shadersConfig[i].pName = "main";
+		configInfo.shadersConfig[i].pSpecializationInfo = nullptr;
+	}
 
 	configInfo.viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	configInfo.viewportInfo.viewportCount = 1;
 	configInfo.viewportInfo.pViewports = nullptr;
 	configInfo.viewportInfo.scissorCount = 1;
 	configInfo.viewportInfo.pScissors = nullptr;
+
+	configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
 	configInfo.rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	configInfo.rasterizationInfo.depthClampEnable = VK_FALSE;
@@ -169,9 +209,7 @@ void	VulkanPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 	configInfo.multisampleInfo.alphaToCoverageEnable = VK_FALSE;
 	configInfo.multisampleInfo.alphaToOneEnable = VK_FALSE;
 
-	configInfo.colorBlendAttachment.colorWriteMask =
-		VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-		VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	configInfo.colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	configInfo.colorBlendAttachment.blendEnable = VK_FALSE;
 	configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
 	configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
@@ -192,18 +230,26 @@ void	VulkanPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 
 	configInfo.depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	configInfo.depthStencilInfo.depthTestEnable = VK_TRUE;
-	configInfo.depthStencilInfo.depthWriteEnable = VK_TRUE;
-	configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 	configInfo.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
 	configInfo.depthStencilInfo.minDepthBounds = 0.0f;
 	configInfo.depthStencilInfo.maxDepthBounds = 1.0f;
 	configInfo.depthStencilInfo.stencilTestEnable = VK_FALSE;
+	if (hasCubemapsTexture == TEXTURE_CUBEMAP) {
+		configInfo.depthStencilInfo.depthWriteEnable = VK_FALSE;
+		configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		configInfo.rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+	} else {
+		configInfo.depthStencilInfo.depthWriteEnable = VK_TRUE;
+		configInfo.depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	}
 
 	configInfo.dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 	configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data();
-	configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
 	configInfo.dynamicStateInfo.flags = 0;
+	configInfo.dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(configInfo.dynamicStateEnables.size());
+	configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data();
+
+	return configInfo;
 }
 
-}
+} // namespace ve

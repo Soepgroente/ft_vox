@@ -1,8 +1,8 @@
 #include "VulkanBuffer.hpp"
 
-// std
 #include <cassert>
 #include <cstring>
+
 
 namespace ve {
 
@@ -38,8 +38,27 @@ VkDeviceSize	VulkanBuffer::getAlignment(VkDeviceSize instanceSize, VkDeviceSize 
 VulkanBuffer::~VulkanBuffer()
 {
 	unmap();
-	vkDestroyBuffer(vulkanDevice.device(), buffer, nullptr);
-	vkFreeMemory(vulkanDevice.device(), memory, nullptr);
+	if (this->buffer != VK_NULL_HANDLE)
+		vkDestroyBuffer(vulkanDevice.device(), buffer, nullptr);
+	if (this->memory != VK_NULL_HANDLE)
+		vkFreeMemory(vulkanDevice.device(), memory, nullptr);
+}
+
+VulkanBuffer::VulkanBuffer( VulkanBuffer&& other ) :
+	vulkanDevice{other.vulkanDevice},
+	mapped{other.mapped},
+	buffer{other.buffer},
+	memory{other.memory},
+	bufferSize{other.bufferSize},
+	instanceSize{other.instanceSize},
+	instanceCount{other.instanceCount},
+	alignmentSize{other.alignmentSize},
+	usageFlags{other.usageFlags},
+	memoryPropertyFlags{other.memoryPropertyFlags}
+{
+	other.mapped = nullptr;
+	other.buffer = VK_NULL_HANDLE;
+	other.memory = VK_NULL_HANDLE;
 }
 
 /**
@@ -84,14 +103,14 @@ void	VulkanBuffer::writeToBuffer(const void *data, VkDeviceSize size, VkDeviceSi
 {
 	assert(mapped && "Cannot copy to unmapped buffer");
 
+	unsigned char* memOffset = static_cast<unsigned char*>(mapped);
+	memOffset += offset;
 	if (size == VK_WHOLE_SIZE)
 	{
-		std::memcpy(mapped, data, bufferSize);
+		std::memcpy(mapped, data, bufferSize - offset);
 	}
 	else
 	{
-		char* memOffset = static_cast<char*>(mapped);
-		memOffset += offset;
 		std::memcpy(memOffset, data, size);
 	}
 }
@@ -148,7 +167,7 @@ VkResult	VulkanBuffer::invalidate(VkDeviceSize size, VkDeviceSize offset)
  *
  * @return VkDescriptorBufferInfo of specified offset and range
  */
-VkDescriptorBufferInfo	VulkanBuffer::descriptorInfo(VkDeviceSize size, VkDeviceSize offset)
+VkDescriptorBufferInfo	VulkanBuffer::descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const
 {
 	return VkDescriptorBufferInfo{ buffer, offset, size };
 }

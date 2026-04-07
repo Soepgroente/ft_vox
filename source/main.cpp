@@ -10,6 +10,7 @@ int	main( void )
 	{
 		vox::Vox app;
 
+		app.setupVulkan();
 		app.run();
 	}
 	catch (const std::exception& e)

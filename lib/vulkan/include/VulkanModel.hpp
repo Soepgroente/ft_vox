@@ -4,13 +4,9 @@
 #include "VulkanDevice.hpp"
 #include "VulkanUtils.hpp"
 
-#include "Vectors.hpp"
-
-#include <cassert>
-#include <cstring>
 #include <memory>
-#include <vector>
 #include <unordered_map>
+
 
 namespace ve {
 
@@ -22,6 +18,26 @@ struct	BoundingBox
 	vec3	min;
 	vec3	max;
 };
+
+enum class ModelLayout : uint32_t {
+	UNSET = 0,
+	VERTEX = 1 << 0,
+	NORMAL = 1 << 1,
+	TEXTURE = 1 << 2
+};
+
+constexpr ModelLayout operator|(ModelLayout a, ModelLayout b) {
+	return static_cast<ModelLayout>(
+		static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
+	);
+}
+
+constexpr bool operator&(ModelLayout a, ModelLayout b) {
+	return static_cast<uint32_t>(a) & static_cast<uint32_t>(b);
+}
+
+constexpr inline ModelLayout DEFAULT_MODEL_LAYOUT = ModelLayout::VERTEX | ModelLayout::NORMAL | ModelLayout::TEXTURE;
+
 
 class VulkanModel
 {
@@ -67,45 +83,53 @@ class VulkanModel
 	};
 
 	VulkanModel() = delete;
-	VulkanModel(VulkanDevice& device, const Builder& builder);
-	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
-	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+	VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding = 0U, ModelLayout = DEFAULT_MODEL_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, ModelLayout = DEFAULT_MODEL_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, ModelLayout = ModelLayout::VERTEX);
+	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding = 0U, ModelLayout = DEFAULT_MODEL_LAYOUT);
 	~VulkanModel() noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
+	VulkanModel(VulkanModel&&) = delete;
 	VulkanModel& operator=(const VulkanModel&) = delete;
+	VulkanModel& operator=(VulkanModel&&) = delete;
 
 	void	bind(VkCommandBuffer commandBuffer);
 	void	draw(VkCommandBuffer commandBuffer);
 	void	setName(const std::string& name) { this->name = name; }
 	void	setBoundingBox(const std::vector<Vertex>& vertices) noexcept;
 
+	std::vector<VkVertexInputBindingDescription>	getBindingDescriptions() const noexcept;
+	std::vector<VkVertexInputAttributeDescription>	getAttributeDescriptions() const noexcept;
+
 	const vec3&	getVertexCenter() const noexcept { return vertexCenter; }
 	const vec3&	getBoundingCenter() const noexcept { return boundingCenter; }
 	const BoundingBox&	getBoundingBox() const noexcept { return boundingBox; }
 
 	private:
-	
-	std::string			name;
-	bool				hasIndexBuffer = false;
-	
-	VulkanDevice&		vulkanDevice;
-	uint32_t			vertexCount;
-	
+
+	std::string		name;
+	VulkanDevice&	vulkanDevice;
+	uint32_t		binding;
+	ModelLayout		type;
+	bool			isIndexed;
+
+	uint32_t		vertexCount;
+	uint32_t		indexCount;
+
 	std::unique_ptr<VulkanBuffer>	vertexBuffer;
 	std::unique_ptr<VulkanBuffer>	indexBuffer;
-	
-	uint32_t			indexCount;
-	
+
 	vec3			vertexCenter;
 	vec3			boundingCenter;
 	BoundingBox		boundingBox;
-	
-	void	setObjectCenter() noexcept;
 
-	// void	createVertexBuffers(const std::vector<Vertex>& vertices);
+	void	createVertexBuffers(const std::vector<Vertex>& vertices);
+	void	createVertexBuffers(const std::vector<vec3>& vertices);
 	void	createIndexBuffers(const std::vector<uint32_t>& indices);
 	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex>>& vertexes, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+
+	void	setObjectCenter() noexcept;
 	
 	static vec3	calculateVertexCenter(const std::vector<Vertex>& vertices) noexcept;
 };
