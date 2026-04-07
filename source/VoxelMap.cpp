@@ -169,7 +169,6 @@ bool	VoxelMap::update(const vec3& newPosition)
 	}
 	// std::cout << "Moved from: " << playerOnChunk;
 	playerOnChunk = playerOnChunk + moveDirection;
-	std::cout << " to: " << playerOnChunk << std::endl;
 	rawPosition = newPosition;
 	while (moveDirection.width > 0)
 	{
