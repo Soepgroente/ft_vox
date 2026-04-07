@@ -38,6 +38,16 @@ inline constexpr float		VOXEL_SIZE = 1.0f;		// length of a voxel edge
  */
 inline constexpr uint32_t	MAX_WORLDS = 128U;
 
+enum class VertexFaces : size_t
+{
+	FRONT = 0,
+	BACK = 4,
+	LEFT = 8,
+	RIGHT = 12,
+	TOP = 16,
+	BOTTOM = 20
+};
+
 // Hard-coded VBO (vertex+normal+textureUV data) of a voxel
 inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
     // face FRONT (z = +0.5)
