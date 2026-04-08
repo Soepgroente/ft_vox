@@ -45,7 +45,7 @@ Vox::Vox( void ) :
 void Vox::setupVulkan( void )
 {
 	uint32_t	maxSetsToCreate = 2;
-	uint32_t	nUniformDescriptors = 2;
+	uint32_t	nUniformDescriptors = 1;
 	uint32_t	nSamplerDescriptors = 2;
 
 	this->vulkanSetFactory
