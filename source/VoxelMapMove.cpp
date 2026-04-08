@@ -1,4 +1,6 @@
 #include "VoxelMap.hpp"
+#include <iostream>
+
 
 #include <iostream>
 
