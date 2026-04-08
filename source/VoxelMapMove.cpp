@@ -37,7 +37,8 @@ bool	VoxelMap::update(const vec3& newPosition)
 		moveDirection.depth--;
 	}
 	timer.stop();
-	// std::cout << "regeneration took: " << timer << std::endl;
+	threadManager.waitIdle();
+	std::cout << "regeneration took: " << timer << std::endl;
 	// std::cout << "New map limits: " << minPositions << " to " << maxPositions << std::endl;
 	assert(minPositions.x + squareSize - 1 == maxPositions.x && "Error: min/max X don't line up");
 	assert(minPositions.y + squareSize - 1 == maxPositions.y && "Error: min/max Y don't line up");
@@ -59,7 +60,6 @@ void	VoxelMap::meshRow(vec2i pos)
 		});
 		pos.x += 1;
 	}
-	threadManager.waitIdle();
 }
 
 void	VoxelMap::meshColumn(vec2i pos)
@@ -77,7 +77,40 @@ void	VoxelMap::meshColumn(vec2i pos)
 		});
 		pos.y += 1;
 	}
-	threadManager.waitIdle();
+}
+
+void	VoxelMap::generateRow(vec2i pos)
+{
+	VoxelType*	ptrToData;
+	ui32 index;
+
+	for (i32 i = 0; i < squareSize; i++)
+	{
+		index = getChunkIndex(pos);
+		ptrToData = map + index * chunkSize;
+
+		threadManager.enqueue([this, pos, ptrToData] {
+			generateChunk(ptrToData, pos);
+		});
+		pos.x += 1;
+	}
+}
+
+void	VoxelMap::generateColumn(vec2i pos)
+{
+	VoxelType*	ptrToData;
+	ui32 index;
+
+	for (i32 i = 0; i < squareSize; i++)
+	{
+		index = getChunkIndex(pos);
+		ptrToData = map + index * chunkSize;
+
+		threadManager.enqueue([this, pos, ptrToData] {
+			generateChunk(ptrToData, pos);
+		});
+		pos.y += 1;
+	}
 }
 
 void	VoxelMap::north()
@@ -86,22 +119,12 @@ void	VoxelMap::north()
 	maxPositions.y += 1;
 
 	vec2i pos = {minPositions.x, maxPositions.y};
-	VoxelType*	ptrToData;
-	ui32 index;
 
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-
-		threadManager.enqueue([this, pos, ptrToData] {
-			generateChunk(ptrToData, pos);
-		});
-		pos.x += 1;
-	}
-	pos.x = minPositions.x;
+	generateRow(pos);
+	threadManager.waitIdle();
 	meshRow(pos);
 	meshRow({pos.x, pos.y - 1});
+	threadManager.waitIdle();
 }
 
 void	VoxelMap::south()
@@ -110,22 +133,12 @@ void	VoxelMap::south()
 	maxPositions.y -= 1;
 
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-	VoxelType*	ptrToData;
-	ui32 index;
 
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-		
-		threadManager.enqueue([this, pos, ptrToData] {
-			generateChunk(ptrToData, pos);
-		});
-		pos.x += 1;
-	}
-	pos.x = minPositions.x;
+	generateRow(pos);
+	threadManager.waitIdle();
 	meshRow(pos);
 	meshRow({pos.x, pos.y + 1});
+	threadManager.waitIdle();
 }
 
 void	VoxelMap::west()
@@ -134,47 +147,26 @@ void	VoxelMap::west()
 	maxPositions.x -= 1;
 
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-	VoxelType*	ptrToData;
-	ui32 index;
 
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-
-		threadManager.enqueue([this, pos, ptrToData] {
-			generateChunk(ptrToData, pos);
-		});
-		pos.y += 1;
-	}
-	pos.y = minPositions.y;
+	generateColumn(pos);
 	threadManager.waitIdle();
 	meshColumn(pos);
 	meshColumn({pos.x + 1, pos.y});
+	threadManager.waitIdle();
 }
 
 void	VoxelMap::east()
 {
 	minPositions.x += 1;
 	maxPositions.x += 1;
-	vec2i	pos = vec2i{maxPositions.x, minPositions.y};
-	VoxelType*	ptrToData;
-	ui32 index;
 
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-		
-		threadManager.enqueue([this, pos, ptrToData] {
-			generateChunk(ptrToData, pos);
-		});
-		pos.y += 1;
-	}
-	pos.y = minPositions.y;
+	vec2i	pos = vec2i{maxPositions.x, minPositions.y};
+
+	generateColumn(pos);
 	threadManager.waitIdle();
 	meshColumn(pos);
 	meshColumn({pos.x - 1, pos.y});
+	threadManager.waitIdle();
 }
 
 vec3	VoxelMap::getMapMiddle() const noexcept

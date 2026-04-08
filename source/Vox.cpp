@@ -126,9 +126,6 @@ void	Vox::run( void ) {
 		ve::VulkanObject::createVulkanObject(),
 	};
 	info.gameObject.model = voxelMap.createNewModel(vulkanDevice);
-	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos());
-	// this->navigator.spawnCloseByWorlds(this->camera.getCameraPos(), this->threadManager);
-	// info.gameObject.model = this->navigator.createNewModel(vulkanDevice);
 
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)

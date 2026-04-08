@@ -44,14 +44,13 @@ class VoxelMap
 		VoxelMap& operator=(VoxelMap const&) = delete;
 		VoxelMap& operator=(VoxelMap&&) = delete;
 
-		
 		bool	update(const vec3& newPosition);
 		void	init();
 		vec3	getMapMiddle() const noexcept;
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
 		
-		bool		isReady() const noexcept { return this->ready; }
 		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
+		bool		isReady() const noexcept { return this->ready; }
 		
 		private:
 		
@@ -80,12 +79,15 @@ class VoxelMap
 		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
-
+		
 		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
 		void	north();
 		void	south();
 		void	west();
 		void	east();
+
+		void	generateRow(vec2i pos);
+		void	generateColumn(vec2i pos);
 
 		void	meshRow(vec2i pos);
 		void	meshColumn(vec2i pos);

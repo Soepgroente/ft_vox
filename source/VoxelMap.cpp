@@ -61,16 +61,7 @@ void	VoxelMap::init()
 	timer.start();
 	for (i32 z = 0; z < squareSize; z++)
 	{
-		for (i32 x = 0; x < squareSize; x++)
-		{
-			VoxelType* chunkData = getChunk(pos);
-			threadManager.enqueue([this, pos, chunkData]
-			{
-				generateChunk(chunkData, pos);
-			});
-			pos.width += 1;
-		}
-		pos.width = minPositions.width;
+		generateRow(pos);
 		pos.depth += 1;
 	}
 	pos = minPositions;
@@ -81,16 +72,7 @@ void	VoxelMap::init()
 	timer.start();
 	for (i32 z = 0; z < squareSize; z++)
 	{
-		for (i32 x = 0; x < squareSize; x++)
-		{
-			VoxelType* chunkData = getChunk(pos);
-			threadManager.enqueue([this, pos, chunkData]
-			{
-				mapToVertexes(chunkData, chunksAsVectors.at(getChunkIndex(pos)), pos);
-			});
-			pos.width += 1;
-		}
-		pos.width = minPositions.width;
+		meshRow(pos);
 		pos.depth += 1;
 	}
 	threadManager.waitIdle();

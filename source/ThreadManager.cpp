@@ -3,7 +3,13 @@
 
 ThreadManager::ThreadManager() : shouldRun(true), activeWorkers(0)
 {
-	int workers = std::max(std::thread::hardware_concurrency() - 1, 1U);
+	int workers = std::thread::hardware_concurrency();
+
+	if (workers <= 0)
+	{
+		std::cerr << "Error: hardware returned " << workers << " threads as available" << std::endl;
+		std::exit(EXIT_FAILURE);
+	}
 
 	std::cout << "Created " << workers << " worker threads" << std::endl;
 	workerThreads.reserve(workers);
@@ -85,5 +91,4 @@ void	ThreadManager::waitIdle()
 
 	idleCv.wait(lock, [this] { return jobs.empty() == true && activeWorkers == 0; });
 }
-
 
