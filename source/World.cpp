@@ -21,17 +21,25 @@ namespace vox {
  * @return a vector of 24 (fixed number of vertexes per voxel) 
  * instances of ve::VulkanModel::Vertex
  */
-VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
-	VertexVector voxelVertexes(VERTEX_PER_VOXEL);
-	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+void	getVertexRelativeMonoTexture(const vec3& relativeOrigin, VertexVector& chunk)
+{
+	for (ui32 i = 0; i < VERTEX_PER_VOXEL; i++)
+	{
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
-		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
-		voxelVertexes[i].pos.y = VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
-		voxelVertexes[i].pos.z = VOXEL_VERTEXES[i].pos.z + VOXEL_SIZE * 0.5f + relativeOrigin.z;
-		voxelVertexes[i].normal = VOXEL_VERTEXES[i].normal;
-		voxelVertexes[i].textureUv = VOXEL_VERTEXES[i].textureUv;
+		chunk.emplace_back
+		(
+			ve::VulkanModel::Vertex
+			{
+				vec3
+				{
+					VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x,
+					VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y,
+					VOXEL_VERTEXES[i].pos.z + VOXEL_SIZE * 0.5f + relativeOrigin.z
+				},
+			VOXEL_VERTEXES[i].normal,
+			VOXEL_VERTEXES[i].textureUv
+		});
 	}
-	return voxelVertexes;
 }
 
 /**
@@ -52,43 +60,46 @@ VertexVector getVertexRelativeMonoTexture( vec3 const& relativeOrigin ) {
  * @return a vector of 24 (fixed number of vertexes per voxel) 
  * instances of ve::VulkanModel::Vertex
  */
-VertexVector getVertexRelativeAtlasTexture( vec3 const& relativeOrigin ) {
-	VertexVector voxelVertexes = getVertexRelativeMonoTexture(relativeOrigin);
+void	getVertexRelativeAtlasTexture(const vec3& relativeOrigin, VertexVector& chunk)
+{
+	size_t index = chunk.size();
 
-	const float W = 1.0f / 4.0f;  // width of a tile
-	const float H = 1.0f / 3.0f;  // height of a tile
-	const float padding = 0.004f;
+	getVertexRelativeMonoTexture(relativeOrigin, chunk);
+
+	static constexpr float W = 1.0f / 4.0f;  // width of a tile
+	static constexpr float H = 1.0f / 3.0f;  // height of a tile
+	static constexpr float padding = 0.004f;
+
 	// front face
-	voxelVertexes[0].textureUv = vec2{W + padding, 3 * H - padding};
-	voxelVertexes[0 + 1].textureUv = vec2{2 * W - padding, 3 * H - padding};
-	voxelVertexes[0 + 2].textureUv = vec2{2 * W - padding, 2 * H + padding};
-	voxelVertexes[0 + 3].textureUv = vec2{W + padding, 2 * H + padding};
+	chunk[index + 0].textureUv = vec2{W + padding, 3 * H - padding};
+	chunk[index + 0 + 1].textureUv = vec2{2 * W - padding, 3 * H - padding};
+	chunk[index + 0 + 2].textureUv = vec2{2 * W - padding, 2 * H + padding};
+	chunk[index + 0 + 3].textureUv = vec2{W + padding, 2 * H + padding};
 	// back face
-	voxelVertexes[4].textureUv = vec2{2 * W - padding, padding};
-	voxelVertexes[4 + 1].textureUv = vec2{W + padding, padding};
-	voxelVertexes[4 + 2].textureUv = vec2{W + padding, H - padding};
-	voxelVertexes[4 + 3].textureUv = vec2{2 * W - padding, H - padding};
+	chunk[index + 4].textureUv = vec2{2 * W - padding, padding};
+	chunk[index + 4 + 1].textureUv = vec2{W + padding, padding};
+	chunk[index + 4 + 2].textureUv = vec2{W + padding, H - padding};
+	chunk[index + 4 + 3].textureUv = vec2{2 * W - padding, H - padding};
 	// left face
-	voxelVertexes[8].textureUv = vec2{padding, H + padding};
-	voxelVertexes[8 + 1].textureUv = vec2{padding, 2 * H - padding};
-	voxelVertexes[8 + 2].textureUv = vec2{W - padding, 2 * H - padding};
-	voxelVertexes[8 + 3].textureUv = vec2{W - padding, H + padding};
+	chunk[index + 8].textureUv = vec2{padding, H + padding};
+	chunk[index + 8 + 1].textureUv = vec2{padding, 2 * H - padding};
+	chunk[index + 8 + 2].textureUv = vec2{W - padding, 2 * H - padding};
+	chunk[index + 8 + 3].textureUv = vec2{W - padding, H + padding};
 	// right face
-	voxelVertexes[12].textureUv = vec2{3 * W - padding, 2 * H - padding};
-	voxelVertexes[12 + 1].textureUv = vec2{3 * W - padding, H + padding};
-	voxelVertexes[12 + 2].textureUv = vec2{2 * W + padding, H + padding};
-	voxelVertexes[12 + 3].textureUv = vec2{2 * W + padding, 2 * H - padding};
+	chunk[index + 12].textureUv = vec2{3 * W - padding, 2 * H - padding};
+	chunk[index + 12 + 1].textureUv = vec2{3 * W - padding, H + padding};
+	chunk[index + 12 + 2].textureUv = vec2{2 * W + padding, H + padding};
+	chunk[index + 12 + 3].textureUv = vec2{2 * W + padding, 2 * H - padding};
 	// top face
-	voxelVertexes[16].textureUv = vec2{W + padding, 2 * H - padding};
-	voxelVertexes[16 + 1].textureUv = vec2{2 * W - padding, 2 * H - padding};
-	voxelVertexes[16 + 2].textureUv = vec2{2 * W - padding, H + padding};
-	voxelVertexes[16 + 3].textureUv = vec2{W + padding, H + padding};
+	chunk[index + 16].textureUv = vec2{W + padding, 2 * H - padding};
+	chunk[index + 16 + 1].textureUv = vec2{2 * W - padding, 2 * H - padding};
+	chunk[index + 16 + 2].textureUv = vec2{2 * W - padding, H + padding};
+	chunk[index + 16 + 3].textureUv = vec2{W + padding, H + padding};
 	// back face
-	voxelVertexes[20].textureUv = vec2{3 * W + padding, H + padding};
-	voxelVertexes[20 + 1].textureUv = vec2{3 * W + padding, 2 * H - padding};
-	voxelVertexes[20 + 2].textureUv = vec2{4 * W - padding, 2 * H - padding};
-	voxelVertexes[20 + 3].textureUv = vec2{4 * W - padding, H + padding};
-	return voxelVertexes;
+	chunk[index + 20].textureUv = vec2{3 * W + padding, H + padding};
+	chunk[index + 20 + 1].textureUv = vec2{3 * W + padding, 2 * H - padding};
+	chunk[index + 20 + 2].textureUv = vec2{4 * W - padding, 2 * H - padding};
+	chunk[index + 20 + 3].textureUv = vec2{4 * W - padding, H + padding};
 }
 
 /**

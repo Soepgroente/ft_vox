@@ -101,34 +101,8 @@ inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 using VertexVector = std::vector<ve::VulkanModel::Vertex>;
 using IndexVector = std::vector<uint32_t>;
 
-VertexVector	getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
-VertexVector	getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
+void	getVertexRelativeMonoTexture( vec3 const& position, VertexVector& chunk );
+void	getVertexRelativeAtlasTexture( vec3 const& position, VertexVector& chunk);
 IndexVector		getIndexRelative( uint32_t = 0U );
-
-// class VoxelMap;
-
-// class World {
-// 	public:
-// 		explicit World( vec2i const&, vec3ui const& );
-// 		World( void ) = default;
-// 		~World( void ) noexcept = default;
-// 		World( World const& ) = delete;
-// 		World( World&& ) = default;
-// 		World& operator=( World const& ) = delete;
-// 		World& operator=( World&& ) = default;
-
-// 		VertexVector const&	getVertexes( void ) const noexcept { return this->vertexes; };
-// 		VertexVector&		getVertexes( void ) noexcept { return this->vertexes; };
-// 		IndexVector			getIndexes( u_int32_t start ) const noexcept { return getIndexRelative(start); };
-// 		uint32_t			getVertexSize( void ) const noexcept { return this->vertexes.size(); }
-
-// 	private:
-// 		vec3ui			worldSize;
-// 		VertexVector	vertexes;
-// };
-
-
-float	perlin(float x, float y, float z);
-float	randomNoise(float, float, ui32& seed);
 
 }	// namespace vox
