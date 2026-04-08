@@ -74,7 +74,7 @@ class VoxelMap
 		i32 		getChunkIndex(const vec2i& position) const noexcept;
 		i32		positiveModulo(i32 value, i32 modulus)	const noexcept;
 		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
-		bool	isVisible(const vec3& pos) const noexcept;
+		bool	isVisible(const vec3i& pos) const noexcept;
 		bool	localIsVisible(const VoxelType* data, ui32 index) const noexcept;
 		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
@@ -85,6 +85,9 @@ class VoxelMap
 		void	south();
 		void	west();
 		void	east();
+
+		void	meshRow(vec2i pos);
+		void	meshColumn(vec2i pos);
 };
 
 }	// namespace vox

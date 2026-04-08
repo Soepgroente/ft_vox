@@ -60,4 +60,4 @@ class Camera
 		float	_currentPitch = 0.0f;	// to avoid vertical rotations > 90° or < -90°
 };
 
-} // namespace ve
+}	// namespace vox
