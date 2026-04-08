@@ -64,8 +64,9 @@ void	VoxelMap::init()
 		for (i32 x = 0; x < squareSize; x++)
 		{
 			VoxelType* chunkData = getChunk(pos);
-			threadManager.enqueue([this, pos, chunkData] {
-			generateChunk(chunkData, pos);
+			threadManager.enqueue([this, pos, chunkData]
+			{
+				generateChunk(chunkData, pos);
 			});
 			pos.width += 1;
 		}
@@ -83,9 +84,9 @@ void	VoxelMap::init()
 		for (i32 x = 0; x < squareSize; x++)
 		{
 			VoxelType* chunkData = getChunk(pos);
-			threadManager.enqueue([this, pos, chunkData] {
-			mapToVertexes(chunkData, chunksAsVectors.at(getChunkIndex(pos)), pos);
-
+			threadManager.enqueue([this, pos, chunkData]
+			{
+				mapToVertexes(chunkData, chunksAsVectors.at(getChunkIndex(pos)), pos);
 			});
 			pos.width += 1;
 		}
@@ -174,15 +175,17 @@ vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
 
 VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 {
-	if (y < 0 || y >= chunkDimensions.y)
+	if (y < 0)
+	{
+		return VoxelType::Dirt;
+	}
+	if (y >= chunkDimensions.y)
 	{
 		return VoxelType::Air;
 	}
 
 	const i32 width = chunkDimensions.x;
 	const i32 depth = chunkDimensions.z;
-
-	
 	const i32 chunkX = (x - positiveModulo(x, width)) / width;
 	const i32 chunkZ = (z - positiveModulo(z, depth)) / depth;
 	const i32 localX = positiveModulo(x, width);
@@ -191,7 +194,7 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 	if (chunkX < minPositions.width || chunkX > maxPositions.width ||
 		chunkZ < minPositions.depth || chunkZ > maxPositions.depth)
 	{
-		return VoxelType::Air;
+		return VoxelType::Dirt;
 	}
 
 	const VoxelType* chunk = getChunk(vec2i{chunkX, chunkZ});
@@ -205,26 +208,20 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 }
 
 
-bool	VoxelMap::isVisible(const vec3& pos) const noexcept
+bool	VoxelMap::isVisible(const vec3i& pos) const noexcept
 {
-	vec3i p = {
-		static_cast<i32>(pos.x),
-		static_cast<i32>(pos.y),
-		static_cast<i32>(pos.z)
-	};
-
-	return	getVoxelType(p.x - 1, p.y, p.z) == VoxelType::Air ||
-			getVoxelType(p.x + 1, p.y, p.z) == VoxelType::Air ||
-			getVoxelType(p.x, p.y - 1, p.z) == VoxelType::Air ||
-			getVoxelType(p.x, p.y + 1, p.z) == VoxelType::Air ||
-			getVoxelType(p.x, p.y, p.z - 1) == VoxelType::Air ||
-			getVoxelType(p.x, p.y, p.z + 1) == VoxelType::Air;
+	return	getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air ||
+			getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air ||
+			getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air ||
+			getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air ||
+			getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air ||
+			getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air;
 }
 
 bool	VoxelMap::localIsVisible(const VoxelType* data, ui32 index) const noexcept
 {
 	const ui32 x = chunkDimensions.y;
-	const ui32 z = chunkDimensions.z * chunkDimensions.y;
+	const ui32 z = chunkDimensions.x * chunkDimensions.y;
 
 	if (data[index] == VoxelType::Air)
 	{
@@ -258,7 +255,7 @@ void	VoxelMap::addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos)
 
 		vec3 worldPos{ static_cast<float>(wx), static_cast<float>(y), static_cast<float>(wz) };
 
-		if (isVisible(worldPos) == false)
+		if (isVisible({wx, y, wz}) == false)
 		{
 			return;
 		}

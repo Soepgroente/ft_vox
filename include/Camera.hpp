@@ -31,8 +31,9 @@ class Camera
 		void	setPerspectiveProjection(float fovy, float aspect, float near, float far);
 		void	setViewMatrix( void ) noexcept;
 
-		const mat4&	getProjectionMatrix( bool recalculate = false ) noexcept;
-		const mat4&	getViewMatrix( bool recalculate = true) noexcept;
+		const mat4&	getProjectionMatrix( void ) const noexcept;
+		const mat4&	getViewMatrix( void ) noexcept;
+		const mat4&	getViewMatrixOnlyRotation( void ) noexcept;
 
 		vec3 const&	getCameraPos( void ) noexcept;
 
@@ -59,4 +60,4 @@ class Camera
 		float	_currentPitch = 0.0f;	// to avoid vertical rotations > 90° or < -90°
 };
 
-} // namespace ve
+}	// namespace vox

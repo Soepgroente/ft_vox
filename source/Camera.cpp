@@ -30,7 +30,7 @@ void	Camera::setPerspectiveProjection(float fovy, float aspect, float near, floa
 }
 
 void	Camera::setViewMatrix( void ) noexcept {
-	vec3 cameraTarget = this->_position + this->_forward;		// position that the camera is watching
+	vec3 cameraTarget = this->_position + this->_forward;
 	this->_cameraForward = (cameraTarget - this->_position).normalize();
 	this->_cameraLeft = vec3::cross(this->_cameraForward, this->__up).normalize();
 	this->_cameraUp = vec3::cross(this->_cameraLeft, this->_cameraForward);
@@ -43,15 +43,12 @@ void	Camera::setViewMatrix( void ) noexcept {
 	};
 }
 
-const mat4&	Camera::getProjectionMatrix( bool recalculate ) noexcept {
-	if (recalculate)
-		this->setViewMatrix();
+const mat4&	Camera::getProjectionMatrix( void ) const noexcept {
 	return this->projectionMatrix;
 }
 
-const mat4&	Camera::getViewMatrix( bool recalculate ) noexcept {
-	if (recalculate)
-		this->setViewMatrix();
+const mat4&	Camera::getViewMatrix( void ) noexcept {
+	this->setViewMatrix();
 	return this->viewMatrix;
 }
 
@@ -158,4 +155,4 @@ void Camera::rotate( float pitch, float yaw, float roll ) noexcept {
 	}
 }
 
-}	// namespace ve
+}	// namespace vox
