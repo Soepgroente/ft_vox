@@ -22,7 +22,6 @@ enum class Direction : ui8
 class VoxelMap
 {
 	public:
-
 		VoxelMap() = delete;
 		VoxelMap(ThreadManager& threadManager);
 		~VoxelMap() = default;

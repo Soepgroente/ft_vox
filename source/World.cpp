@@ -12,17 +12,6 @@
 
 namespace vox {
 
-/**
- * Get the vertex+texture+normal coordinates of a voxel. The texture coordinates are supposed to
- * apply a whole texture on every face of the voxel
- *
- * @param voxelLocation The origin of the voxel in a 3D space, the coordinates are relative
- * from such position (default is (0.0f, 0.0f, 0.0f))
- *
- * @return a vector of 24 (fixed number of vertexes per voxel) 
- * instances of ve::VulkanModel::Vertex
- */
-
 void	addVoxelFace(const vec3& location, VertexVector& chunk, size_t min)
 {
 	size_t max = min + 4;
@@ -55,26 +44,6 @@ std::vector<vec3> getVertexRelative( vec3 const& relativeOrigin ) {
 	}
 	return voxelVertexes;
 }
-
-
-/**
- * Get the vertex+texture+normal coordinates of a voxel. The texture coordinates are supposed to
- * apply an atlas so that each face of the voxel has a different texture
- * This atlas is used (file textures/texture_dirt_atlas.jpeg)
- *  _______________
- * |   | B |   |   |
- * |___|___|___|___|
- * | L | T | R | B |
- * |___|___|___|___|
- * |   | F |   |   |
- * |___|___|___|___|
- *
- * @param relativeOrigin The origin of the voxel in a 3D space, the coordinates are relative
- * from such position (default is (0.0f, 0.0f, 0.0f))
- *
- * @return a vector of 24 (fixed number of vertexes per voxel) 
- * instances of ve::VulkanModel::Vertex
- */
 
 enum FaceBit : int
 {
