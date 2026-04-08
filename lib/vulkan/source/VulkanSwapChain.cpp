@@ -424,11 +424,12 @@ VkPresentModeKHR	VulkanSwapChain::chooseSwapPresentMode(const std::vector<VkPres
 	{
 		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
-			std::cout << "Present mode: Mailbox available" << std::endl;
+			// std::cout << "Present mode: Mailbox available" << std::endl;
+			;
 			// return availablePresentMode;
 		}
 	}
-	std::cout << "Choosing present mode: V-Sync (forced)" << std::endl;
+	// std::cout << "Choosing present mode: V-Sync (forced)" << std::endl;
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 

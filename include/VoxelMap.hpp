@@ -22,7 +22,7 @@ class World;
 
 class VoxelMap
 {
-	using VoxelChunk = std::vector<ve::VulkanModel::Vertex>;
+	using VertexVector = std::vector<ve::VulkanModel::Vertex>;
 
 	public:
 
@@ -68,7 +68,7 @@ class VoxelMap
 		bool	ready = false;
 		
 		ThreadManager&	threadManager;
-		std::vector<VoxelChunk>	chunksAsVectors;
+		std::vector<VertexVector>	chunksAsVectors;
 		
 		VoxelType*	getChunk(const vec2i& position)	const noexcept;
 		i32 		getChunkIndex(const vec2i& position) const noexcept;
@@ -76,9 +76,9 @@ class VoxelMap
 		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
 		bool	isVisible(const vec3& pos) const noexcept;
 		bool	localIsVisible(const VoxelType* data, ui32 index) const noexcept;
-		void	addEdges(VoxelType* data, VoxelChunk& chunk, const vec2i& pos);
+		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
-		void	mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos);
+		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
 
 		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
 		void	north();

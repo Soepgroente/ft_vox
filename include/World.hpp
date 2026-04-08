@@ -101,10 +101,13 @@ inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 using VertexVector = std::vector<ve::VulkanModel::Vertex>;
 using IndexVector = std::vector<uint32_t>;
 
+void	getVertexRelativeMonoTexture( vec3 const& position, VertexVector& chunk );
+void	getVertexRelativeAtlasTexture( vec3 const& position, VertexVector& chunk);
+IndexVector		getIndexRelative( uint32_t = 0U );
+
 VertexVector		getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );
 VertexVector		getVertexRelativeAtlasTexture( vec3 const& = vec3(0.0f) );
 std::vector<vec3>	getVertexRelative( vec3 const& = vec3(0.0f) );
-IndexVector			getIndexRelative( uint32_t = 0U );
 
 float	perlin(float x, float y, float z);
 float	randomNoise(float, float, ui32& seed);

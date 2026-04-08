@@ -22,7 +22,7 @@ using i32 = int32_t;
 class MatrixUBO
 {
 	public:
-		MatrixUBO(ve::Camera& camera) :
+		MatrixUBO(Camera& camera) :
 			model{mat4::idMat()},
 			view{camera.getViewMatrix()},
 			projection{camera.getProjectionMatrix()} {};
