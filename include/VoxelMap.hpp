@@ -62,8 +62,9 @@ class VoxelMap
 		vec2i	maxPositions;
 		vec2i	playerOnChunk;
 		vec3	rawPosition;
-		
+
 		bool	ready = false;
+
 		
 		ThreadManager&	threadManager;
 		std::vector<VertexVector>	chunksAsVectors;

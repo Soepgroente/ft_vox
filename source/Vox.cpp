@@ -111,10 +111,10 @@ void Vox::run( void )
 		this->moveCamera(timer.elapsed(Unit::Seconds));
 
 		vec3 playerPos = this->camera.getCameraPos();
-		if (voxelMap.update(playerPos) == true)
-		{
-			this->terrainModel = voxelMap.createNewModel(vulkanDevice);
-		}
+		// if (voxelMap.update(playerPos) == true)
+		// {
+		// 	this->terrainModel = voxelMap.createNewModel(vulkanDevice);
+		// }
 
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
