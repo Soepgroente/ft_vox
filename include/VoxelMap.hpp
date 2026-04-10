@@ -3,6 +3,7 @@
 #include "ThreadManager.hpp"
 #include "Vectors.hpp"
 #include "World.hpp"
+#include "PerlinNoiser.hpp"
 
 namespace vox {
 
@@ -65,9 +66,10 @@ class VoxelMap
 
 		bool	ready = false;
 
-		
 		ThreadManager&	threadManager;
 		std::vector<VertexVector>	chunksAsVectors;
+
+		PerlinNoiser generator;
 		
 		VoxelType*	getChunk(const vec2i& position)	const noexcept;
 		i32 		getChunkIndex(const vec2i& position) const noexcept;
@@ -78,7 +80,7 @@ class VoxelMap
 		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
-		
+
 		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
 		void	north();
 		void	south();

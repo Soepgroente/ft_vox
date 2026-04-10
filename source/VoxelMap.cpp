@@ -2,7 +2,6 @@
 #include "Config.hpp"
 #include "Utils.hpp"
 #include "World.hpp"
-#include "noiseFunctions.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -12,13 +11,10 @@
 
 
 namespace vox {
-	
-float	perlin(float x, float y, float z);
-float	randomNoise(float, float, ui32& seed);
 
 using i32 = int32_t;
 
-VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
+VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager), generator{Config::worldSeed, Config::noiseScalar}
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
 	this->squareSize = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
@@ -37,11 +33,13 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
 	chunksAsVectors.resize(visibleChunks);
+
 	minPositions = vec2i{0, 0};
 	maxPositions = vec2i{minPositions.x + squareSize - 1, minPositions.y + squareSize - 1};
 	std::cout << "Map ranges from: " << minPositions << " to: " << maxPositions << std::endl;
-	worldSeed = 0;
 	playerOnChunk = vec2i{minPositions.x + squareSize / 2, minPositions.y + squareSize / 2};
+
+	generator.setPerlinRange(static_cast<float>(chunkDimensions.height));
 }
 
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const
@@ -118,32 +116,71 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 	{
 		for (i32 x = 0; x < chunkDimensions.x; x++)
 		{
-			// float noiseValue = perlin(
-			// 	static_cast<float>((positionX + static_cast<float>(x)) * Config::noiseScalar),
-			// 	static_cast<float>((positionZ + static_cast<float>(z)) * Config::noiseScalar),
-			// 	static_cast<float>(worldSeed));
-			float noiseValue = octavePerlin2(
-				positionX + static_cast<float>(x) * Config::noiseScalar,
-				positionZ + static_cast<float>(z) * Config::noiseScalar, 8
-			);
-			
+			// float heightValue = this->generator.getPerlinValue(
+			// 	(positionX + static_cast<float>(x)),
+			// 	(positionZ + static_cast<float>(z))
+			// );
+			float noiseValue = perlin(
+				static_cast<float>((positionX + static_cast<float>(x)) * Config::noiseScalar),
+				static_cast<float>((positionZ + static_cast<float>(z)) * Config::noiseScalar),
+				static_cast<float>(Config::worldSeed));
 			i32 heightValue = static_cast<i32>(noiseValue * static_cast<float>(chunkDimensions.height));
-			// std::cout << "x: " << x << " y: " << z << " -- perlin noise: " << heightValue << std::endl;
-			
+
 			assert(heightValue <= chunkDimensions.height && "height value out of range");
 			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
 			for (y = 0; y < heightValue; y++)
 			{
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
 			}
-			// for (; y < Config::seaLevel; y++)
-			// {
-			// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
-			// }
+			for (; y < Config::seaLevel; y++)
+			{
+				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
+			}
 			for (; y < chunkDimensions.height; y++)
 			{
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
 			}
+			// bool drawingCave = false;
+			// for (y = 0; y < heightValue; y++)
+			// {
+			// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+			// 	float innerColumnValue = this->generator.getPerlinValueAlt(
+			// 		(positionX + static_cast<float>(x)),
+			// 		(positionX + static_cast<float>(y)),
+			// 		(positionZ + static_cast<float>(z)), true
+			// 	);
+			// 	// std::cout << "innerColumnValue: " << innerColumnValue << std::endl;
+			// 	if (innerColumnValue > 0.6f)	// create cave
+			// 	{
+			// 		if (drawingCave == true)
+			// 		{
+			// 			chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+			// 		}
+			// 		else
+			// 		{
+			// 			chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Stone;
+			// 			drawingCave = true;
+			// 		}
+			// 	}
+			// 	else		// no cave (empty)
+			// 	{
+			// 		if (drawingCave == true)
+			// 		{
+			// 			chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Stone;
+			// 			drawingCave = false;
+			// 		}
+			// 		else
+			// 		{
+			// 			chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+			// 		}
+			// 	}
+			// }
+			// chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
+			// y++;
+			// for (; y < chunkDimensions.height; y++)
+			// {
+			// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+			// }
 		}
 	}
 }

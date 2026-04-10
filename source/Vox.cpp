@@ -24,7 +24,6 @@ Vox::Vox( void ) :
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
 		[this](i32 width, i32 height) { this->resizeWindow(width, height); }
-
 	},
 	updateMatrixUbo{false}
 {
@@ -46,7 +45,7 @@ void Vox::setupVulkan( void )
 {
 	uint32_t	maxSetsToCreate = 2;
 	uint32_t	nUniformDescriptors = 1;
-	uint32_t	nSamplerDescriptors = 2;
+	uint32_t	nSamplerDescriptors = 3;
 
 	this->vulkanSetFactory
 		.setMaxSets(maxSetsToCreate)
@@ -61,6 +60,7 @@ void Vox::setupVulkan( void )
 	ve::VulkanBindingSet skyboxSetBindings;
 	skyboxSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	skyboxSetBindings.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	skyboxSetBindings.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet(terrainSetBindings);
 	MatrixUBO ubo(this->camera);
@@ -69,6 +69,7 @@ void Vox::setupVulkan( void )
 	this->samplersDescriptorSet = this->vulkanSetFactory.createDescriptorSet(skyboxSetBindings);
 	this->samplersDescriptorSet->addSamplerToDescriptor(0, Config::texture2VoxelPath, ve::TextureType::TEXTURE_PLAIN);
 	this->samplersDescriptorSet->addSamplerToDescriptor(1, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
+	this->samplersDescriptorSet->addSamplerToDescriptor(2, Config::texture1VoxelPath, ve::TextureType::TEXTURE_PLAIN);
 
 	this->terrainModel = this->voxelMap.createNewModel(vulkanDevice);
 	this->skyBoxModel = this->createSkyboxModel();
@@ -111,10 +112,10 @@ void Vox::run( void )
 		this->moveCamera(timer.elapsed(Unit::Seconds));
 
 		vec3 playerPos = this->camera.getCameraPos();
-		// if (voxelMap.update(playerPos) == true)
-		// {
-		// 	this->terrainModel = voxelMap.createNewModel(vulkanDevice);
-		// }
+		if (voxelMap.update(playerPos) == true)
+		{
+			this->terrainModel = voxelMap.createNewModel(vulkanDevice);
+		}
 
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
@@ -136,12 +137,12 @@ void Vox::run( void )
 			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 
 			this->terrainPipeline->bind(commandBuffer);
-			terrainModel->bind(commandBuffer);
-			terrainModel->draw(commandBuffer);
+			this->terrainModel->bind(commandBuffer);
+			this->terrainModel->draw(commandBuffer);
 
 			this->skyboxPipeline->bind(commandBuffer);
-			skyBoxModel->bind(commandBuffer);
-			skyBoxModel->draw(commandBuffer);
+			this->skyBoxModel->bind(commandBuffer);
+			this->skyBoxModel->draw(commandBuffer);
 
 			this->vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			this->vulkanRenderer.endFrame();
