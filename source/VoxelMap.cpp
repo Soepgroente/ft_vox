@@ -20,8 +20,8 @@ using i32 = int32_t;
 VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
-	i32 visibleWidth = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
-	i32 visibleChunks = visibleWidth * visibleWidth;
+	this->squareSize = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
+	i32 visibleChunks = this->squareSize * this->squareSize;
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
 	chunkDimensions = vec3i{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
@@ -36,13 +36,11 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
 	chunksAsVectors.resize(visibleChunks);
-	squareSize = visibleWidth;
-	totalChunks = visibleChunks;
 	minPositions = vec2i{0, 0};
-	maxPositions = vec2i{minPositions.x + visibleWidth - 1, minPositions.y + visibleWidth - 1};
+	maxPositions = vec2i{minPositions.x + squareSize - 1, minPositions.y + squareSize - 1};
 	std::cout << "Map ranges from: " << minPositions << " to: " << maxPositions << std::endl;
 	worldSeed = 0;
-	playerOnChunk = vec2i{minPositions.x + visibleWidth / 2, minPositions.y + visibleWidth / 2};
+	playerOnChunk = vec2i{minPositions.x + squareSize / 2, minPositions.y + squareSize / 2};
 }
 
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const

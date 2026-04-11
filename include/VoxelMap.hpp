@@ -59,7 +59,6 @@ class VoxelMap
 		ui32	chunkSize;
 		vec3i	chunkDimensions;
 		i32 	squareSize;
-		ui32	totalChunks;
 		vec2i	minPositions;
 		vec2i	maxPositions;
 		vec2i	playerOnChunk;
