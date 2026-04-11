@@ -55,15 +55,15 @@ static constexpr float padding = 0.004f;
 // Hard-coded VBO (vertex+normal+textureUV data) of a voxel
 inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
 	// face FRONT (z = +0.5)
-	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::backward(), vec2{ W + padding, 3 * H - padding }},
-	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3::backward(), vec2{ 2 * W - padding, 3 * H - padding }},
-	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3::backward(), vec2{ 2 * W - padding, 2 * H + padding }},
-	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3::backward(), vec2{ W + padding, 2 * H + padding }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::forward(), vec2{ W + padding, 3 * H - padding }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3::forward(), vec2{ 2 * W - padding, 3 * H - padding }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3::forward(), vec2{ 2 * W - padding, 2 * H + padding }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3::forward(), vec2{ W + padding, 2 * H + padding }},
 	//face BACK (z = -0.5)
-	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3::forward(), vec2{ 2 * W - padding, padding }},
-	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3::forward(), vec2{ W + padding, padding }},
-	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3::forward(), vec2{ W + padding, H - padding }},
-	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3::forward(), vec2{ 2 * W - padding, H - padding }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3::backward(), vec2{ 2 * W - padding, padding }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3::backward(), vec2{ W + padding, padding }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3::backward(), vec2{ W + padding, H - padding }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3::backward(), vec2{ 2 * W - padding, H - padding }},
 	// face LEFT (x = -0.5)
 	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3::left(), vec2{ padding, H + padding }},
 	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::left(), vec2{ padding, 2 * H - padding }},
@@ -106,7 +106,7 @@ using VertexVector = std::vector<ve::VulkanModel::Vertex>;
 using IndexVector = std::vector<uint32_t>;
 
 void	addVoxelFace(const vec3& voxelLocation, VertexVector& chunk, size_t faceIndex);
-void	getVertexRelativeAtlasTexture( vec3 const& position, VertexVector& chunk);
+void	addVertexes(const vec3& position, VertexVector& chunk, int facesToAdd);
 IndexVector		getIndexRelative( uint32_t = 0U );
 
 }	// namespace vox
