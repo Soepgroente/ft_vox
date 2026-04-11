@@ -173,9 +173,9 @@ void	VoxelMap::east()
 
 vec3	VoxelMap::getMapMiddle() const noexcept
 {
-	return vec3((maxPositions.x - minPositions.x) * chunkDimensions.x / 2.0f,
+	return vec3((maxPositions.x + minPositions.x + 1) * chunkDimensions.x / 2.0f,
 				chunkDimensions.height - 1.0f,
-				(maxPositions.y - minPositions.y) * chunkDimensions.z / 2.0f);
+				(maxPositions.y + minPositions.y + 1) * chunkDimensions.z / 2.0f);
 }
 
 }	//namespace vox

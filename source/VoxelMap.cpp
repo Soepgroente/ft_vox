@@ -129,10 +129,10 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 			{
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
 			}
-			for (; y < Config::seaLevel; y++)
-			{
-				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
-			}
+			// for (; y < Config::seaLevel; y++)
+			// {
+			// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
+			// }
 			for (; y < chunkDimensions.height; y++)
 			{
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
@@ -184,32 +184,42 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 	return chunk[index];
 }
 
-
-bool	VoxelMap::isVisible(const vec3i& pos) const noexcept
+int	VoxelMap::visibleFaces(const vec3i& pos) const noexcept
 {
-	return	getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air ||
-			getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air ||
-			getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air ||
-			getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air ||
-			getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air ||
-			getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air;
+	int	visibleFaces = 0;
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air) { visibleFaces |= 1; }
+	if (getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air) { visibleFaces |= 1 << 1; }
+	if (getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 2; }
+	if (getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 3; }
+	if (getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 4; }
+	if (getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 5; }
+
+	return visibleFaces;
 }
 
-bool	VoxelMap::localIsVisible(const VoxelType* data, ui32 index) const noexcept
+int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcept
 {
+	if (data[index] == VoxelType::Air)
+	{
+		return 0;
+	}
+
 	const ui32 x = chunkDimensions.y;
 	const ui32 z = chunkDimensions.x * chunkDimensions.y;
 
-	if (data[index] == VoxelType::Air)
-	{
-		return false;
-	}
-	return	data[index - x] == VoxelType::Air ||
-			data[index + x] == VoxelType::Air ||
-			data[index - z] == VoxelType::Air ||
-			data[index + z] == VoxelType::Air ||
-			data[index + 1] == VoxelType::Air ||
-			data[index - 1] == VoxelType::Air;
+	int visibleFaces = 0;
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (data[index + z] == VoxelType::Air) { visibleFaces |= 1; }
+	if (data[index - z] == VoxelType::Air) { visibleFaces |= 1 << 1; }
+	if (data[index - x] == VoxelType::Air) { visibleFaces |= 1 << 2; }
+	if (data[index + x] == VoxelType::Air) { visibleFaces |= 1 << 3; }
+	if (data[index + 1] == VoxelType::Air) { visibleFaces |= 1 << 4; }
+	if (data[index - 1] == VoxelType::Air) { visibleFaces |= 1 << 5; }
+
+	return visibleFaces;
 }
 
 void	VoxelMap::addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos)
@@ -232,11 +242,13 @@ void	VoxelMap::addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos)
 
 		vec3 worldPos{ static_cast<float>(wx), static_cast<float>(y), static_cast<float>(wz) };
 
-		if (isVisible({wx, y, wz}) == false)
+		int facesToAdd = visibleFaces({wx, y, wz});
+
+		if (facesToAdd == 0)
 		{
 			return;
 		}
-		getVertexRelativeAtlasTexture(worldPos, chunk);
+		addVertexes(worldPos, chunk, facesToAdd);
 	};
 
 	for (i32 z = 0; z < depth; z++)
@@ -271,23 +283,29 @@ void	VoxelMap::mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& 
 {
 	chunk.clear();
 
+	const i32 width = chunkDimensions.x;
+	const i32 height = chunkDimensions.y;
+	const i32 depth = chunkDimensions.z;
+
 	vec3 relativePosition = vec3::zero();
 
 	addEdges(data, chunk, pos);
-	for (i32 z = 1; z < chunkDimensions.z - 1; z++)
+	for (i32 z = 1; z < depth - 1; z++)
 	{
 		relativePosition.z = static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength));
-		for (i32 x = 1; x < chunkDimensions.x - 1; x++)
+		for (i32 x = 1; x < width - 1; x++)
 		{
 			relativePosition.x = static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength));
-			for (i32 y = 1; y < chunkDimensions.y - 1; y++)
+			for (i32 y = 1; y < height - 1; y++)
 			{
 				relativePosition.y = static_cast<float>(y);
-				if (localIsVisible(data, index(x, y, z)) == false)
+				int facesToAdd = localVisibleFaces(data, index(x, y, z));
+
+				if (facesToAdd == 0)
 				{
 					continue;
 				}
-				getVertexRelativeAtlasTexture(relativePosition, chunk);
+				addVertexes(relativePosition, chunk, facesToAdd);
 			}
 		}
 	}

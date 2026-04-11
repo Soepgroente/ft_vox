@@ -75,14 +75,35 @@ std::vector<vec3> getVertexRelative( vec3 const& relativeOrigin ) {
  * @return a vector of 24 (fixed number of vertexes per voxel) 
  * instances of ve::VulkanModel::Vertex
  */
-void	getVertexRelativeAtlasTexture(const vec3& voxelLocation, VertexVector& chunk)
+
+enum FaceBit : int
 {
-	addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::FRONT));
-	addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::BACK));
-	addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::LEFT));
-	addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::RIGHT));
-	addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::TOP));
-	addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::BOTTOM));
+    FRONT  = 1 << 0,
+    BACK   = 1 << 1,
+    LEFT   = 1 << 2,
+    RIGHT  = 1 << 3,
+    TOP    = 1 << 4,
+    BOTTOM = 1 << 5
+};
+
+void	addVertexes(const vec3& voxelLocation, VertexVector& chunk, int facesToAdd)
+{
+	for (int bit = 0; bit < 6; bit++)
+	{
+		const int mask = 1 << bit;
+		if ((facesToAdd & mask) == 0) continue;
+
+		switch (mask)
+		{
+			case FRONT: addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::FRONT)); break;
+			case BACK: addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::BACK)); break;
+			case LEFT: addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::LEFT)); break;
+			case RIGHT: addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::RIGHT)); break;
+			case TOP: addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::TOP)); break;
+			case BOTTOM: addVoxelFace(voxelLocation, chunk, static_cast<size_t>(VertexFaces::BOTTOM)); break;
+			default: break;
+		}
+	}
 }
 
 /**
