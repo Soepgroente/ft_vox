@@ -10,6 +10,8 @@ class vec2;
 class mat4;
 class quat;
 
+using i32 = int32_t;
+
 class vec3
 {
 	public:
@@ -34,6 +36,7 @@ class vec3
 	constexpr vec3() : x(0.0f), y(0.0f), z(0.0f) {}
 	constexpr explicit vec3(float val) : x(val), y(val), z(val) {}
 	constexpr vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+	constexpr vec3(i32 x, i32 y, i32 z) : x(static_cast<float>(x)), y(static_cast<float>(y)), z(static_cast<float>(z)) {}
 	constexpr explicit vec3(const vec2& v2, float z = 0.0f) : x(v2.x), y(v2.y), z(z) {}
 	constexpr vec3(const vec3& other) : x(other.x), y(other.y), z(other.z) {}
 	vec3&	operator=(const vec3& other);
@@ -85,14 +88,14 @@ class vec3
 	static float	distanceSquared(const vec3& a, const vec3& b) noexcept;
 	static vec3		lerp(const vec3& a, const vec3& b, float t) noexcept;
 	
-	static vec3	zero() noexcept { return vec3(0.0f, 0.0f, 0.0f); }
-	static vec3	one() noexcept { return vec3(1.0f, 1.0f, 1.0f); }
-	static vec3	up() noexcept { return vec3(0.0f, 1.0f, 0.0f); }
-	static vec3	down() noexcept { return vec3(0.0f, -1.0f, 0.0f); }
-	static vec3	left() noexcept { return vec3(-1.0f, 0.0f, 0.0f); }
-	static vec3	right() noexcept { return vec3(1.0f, 0.0f, 0.0f); }
-	static vec3	forward() noexcept { return vec3(0.0f, 0.0f, 1.0f); }
-	static vec3	backward() noexcept { return vec3(0.0f, 0.0f, -1.0f); }
+	static constexpr vec3	zero() noexcept { return vec3(0.0f, 0.0f, 0.0f); }
+	static constexpr vec3	one() noexcept { return vec3(1.0f, 1.0f, 1.0f); }
+	static constexpr vec3	up() noexcept { return vec3(0.0f, 1.0f, 0.0f); }
+	static constexpr vec3	down() noexcept { return vec3(0.0f, -1.0f, 0.0f); }
+	static constexpr vec3	left() noexcept { return vec3(-1.0f, 0.0f, 0.0f); }
+	static constexpr vec3	right() noexcept { return vec3(1.0f, 0.0f, 0.0f); }
+	static constexpr vec3	forward() noexcept { return vec3(0.0f, 0.0f, 1.0f); }
+	static constexpr vec3	backward() noexcept { return vec3(0.0f, 0.0f, -1.0f); }
 
 	friend vec3	operator*(float scalar, const vec3& v) noexcept { return vec3(v.x * scalar, v.y * scalar, v.z * scalar); }
 	friend vec3 operator/(float scalar, const vec3& v) noexcept { return vec3(scalar / v.x, scalar / v.y, scalar / v.z); }
