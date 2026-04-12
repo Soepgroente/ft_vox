@@ -33,7 +33,6 @@ class Camera
 
 		const mat4&	getProjectionMatrix( void ) const noexcept;
 		const mat4&	getViewMatrix( void ) noexcept;
-		const mat4&	getViewMatrixOnlyRotation( void ) noexcept;
 
 		vec3 const&	getCameraPos( void ) noexcept;
 

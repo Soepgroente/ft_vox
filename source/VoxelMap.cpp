@@ -132,10 +132,10 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 			{
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
 			}
-			// for (; y < Config::seaLevel; y++)
-			// {
-			// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
-			// }
+			for (; y < Config::seaLevel; y++)
+			{
+				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Water;
+			}
 			for (; y < chunkDimensions.height; y++)
 			{
 				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
@@ -174,7 +174,7 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 	if (chunkX < minPositions.width || chunkX > maxPositions.width ||
 		chunkZ < minPositions.depth || chunkZ > maxPositions.depth)
 	{
-		return VoxelType::Dirt;
+		return VoxelType::Air;
 	}
 
 	const VoxelType* chunk = getChunk(vec2i{chunkX, chunkZ});
