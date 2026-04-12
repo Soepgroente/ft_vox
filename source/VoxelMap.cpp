@@ -1,11 +1,13 @@
 #include "VoxelMap.hpp"
 #include "Config.hpp"
 #include "Utils.hpp"
+#include "World.hpp"
 
 #include <iostream>
 #include <algorithm>
 #include <stdexcept>
 #include <cassert>
+#include <functional>
 
 
 namespace vox {
@@ -18,8 +20,8 @@ using i32 = int32_t;
 VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
-	i32 visibleWidth = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
-	i32 visibleChunks = visibleWidth * visibleWidth;
+	this->squareSize = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
+	i32 visibleChunks = this->squareSize * this->squareSize;
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
 	chunkDimensions = vec3i{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
@@ -34,18 +36,19 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
 	chunksAsVectors.resize(visibleChunks);
-	squareSize = visibleWidth;
-	totalChunks = visibleChunks;
 	minPositions = vec2i{0, 0};
-	maxPositions = vec2i{minPositions.x + visibleWidth - 1, minPositions.y + visibleWidth - 1};
+	maxPositions = vec2i{minPositions.x + squareSize - 1, minPositions.y + squareSize - 1};
 	std::cout << "Map ranges from: " << minPositions << " to: " << maxPositions << std::endl;
 	worldSeed = 0;
-	playerOnChunk = vec2i{minPositions.x + visibleWidth / 2, minPositions.y + visibleWidth / 2};
+	playerOnChunk = vec2i{minPositions.x + squareSize / 2, minPositions.y + squareSize / 2};
 }
 
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const
 {
-	return std::make_unique<ve::VulkanModel>(device, chunksAsVectors, VOXEL_VERTEX_INDEXES);
+	std::unique_ptr<ve::VulkanModel> model;
+
+	model = std::make_unique<ve::VulkanModel>(device, chunksAsVectors, VOXEL_VERTEX_INDEXES);
+	return model;
 }
 
 void	VoxelMap::init()
@@ -56,16 +59,18 @@ void	VoxelMap::init()
 	timer.start();
 	for (i32 z = 0; z < squareSize; z++)
 	{
-		for (i32 x = 0; x < squareSize; x++)
-		{
-			VoxelType* chunkData = getChunk(pos);
-			// threadManager.enqueue([this, pos, chunkData] {
-			generateChunk(chunkData, pos);
-			mapToVertexes(chunkData, chunksAsVectors.at(getChunkIndex(pos)), pos);
-			// });
-			pos.width += 1;
-		}
-		pos.width = minPositions.width;
+		generateRow(pos);
+		pos.depth += 1;
+	}
+	pos = minPositions;
+	threadManager.waitIdle();
+	timer.stop();
+	std::cout << "Initial chunk generation complete in: " << timer << std::endl;
+	timer.reset();
+	timer.start();
+	for (i32 z = 0; z < squareSize; z++)
+	{
+		meshRow(pos);
 		pos.depth += 1;
 	}
 	threadManager.waitIdle();
@@ -84,7 +89,7 @@ VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
 	return map + getChunkIndex(position) * chunkSize;
 }
 
-ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
+i32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 {
 	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
 	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
@@ -94,7 +99,7 @@ ui32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 	return chunkZ * squareSize + chunkX;
 }
 
-ui32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
+i32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
 {
 	assert(modulus > 0 && "modulus must be positive");
 	value = value % modulus;
@@ -139,7 +144,7 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 	}
 }
 
-vec2i	VoxelMap::voxelToChunkPosition(const vec3& position)
+vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
 {
 	vec2i	chunkPos{
 		static_cast<i32>(std::floor(position.x / static_cast<float>(chunkDimensions.x))),
@@ -148,150 +153,165 @@ vec2i	VoxelMap::voxelToChunkPosition(const vec3& position)
 	return chunkPos;
 }
 
-bool	VoxelMap::update(const vec3& newPosition)
+VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 {
-	vec2i	moveDirection = voxelToChunkPosition(newPosition) - playerOnChunk;
+	if (y < 0)
+	{
+		return VoxelType::Dirt;
+	}
+	if (y >= chunkDimensions.y)
+	{
+		return VoxelType::Air;
+	}
+
+	const i32 width = chunkDimensions.x;
+	const i32 depth = chunkDimensions.z;
+	const i32 chunkX = (x - positiveModulo(x, width)) / width;
+	const i32 chunkZ = (z - positiveModulo(z, depth)) / depth;
+	const i32 localX = positiveModulo(x, width);
+	const i32 localZ = positiveModulo(z, depth);
 	
-	if (moveDirection == vec2i::zero())
+	if (chunkX < minPositions.width || chunkX > maxPositions.width ||
+		chunkZ < minPositions.depth || chunkZ > maxPositions.depth)
 	{
-		return false;
+		return VoxelType::Air;
 	}
-	// std::cout << "Moved from: " << playerOnChunk;
-	playerOnChunk = playerOnChunk + moveDirection;
-	rawPosition = newPosition;
-	while (moveDirection.width > 0)
-	{
-		east();
-		moveDirection.width--;
-	}
-	while (moveDirection.width < 0)
-	{
-		west();
-		moveDirection.width++;
-	}
-	while (moveDirection.depth < 0)
-	{
-		south();
-		moveDirection.depth++;
-	}
-	while (moveDirection.depth > 0)
-	{
-		north();
-		moveDirection.depth--;
-	}
-	// std::cout << "New map limits: " << minPositions << " to " << maxPositions << std::endl;
-	assert(minPositions.x + squareSize - 1 == maxPositions.x && "Error: min/max X don't line up");
-	assert(minPositions.y + squareSize - 1 == maxPositions.y && "Error: min/max Y don't line up");
-	return true;
+
+	const VoxelType* chunk = getChunk(vec2i{chunkX, chunkZ});
+
+	const size_t index =
+		(static_cast<size_t>(localZ) * static_cast<size_t>(width) + static_cast<size_t>(localX)) *
+			static_cast<size_t>(chunkDimensions.y) +
+		static_cast<size_t>(y);
+
+	return chunk[index];
 }
 
-void	VoxelMap::mapToVertexes(VoxelType* data, VoxelChunk& chunk, const vec2i& pos)
+int	VoxelMap::visibleFaces(const vec3i& pos) const noexcept
+{
+	int	visibleFaces = 0;
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air) { visibleFaces |= 1; }
+	if (getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air) { visibleFaces |= 1 << 1; }
+	if (getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 2; }
+	if (getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 3; }
+	if (getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 4; }
+	if (getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 5; }
+
+	return visibleFaces;
+}
+
+int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcept
+{
+	if (data[index] == VoxelType::Air)
+	{
+		return 0;
+	}
+
+	const ui32 x = chunkDimensions.y;
+	const ui32 z = chunkDimensions.x * chunkDimensions.y;
+
+	int visibleFaces = 0;
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (data[index + z] == VoxelType::Air) { visibleFaces |= 1; }
+	if (data[index - z] == VoxelType::Air) { visibleFaces |= 1 << 1; }
+	if (data[index - x] == VoxelType::Air) { visibleFaces |= 1 << 2; }
+	if (data[index + x] == VoxelType::Air) { visibleFaces |= 1 << 3; }
+	if (data[index + 1] == VoxelType::Air) { visibleFaces |= 1 << 4; }
+	if (data[index - 1] == VoxelType::Air) { visibleFaces |= 1 << 5; }
+
+	return visibleFaces;
+}
+
+void	VoxelMap::addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos)
+{
+	const i32 width = chunkDimensions.x;
+	const i32 height = chunkDimensions.y;
+	const i32 depth = chunkDimensions.z;
+
+	auto emitIfVisible = [&](i32 x, i32 y, i32 z)
+	{
+		const ui32 i = index(x, y, z);
+
+		if (data[i] == VoxelType::Air)
+		{
+			return;
+		}
+
+		const i32 wx = x + pos.width * static_cast<i32>(Config::chunkLength);
+		const i32 wz = z + pos.depth * static_cast<i32>(Config::chunkLength);
+
+		vec3 worldPos{ static_cast<float>(wx), static_cast<float>(y), static_cast<float>(wz) };
+
+		int facesToAdd = visibleFaces({wx, y, wz});
+
+		if (facesToAdd == 0)
+		{
+			return;
+		}
+		addVertexes(worldPos, chunk, facesToAdd);
+	};
+
+	for (i32 z = 0; z < depth; z++)
+	{
+		for (i32 loopY = 0; loopY < height; loopY++)
+		{
+			emitIfVisible(0, loopY, z);
+			emitIfVisible(width - 1, loopY, z);
+		}
+	}
+
+	for (i32 x = 1; x < width - 1; x++)
+	{
+		for (i32 loopY = 0; loopY < height; loopY++)
+		{
+			emitIfVisible(x, loopY, 0);
+			emitIfVisible(x, loopY, depth - 1);
+		}
+	}
+
+	for (i32 z = 1; z < depth - 1; z++)
+	{
+		for (i32 x = 1; x < width - 1; x++)
+		{
+			emitIfVisible(x, 0, z);
+			emitIfVisible(x, height - 1, z);
+		}
+	}	
+}
+
+void	VoxelMap::mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos)
 {
 	chunk.clear();
 
-	ui32 index = 0;
+	const i32 width = chunkDimensions.x;
+	const i32 height = chunkDimensions.y;
+	const i32 depth = chunkDimensions.z;
 
-	for (i32 z = 0; z < chunkDimensions.z; z++)
+	vec3 relativePosition = vec3::zero();
+
+	addEdges(data, chunk, pos);
+	for (i32 z = 1; z < depth - 1; z++)
 	{
-		for (i32 x = 0; x < chunkDimensions.x; x++)
+		relativePosition.z = static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength));
+		for (i32 x = 1; x < width - 1; x++)
 		{
-			for (i32 y = 0; y < chunkDimensions.y; y++)
+			relativePosition.x = static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength));
+			for (i32 y = 1; y < height - 1; y++)
 			{
-				if (data[index] == VoxelMap::VoxelType::Air ||
-					(y < chunkDimensions.y - 1 && data[index + 1] != VoxelMap::VoxelType::Air))
+				relativePosition.y = static_cast<float>(y);
+				int facesToAdd = localVisibleFaces(data, index(x, y, z));
+
+				if (facesToAdd == 0)
 				{
-					index++;
 					continue;
 				}
-				vec3 relativePos{
-					static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength)),
-					static_cast<float>(y),
-					static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength))
-				};
-				VertexVector voxelVertexes = getVertexRelativeAtlasTexture(relativePos);
-				chunk.insert(chunk.end(), voxelVertexes.begin(), voxelVertexes.end());
-				index++;
+				addVertexes(relativePosition, chunk, facesToAdd);
 			}
 		}
 	}
-	assert(index == Config::chunkHeight * Config::chunkLength * Config::chunkLength && "oh oh, index is off");
-}
-
-/*	From -x (left/west) to +x (right/east) horizontally, y (up/north) to -y (down/south) vertically. */
-
-void	VoxelMap::north()
-{
-	minPositions.y += 1;
-	maxPositions.y += 1;
-	vec2i	pos = vec2i{minPositions.x, maxPositions.y};
-
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		ui32	index = getChunkIndex(pos);
-		VoxelType*	ptrToData = map + index * chunkSize;
-
-		generateChunk(ptrToData, pos);
-		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
-		pos.x += 1;
-	}
-}
-
-void	VoxelMap::south()
-{
-	minPositions.y -= 1;
-	maxPositions.y -= 1;
-	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		ui32	index = getChunkIndex(pos);
-		VoxelType*	ptrToData = map + index * chunkSize;
-		
-		generateChunk(ptrToData, pos);
-		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
-		pos.x += 1;
-	}
-}
-
-void	VoxelMap::west()
-{
-	minPositions.x -= 1;
-	maxPositions.x -= 1;
-	vec2i	pos = vec2i{minPositions.x, minPositions.y};
-
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		ui32	index = getChunkIndex(pos);
-		VoxelType*	ptrToData = map + index * chunkSize;
-
-		generateChunk(ptrToData, pos);
-		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
-		pos.y += 1;
-	}
-}
-
-void	VoxelMap::east()
-{
-	minPositions.x += 1;
-	maxPositions.x += 1;
-	vec2i	pos = vec2i{maxPositions.x, minPositions.y};
-
-	for (i32 i = 0; i < squareSize; i++)
-	{
-		ui32	index = getChunkIndex(pos);
-		VoxelType*	ptrToData = map + index * chunkSize;
-		
-		generateChunk(ptrToData, pos);
-		mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
-		pos.y += 1;
-	}
-}
-
-vec3	VoxelMap::getMapMiddle() const noexcept
-{
-	return vec3((maxPositions.x - minPositions.x) * chunkDimensions.x / 2.0f,
-				chunkDimensions.height - 1.0f,
-				(maxPositions.y - minPositions.y) * chunkDimensions.z / 2.0f);
 }
 
 }	// namespace vox

@@ -2,8 +2,7 @@
 
 #include "Vectors.hpp"
 
-
-namespace ve {
+namespace vox {
 
 struct CameraSettings {
 	static constexpr float	projectionFov = 50.0f;
@@ -34,7 +33,6 @@ class Camera
 
 		const mat4&	getProjectionMatrix( void ) const noexcept;
 		const mat4&	getViewMatrix( void ) noexcept;
-		const mat4&	getViewMatrixOnlyRotation( void ) noexcept;
 
 		vec3 const&	getCameraPos( void ) noexcept;
 
@@ -61,4 +59,4 @@ class Camera
 		float	_currentPitch = 0.0f;	// to avoid vertical rotations > 90° or < -90°
 };
 
-} // namespace ve
+}	// namespace vox

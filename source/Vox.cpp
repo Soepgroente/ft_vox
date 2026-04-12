@@ -2,14 +2,13 @@
 #include "Stopwatch.hpp"
 #include "Stopwatch.hpp"
 #include "Utils.hpp"
+#include "World.hpp"
 
 #include <iostream>
 #include <chrono>
 #include <cassert>
 
 namespace vox {
-
-std::vector<std::thread> Vox::workerThreads{};
 
 /**
  * Create the engine of the game
@@ -19,7 +18,7 @@ Vox::Vox( void ) :
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	vulkanSetFactory{vulkanDevice},
-	camera{vec3{165.0f, 225.0f, 165.0f}, ve::CameraSettings::cameraForward, Config::cameraLimitsMov},
+	camera{vec3{165.0f, 225.0f, 165.0f}, CameraSettings::cameraForward, Config::cameraLimitsMov},
 	voxelMap{threadManager},
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
@@ -28,14 +27,13 @@ Vox::Vox( void ) :
 	},
 	updateMatrixUbo{false}
 {
-	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
 
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
-		radians(ve::CameraSettings::projectionFov),
+		radians(CameraSettings::projectionFov),
 		this->vulkanWindow.getAspectRatio(),
-		ve::CameraSettings::projectionNear,
-		ve::CameraSettings::projectionFar
+		CameraSettings::projectionNear,
+		CameraSettings::projectionFar
 	);
 	voxelMap.init();
 	assert(voxelMap.isReady() == true && "map wasn't ready");
@@ -239,8 +237,8 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 {
 	vec2 const& oldPos = this->inputHandler.getCursorPos();
 
-	float yaw = (currPos.x - oldPos.x) * ve::CameraSettings::cameraSensitivity;
-	float pitch = (oldPos.y - currPos.y) * ve::CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
+	float yaw = (currPos.x - oldPos.x) * CameraSettings::cameraSensitivity;
+	float pitch = (oldPos.y - currPos.y) * CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
 	this->updateMatrixUbo = true;
 }
@@ -257,10 +255,10 @@ void Vox::resizeWindow( ui32 width, ui32 height )
 {
 	this->vulkanWindow.resetWindowSize(width, height);
 	this->camera.setPerspectiveProjection(
-		radians(ve::CameraSettings::projectionFov),
+		radians(CameraSettings::projectionFov),
 		this->vulkanWindow.getAspectRatio(),
-		ve::CameraSettings::projectionNear,
-		ve::CameraSettings::projectionFar
+		CameraSettings::projectionNear,
+		CameraSettings::projectionFar
 	);
 	this->updateMatrixUbo = true;
 }
@@ -273,6 +271,7 @@ void Vox::resizeWindow( ui32 width, ui32 height )
  *
  * @return pointer to the newly created model
  */
+
 std::unique_ptr<ve::VulkanModel> Vox::createSkyboxModel( void )
 {
 	return std::make_unique<ve::VulkanModel>(vulkanDevice, getVertexRelative(vec3{-0.5f, -0.5f, -0.5f}), getIndexRelative());

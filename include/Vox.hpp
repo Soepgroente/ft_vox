@@ -1,15 +1,16 @@
 #pragma once
 
-#include "Vulkan.hpp"
+#include "Camera.hpp"
 #include "Vectors.hpp"
+#include "Vulkan.hpp"
 #include "Config.hpp"
-#include "World.hpp"
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"
 #include "VoxelMap.hpp"
 
-#include <cstdint>
-#include <thread>
+#include <array>
+#include <memory>
+#include <vector>
 
 namespace vox {
 
@@ -20,7 +21,7 @@ using i32 = int32_t;
 class MatrixUBO
 {
 	public:
-		MatrixUBO(ve::Camera& camera) :
+		MatrixUBO(Camera& camera) :
 			model{mat4::idMat()},
 			view{camera.getViewMatrix()},
 			projection{camera.getProjectionMatrix()} {};
@@ -33,7 +34,6 @@ class MatrixUBO
 		mat4 view{1.0f};
 		mat4 projection{1.0f};
 };
-
 
 class Vox
 {
@@ -52,10 +52,6 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( ui32, ui32 );
 
-		static std::vector<std::thread>	workerThreads;
-
-		/*	Temporarily global for testing	*/
-		VoxelMap&	getMap() { return voxelMap; };
 	private:
 		std::unique_ptr<ve::VulkanModel> createSkyboxModel( void );
 
@@ -64,7 +60,7 @@ class Vox
 		ve::VulkanRenderer				vulkanRenderer;
 		ve::VulkanDescriptorSetFactory	vulkanSetFactory;
 
-		ve::Camera		camera;
+		Camera			camera;
 		VoxelMap		voxelMap;
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
