@@ -32,8 +32,42 @@ static constexpr float W = 1.0f / 4.0f;  // width of a tile
 static constexpr float H = 1.0f / 3.0f;  // height of a tile
 static constexpr float padding = 0.004f;
 
-// Hard-coded VBO (vertex+normal+textureUV data) of a voxel
+// Hard-coded VBO (vertex+normal+textureUV data) of a voxel (standard texture coordinates)
 inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES{
+	// face FRONT (z = +0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::forward(), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3::forward(), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3::forward(), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3::forward(), vec2{ 0.0f, 0.0f }},
+	//face BACK (z = -0.5)
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3::backward(), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3::backward(), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3::backward(), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3::backward(), vec2{ 0.0f, 0.0f }},
+	// face LEFT (x = -0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3::left(), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::left(), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3::left(), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3::left(), vec2{ 0.0f, 0.0f }},
+	// face RIGHT (x = +0.5)
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3::right(), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3::right(), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3::right(), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3::right(), vec2{ 0.0f, 0.0f }},
+	// face TOP (y = +0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f,  0.5f }, vec3::up(), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f,  0.5f }, vec3::up(), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f,  0.5f, -0.5f }, vec3::up(), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f,  0.5f, -0.5f }, vec3::up(), vec2{ 0.0f, 0.0f }},
+	// face BOTTOM (y = -0.5)
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f, -0.5f }, vec3::down(), vec2{ 0.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f, -0.5f }, vec3::down(), vec2{ 1.0f, 1.0f }},
+	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3::down(), vec2{ 1.0f, 0.0f }},
+	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::down(), vec2{ 0.0f, 0.0f }}
+};
+
+// Hard-coded VBO (vertex+normal+textureUV data) of a voxel (atlas texture coordinates)
+inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERTEXES_ATLAS{
 	// face FRONT (z = +0.5)
 	ve::VulkanModel::Vertex{vec3{ -0.5f, -0.5f,  0.5f }, vec3::forward(), vec2{ W + padding, 3 * H - padding }},
 	ve::VulkanModel::Vertex{vec3{  0.5f, -0.5f,  0.5f }, vec3::forward(), vec2{ 2 * W - padding, 3 * H - padding }},
@@ -85,8 +119,8 @@ inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 using VertexVector = std::vector<ve::VulkanModel::Vertex>;
 using IndexVector = std::vector<uint32_t>;
 
-void	addVoxelFace(const vec3& voxelLocation, VertexVector& chunk, size_t faceIndex);
-void	addVertexes(const vec3& position, VertexVector& chunk, int facesToAdd);
+// void	addVoxelFace(const vec3& voxelLocation, VertexVector& chunk, size_t faceIndex);
+// void	addVertexes(const vec3& position, VertexVector& chunk, int facesToAdd);
 IndexVector		getIndexRelative( uint32_t = 0U );
 
 VertexVector		getVertexRelativeMonoTexture( vec3 const& = vec3(0.0f) );

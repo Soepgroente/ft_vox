@@ -58,7 +58,7 @@ void	VoxelMap::meshRow(vec2i pos)
 		ptrToData = map + index * chunkSize;
 
 		threadManager.enqueue([this, pos, ptrToData, index] {
-			mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
+			mapToVertexes(ptrToData, index, pos);
 		});
 		pos.x += 1;
 	}
@@ -75,7 +75,7 @@ void	VoxelMap::meshColumn(vec2i pos)
 		ptrToData = map + index * chunkSize;
 
 		threadManager.enqueue([this, pos, ptrToData, index] {
-			mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
+			mapToVertexes(ptrToData, index, pos);
 		});
 		pos.y += 1;
 	}

@@ -19,6 +19,16 @@ enum class Direction : ui8
 	West
 };
 
+enum FaceBit : int
+{
+    FRONT  = 1 << 0,
+    BACK   = 1 << 1,
+    LEFT   = 1 << 2,
+    RIGHT  = 1 << 3,
+    TOP    = 1 << 4,
+    BOTTOM = 1 << 5
+};
+
 class World;
 
 class VoxelMap
@@ -47,7 +57,8 @@ class VoxelMap
 		bool	update(const vec3& newPosition);
 		void	init();
 		vec3	getMapMiddle() const noexcept;
-		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
+		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device ) const;
+		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device ) const;
 		
 		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
 		bool		isReady() const noexcept { return this->ready; }
@@ -68,6 +79,8 @@ class VoxelMap
 
 		ThreadManager&	threadManager;
 		std::vector<VertexVector>	chunksAsVectors;
+		std::vector<VertexVector>	terrainVertexes;
+		std::vector<VertexVector>	undergroundVertexes;
 
 		PerlinNoiser generator;
 		
@@ -77,9 +90,12 @@ class VoxelMap
 		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
 		int		visibleFaces(const vec3i& pos) const noexcept;
 		int		localVisibleFaces(const VoxelType* data, ui32 index) const noexcept;
-		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
+		void	addEdges(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
-		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
+
+		void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
+		void	addVertexes(const vec3& position, uint32_t indexChunk, int facesToAdd, VoxelType voxelType);
+		void	addVoxelFace(const vec3& voxelLocation, uint32_t indexChunk, size_t faceIndex, VoxelType voxelType);
 
 		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
 		void	north();
