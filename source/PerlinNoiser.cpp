@@ -9,7 +9,7 @@ PerlinNoiser::PerlinNoiser( ui32 seed, float noiseScalar ) : seed{seed}, noiseSc
 	this->setupPermutations( this->seed );
 }
 
-float PerlinNoiser::getPerlinValue( float x, float y, bool skipRange ) const noexcept
+float PerlinNoiser::getPerlinValue( float x, float y ) const noexcept
 {
 	x *= this->noiseScalar;
 	y *= this->noiseScalar;
@@ -44,17 +44,10 @@ float PerlinNoiser::getPerlinValue( float x, float y, bool skipRange ) const noe
 		this->lerp(v, dotBottomRight, dotTopRight)
 	);
 
-	if (skipRange == false)
-	{
-		return (perlinValue + 1.0f) * 0.5f * this->range;
-	}
-	else
-	{
-		return (perlinValue + 1.0f) * 0.5f;
-	}
+	return (perlinValue + 1.0f) * 0.5f;
 }
 
-float PerlinNoiser::getPerlinValue( float x, float y, float z, bool skipRange ) const noexcept
+float PerlinNoiser::getPerlinValue( float x, float y, float z ) const noexcept
 {
 	x *= this->noiseScalar;
 	y *= this->noiseScalar;
@@ -110,17 +103,10 @@ float PerlinNoiser::getPerlinValue( float x, float y, float z, bool skipRange ) 
 		)
 	);
 
-	if (skipRange == false)
-	{
-		return (perlinValue + 1.0f) * 0.5f * this->range;
-	}
-	else
-	{
-		return (perlinValue + 1.0f) * 0.5f;
-	}
+	return (perlinValue + 1.0f) * 0.5f;
 }
 
-float PerlinNoiser::getPerlinValueAlt( float x, float y, float z, bool skipRange ) const noexcept
+float PerlinNoiser::getPerlinValueAlt( float x, float y, float z ) const noexcept
 {
 	i32 Xi = ((static_cast<i32>(std::floor(x)) & 255) + 256) & 255;
 	i32 Yi = ((static_cast<i32>(std::floor(y)) & 255) + 256) & 255;
@@ -163,14 +149,7 @@ float PerlinNoiser::getPerlinValueAlt( float x, float y, float z, bool skipRange
 		)
 	);
 
-	if (skipRange == false)
-	{
-		return (perlinValue + 1.0f) * 0.5f * this->range;
-	}
-	else
-	{
-		return (perlinValue + 1.0f) * 0.5f;
-	}
+	return (perlinValue + 1.0f) * 0.5f;
 }
 
 void PerlinNoiser::setupPermutations( ui32 seed ) noexcept

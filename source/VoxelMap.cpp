@@ -40,8 +40,6 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager),
 	maxPositions = vec2i{minPositions.x + squareSize - 1, minPositions.y + squareSize - 1};
 	std::cout << "Map ranges from: " << minPositions << " to: " << maxPositions << std::endl;
 	playerOnChunk = vec2i{minPositions.x + squareSize / 2, minPositions.y + squareSize / 2};
-
-	generator.setPerlinRange(static_cast<float>(chunkDimensions.height));
 }
 
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device ) const
@@ -87,11 +85,6 @@ VoxelMap::~VoxelMap()
 	free(map);
 }
 
-VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
-{
-	return map + getChunkIndex(position) * chunkSize;
-}
-
 i32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 {
 	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
@@ -123,36 +116,54 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 	{
 		for (i32 x = 0; x < chunkDimensions.x; x++)
 		{
+			// ui32 indexChunk = index(x, y, z);
 			float heightValue = this->generator.getPerlinValue(
 				positionX + static_cast<float>(x),
 				positionZ + static_cast<float>(z)
-			);
+			) * static_cast<float>(chunkDimensions.height);
 
 			assert(heightValue <= chunkDimensions.height && "height value out of range");
 			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
 
-			for (y = 0; y < heightValue - 3; y++)
+			// bool isDrawingCave = innerColumnValue > 0.6f;
+			for (y = 0; y < heightValue; y++)
 			{
 				float innerColumnValue = this->generator.getPerlinValue(
 					positionX + static_cast<float>(x),
-					positionX + static_cast<float>(y),
-					positionZ + static_cast<float>(z), true
+					static_cast<float>(y),
+					positionZ + static_cast<float>(z)
 				);
 				if (innerColumnValue > 0.6f)	// create cave
 				{
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+					// if (isDrawingCave == true)
+					// {
+					// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+					// }
+					// else
+					// {
+						chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Stone;
+					// 	isDrawingCave = true;
+					// }
 				}
 				else
 				{
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Stone;
+					// if (isDrawingCave == true)
+					// {
+					// 	chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Stone;
+					// 	isDrawingCave = false;
+					// }
+					// else
+					// {
+						chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+					// }
 				}
 			}
+			chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y++] = VoxelType::Dirt;
 			for (; y < chunkDimensions.height; y++)
 			{
-				if (y <= heightValue)
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Dirt;
-				else
-					chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
+				// if (y <= heightValue)
+				// else
+				chunkData[z * chunkDimensions.y * chunkDimensions.x + x * chunkDimensions.y + y] = VoxelType::Air;
 			}
 		}
 	}
@@ -165,6 +176,21 @@ vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
 		static_cast<i32>(std::floor(position.z / static_cast<float>(chunkDimensions.z)))
 	};
 	return chunkPos;
+}
+
+int	VoxelMap::visibleFaces(const vec3i& pos) const noexcept
+{
+	int	visibleFaces = 0;
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air) { visibleFaces |= 1; }
+	if (getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air) { visibleFaces |= 1 << 1; }
+	if (getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 2; }
+	if (getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 3; }
+	if (getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 4; }
+	if (getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 5; }
+
+	return visibleFaces;
 }
 
 VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
@@ -184,7 +210,7 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 	const i32 chunkZ = (z - positiveModulo(z, depth)) / depth;
 	const i32 localX = positiveModulo(x, width);
 	const i32 localZ = positiveModulo(z, depth);
-	
+
 	if (chunkX < minPositions.width || chunkX > maxPositions.width ||
 		chunkZ < minPositions.depth || chunkZ > maxPositions.depth)
 	{
@@ -201,19 +227,9 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 	return chunk[index];
 }
 
-int	VoxelMap::visibleFaces(const vec3i& pos) const noexcept
+VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
 {
-	int	visibleFaces = 0;
-
-	/*	front, back, left, right, top, bottom faces	*/
-	if (getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air) { visibleFaces |= 1; }
-	if (getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air) { visibleFaces |= 1 << 1; }
-	if (getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 2; }
-	if (getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 3; }
-	if (getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 4; }
-	if (getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 5; }
-
-	return visibleFaces;
+	return map + getChunkIndex(position) * chunkSize;
 }
 
 int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcept
@@ -229,106 +245,14 @@ int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcep
 	int visibleFaces = 0;
 
 	/*	front, back, left, right, top, bottom faces	*/
-	if (data[index + z] == VoxelType::Air) { visibleFaces |= 1; }
+	if (data[index + z] == VoxelType::Air) { visibleFaces |= 1; };
 	if (data[index - z] == VoxelType::Air) { visibleFaces |= 1 << 1; }
 	if (data[index - x] == VoxelType::Air) { visibleFaces |= 1 << 2; }
-	if (data[index + x] == VoxelType::Air) { visibleFaces |= 1 << 3; }
-	if (data[index + 1] == VoxelType::Air) { visibleFaces |= 1 << 4; }
+	if (data[index + x] == VoxelType::Air) { visibleFaces |= 1 << 3; };
+	if (data[index + 1] == VoxelType::Air) { visibleFaces |= 1 << 4; };
 	if (data[index - 1] == VoxelType::Air) { visibleFaces |= 1 << 5; }
 
 	return visibleFaces;
-}
-
-void	VoxelMap::addEdges(VoxelType* data, uint32_t indexChunk, const vec2i& pos)
-{
-	const i32 width = chunkDimensions.x;
-	const i32 height = chunkDimensions.y;
-	const i32 depth = chunkDimensions.z;
-
-	auto emitIfVisible = [&](i32 x, i32 y, i32 z)
-	{
-		const ui32 i = index(x, y, z);
-
-		if (data[i] == VoxelType::Air)
-		{
-			return;
-		}
-
-		const i32 wx = x + pos.width * static_cast<i32>(Config::chunkLength);
-		const i32 wz = z + pos.depth * static_cast<i32>(Config::chunkLength);
-
-		vec3 worldPos{ static_cast<float>(wx), static_cast<float>(y), static_cast<float>(wz) };
-
-		int facesToAdd = visibleFaces({wx, y, wz});
-
-		if (facesToAdd == 0)
-		{
-			return;
-		}
-		addVertexes(worldPos, indexChunk, facesToAdd, data[i]);
-	};
-
-	for (i32 z = 0; z < depth; z++)
-	{
-		for (i32 loopY = 0; loopY < height; loopY++)
-		{
-			emitIfVisible(0, loopY, z);
-			emitIfVisible(width - 1, loopY, z);
-		}
-	}
-
-	for (i32 x = 1; x < width - 1; x++)
-	{
-		for (i32 loopY = 0; loopY < height; loopY++)
-		{
-			emitIfVisible(x, loopY, 0);
-			emitIfVisible(x, loopY, depth - 1);
-		}
-	}
-
-	for (i32 z = 1; z < depth - 1; z++)
-	{
-		for (i32 x = 1; x < width - 1; x++)
-		{
-			emitIfVisible(x, 0, z);
-			emitIfVisible(x, height - 1, z);
-		}
-	}	
-}
-
-void	VoxelMap::mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos)
-{
-	// chunk.clear();
-	terrainVertexes[indexChunk].clear();
-	undergroundVertexes[indexChunk].clear();
-
-	const i32 width = chunkDimensions.x;
-	const i32 height = chunkDimensions.y;
-	const i32 depth = chunkDimensions.z;
-
-	vec3 relativePosition = vec3::zero();
-
-	addEdges(data, indexChunk, pos);
-	for (i32 z = 1; z < depth - 1; z++)
-	{
-		relativePosition.z = static_cast<float>(z + pos.depth * static_cast<i32>(Config::chunkLength));
-		for (i32 x = 1; x < width - 1; x++)
-		{
-			relativePosition.x = static_cast<float>(x + pos.width * static_cast<i32>(Config::chunkLength));
-			for (i32 y = 1; y < height - 1; y++)
-			{
-				relativePosition.y = static_cast<float>(y);
-				uint32_t localIndex = index(x, y, z);
-				int facesToAdd = localVisibleFaces(data, localIndex);
-
-				if (facesToAdd == 0)
-				{
-					continue;
-				}
-				addVertexes(relativePosition, indexChunk, facesToAdd, data[localIndex]);
-			}
-		}
-	}
 }
 
 /**
@@ -421,5 +345,165 @@ void	VoxelMap::addVoxelFace(const vec3& location, uint32_t indexChunk, size_t mi
 		}
 	}
 }
+
+
+void	VoxelMap::mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos)
+{
+	terrainVertexes[indexChunk].clear();
+	undergroundVertexes[indexChunk].clear();
+
+	const i32 width = chunkDimensions.x;
+	const i32 height = chunkDimensions.y;
+	const i32 depth = chunkDimensions.z;
+
+	vec3i currentPos(0);
+	for (currentPos.z = 0; currentPos.z < depth; currentPos.z++)
+	{
+		for (currentPos.x = 0; currentPos.x < width; currentPos.x++)
+		{
+			for (currentPos.y = 0; currentPos.y < height; currentPos.y++)
+			{
+				ui32 voxelChunkPos = index(currentPos.x, currentPos.y, currentPos.z);
+				vec3 voxelWorldPos = {
+					static_cast<float>(currentPos.x + pos.width * Config::chunkLength),
+					static_cast<float>(currentPos.y),
+					static_cast<float>(currentPos.z + pos.depth * Config::chunkLength)
+				};
+
+				if ((currentPos.z == 0 or currentPos.x == depth - 1) or		// edge situation, check surrounding chunks
+					(currentPos.x == 0 or currentPos.y == width - 1) or
+					(currentPos.y == 0 or currentPos.z == height - 1))
+				{
+					addVisibleFacesEdges(data, indexChunk, voxelChunkPos, voxelWorldPos);
+				}
+				else
+				{
+					addVisibleFaces(data, indexChunk, voxelChunkPos, voxelWorldPos);
+				}
+			}
+		}
+	}
+}
+
+void	VoxelMap::addVisibleFacesEdges(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept
+{
+	if (data[voxelChunkPos] == VoxelType::Air)
+	{
+		return;
+	}
+
+	vec3i	voxelWorldPosInt{
+		static_cast<i32>(voxelWorldPos.x),
+		static_cast<i32>(voxelWorldPos.y),
+		static_cast<i32>(voxelWorldPos.z)
+	};
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (getVoxelType(voxelWorldPosInt.x, voxelWorldPosInt.y, voxelWorldPosInt.z + 1) == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::FRONT, data[voxelChunkPos]);
+	}
+	if (getVoxelType(voxelWorldPosInt.x, voxelWorldPosInt.y, voxelWorldPosInt.z - 1) == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::BACK, data[voxelChunkPos]);
+	}
+	if (getVoxelType(voxelWorldPosInt.x - 1, voxelWorldPosInt.y, voxelWorldPosInt.z) == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::LEFT, data[voxelChunkPos]);
+	}
+	if (getVoxelType(voxelWorldPosInt.x + 1, voxelWorldPosInt.y, voxelWorldPosInt.z) == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::RIGHT, data[voxelChunkPos]);
+	}
+	if (getVoxelType(voxelWorldPosInt.x, voxelWorldPosInt.y + 1, voxelWorldPosInt.z) == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::TOP, data[voxelChunkPos]);
+	}
+	if (getVoxelType(voxelWorldPosInt.x, voxelWorldPosInt.y - 1, voxelWorldPosInt.z) == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::BOTTOM, data[voxelChunkPos]);
+	}
+}
+
+void	VoxelMap::addVisibleFaces(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept
+{
+	if (data[voxelChunkPos] == VoxelType::Air)
+	{
+		return;
+	}
+
+	const ui32 x = chunkDimensions.y;
+	const ui32 z = chunkDimensions.x * chunkDimensions.y;
+
+	/*	front, back, left, right, top, bottom faces	*/
+	if (data[voxelChunkPos + z] == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::FRONT, data[voxelChunkPos]);
+	}
+	if (data[voxelChunkPos - z] == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::BACK, data[voxelChunkPos]);
+	}
+	if (data[voxelChunkPos - x] == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::LEFT, data[voxelChunkPos]);
+	}
+	if (data[voxelChunkPos + x] == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::RIGHT, data[voxelChunkPos]);
+	}
+	if (data[voxelChunkPos + 1] == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::TOP, data[voxelChunkPos]);
+	}
+	if (data[voxelChunkPos - 1] == VoxelType::Air)
+	{
+		addVoxelFace(voxelWorldPos, indexChunk, VertexFaces::BOTTOM, data[voxelChunkPos]);
+	}
+}
+
+void	VoxelMap::addVoxelFace(const vec3& voxelWorldPos, ui32 indexChunk, ui32 min, VoxelType voxelType)
+{
+	ui32 max = min + 4U;
+
+	for (ui32 i = min; i < max; i++)
+	{
+		if (voxelType == VoxelType::Dirt)
+		{
+			terrainVertexes[indexChunk].emplace_back
+			(
+				ve::VulkanModel::Vertex
+				{
+					vec3
+					{
+						VOXEL_VERTEXES_ATLAS[i].pos.x + VOXEL_SIZE * 0.5f + voxelWorldPos.x,
+						VOXEL_VERTEXES_ATLAS[i].pos.y + VOXEL_SIZE * 0.5f + voxelWorldPos.y,
+						VOXEL_VERTEXES_ATLAS[i].pos.z + VOXEL_SIZE * 0.5f + voxelWorldPos.z
+					},
+				VOXEL_VERTEXES_ATLAS[i].normal,
+				VOXEL_VERTEXES_ATLAS[i].textureUv
+				}
+			);
+		}
+		else if (voxelType == VoxelType::Stone)
+		{
+			undergroundVertexes[indexChunk].emplace_back
+			(
+				ve::VulkanModel::Vertex
+				{
+					vec3
+					{
+						VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + voxelWorldPos.x,
+						VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + voxelWorldPos.y,
+						VOXEL_VERTEXES[i].pos.z + VOXEL_SIZE * 0.5f + voxelWorldPos.z
+					},
+				VOXEL_VERTEXES[i].normal,
+				VOXEL_VERTEXES[i].textureUv
+				}
+			);
+		}
+	}
+}
+
 
 }	// namespace vox

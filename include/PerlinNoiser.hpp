@@ -18,14 +18,12 @@ class PerlinNoiser
 		PerlinNoiser( void ) = delete;
 		PerlinNoiser( ui32 seed, float noiseScalar );
 
-		float	getPerlinValue( float x, float y, bool skipRange = false ) const noexcept;
-		float	getPerlinValue( float x, float y, float z, bool skipRange = false ) const noexcept;
-		float	getPerlinValueAlt( float x, float y, float z, bool skipRange = false ) const noexcept;
+		float	getPerlinValue( float x, float y ) const noexcept;
+		float	getPerlinValue( float x, float y, float z ) const noexcept;
+		float	getPerlinValueAlt( float x, float y, float z ) const noexcept;
 
 		ui32	getSeed( void ) const noexcept { return this->seed; };
 		void	setSeed( uint32_t seed ) noexcept { this->seed = seed; };
-		float	getPerlinRange( void ) const noexcept { return this->range; };
-		void	setPerlinRange( float range ) noexcept { this->range = range; };
 
 	private:
 		void		setupPermutations( ui32 seed ) noexcept;
@@ -38,7 +36,6 @@ class PerlinNoiser
 		ui32						seed;
 		float						noiseScalar;
 		std::array<ui32,512>		permutations;
-		float						range = 1.0f;
 		std::array<vec2,4> const	gradients2D{
 			vec2{ 1.0f,  1.0f},
 			vec2{-1.0f,  1.0f},

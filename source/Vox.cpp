@@ -9,7 +9,7 @@
 
 namespace vox {
 
-std::vector<std::thread> Vox::workerThreads{};
+// std::vector<std::thread> Vox::workerThreads{};
 
 /**
  * Create the engine of the game
@@ -27,7 +27,7 @@ Vox::Vox( void ) :
 	},
 	updateMatrixUbo{false}
 {
-	Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
+	// Vox::workerThreads.reserve(std::max(std::thread::hardware_concurrency() - 1, 0U));
 
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
@@ -92,7 +92,7 @@ void Vox::setupVulkan( void )
 		this->vulkanRenderer.getSwapChainRenderPass(),
 		Config::terrainVertShaderPath,
 		Config::terrainFragShaderPath,
-		*this->terrainModel,
+		*this->undergroundModel,
 		false
 	);
 

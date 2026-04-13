@@ -18,15 +18,6 @@ inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxe
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
 inline constexpr float		VOXEL_SIZE = 1.0f;		// length of a voxel edge
 
-enum class VertexFaces : size_t
-{
-	FRONT = 0,
-	BACK = 4,
-	LEFT = 8,
-	RIGHT = 12,
-	TOP = 16,
-	BOTTOM = 20
-};
 
 static constexpr float W = 1.0f / 4.0f;  // width of a tile
 static constexpr float H = 1.0f / 3.0f;  // height of a tile
