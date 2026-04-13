@@ -48,7 +48,7 @@ $(TARGET): $(OBJ_DIR) $(DEPS_DIR) $(OBJS)
 	ar -rcs $@ $(OBJS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CC) $(CPPFLAGS) $(INCLUDES) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@
+	$(CC) $(CPPFLAGS) $(INCLUDES) -MMD -MP -MF $(DEPS_DIR)/$*.d -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp
 	$(CC) $(CPPFLAGS) $(INCLUDES) -I$(TEST_DIR) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@

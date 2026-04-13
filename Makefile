@@ -86,7 +86,7 @@ $(TARGET): $(LIBS) $(OBJ_DIR) $(DEPS_DIR) $(SHADERS_COMPILED) $(OBJECTS)
 	$(CC) $(CPPFLAGS) $(OBJECTS) $(INCLUDE) -o $(TARGET) $(LIBS) $(LDFLAGS) $(LFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CC) $(CPPFLAGS) $(INCLUDE) -MMD -MF $(DEPS_DIR)/$*.d -c $< -o $@
+	$(CC) $(CPPFLAGS) $(INCLUDE) -MMD -MP -MF $(DEPS_DIR)/$*.d -c $< -o $@
 
 $(BUILD_DIR)/%.spv: $(SHADERS_DIR)/%
 	$(GLSLC) $< -o $@
