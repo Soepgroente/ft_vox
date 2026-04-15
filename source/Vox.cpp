@@ -43,9 +43,9 @@ Vox::Vox( void ) :
 
 void Vox::setupVulkan( void )
 {
-	uint32_t	maxSetsToCreate = 4;
+	uint32_t	maxSetsToCreate = 5;
 	uint32_t	nUniformDescriptors = 1;
-	uint32_t	nSamplerDescriptors = 3;
+	uint32_t	nSamplerDescriptors = 4;
 
 	this->vulkanSetFactory
 		.setMaxSets(maxSetsToCreate)
@@ -64,12 +64,17 @@ void Vox::setupVulkan( void )
 	ve::VulkanBindingSet textureTerrainSetBindings;
 	textureTerrainSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	this->textTerrainDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureTerrainSetBindings);
-	this->textTerrainDescriptorSet->addSamplerToDescriptor(0, Config::texture2VoxelPath, ve::TextureType::TEXTURE_PLAIN);
+	this->textTerrainDescriptorSet->addSamplerToDescriptor(0, Config::textureDirtPath, ve::TextureType::TEXTURE_PLAIN);
 
 	ve::VulkanBindingSet textureUndergroundSetBindings;
 	textureUndergroundSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	this->textUndergroundDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureUndergroundSetBindings);
-	this->textUndergroundDescriptorSet->addSamplerToDescriptor(0, Config::texture1VoxelPath, ve::TextureType::TEXTURE_PLAIN);
+	this->textUndergroundDescriptorSet->addSamplerToDescriptor(0, Config::textureStonePath, ve::TextureType::TEXTURE_PLAIN);
+
+	ve::VulkanBindingSet textureWaterSetBindings;
+	textureWaterSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	this->textWaterDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureWaterSetBindings);
+	this->textWaterDescriptorSet->addSamplerToDescriptor(0, Config::textureWaterPath, ve::TextureType::TEXTURE_PLAIN);
 
 	ve::VulkanBindingSet textureSkyboxSetBindings;
 	textureSkyboxSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -77,13 +82,15 @@ void Vox::setupVulkan( void )
 	this->textSkyboxDescriptorSet->addSamplerToDescriptor(0, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
 
 	this->terrainModel = this->voxelMap.createNewModelTerrain(vulkanDevice);
-	this->undergroundModel = this->voxelMap.createNewModelUnderground(vulkanDevice);
+	// this->undergroundModel = this->voxelMap.createNewModelUnderground(vulkanDevice);
+	// this->waterModel = this->voxelMap.createNewModelWater(vulkanDevice);
 	this->skyBoxModel = this->createSkyboxModel();
 
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
 		this->matrixDescriptorSet->getDescriptorSetLayout(),
 		this->textTerrainDescriptorSet->getDescriptorSetLayout(),
 		this->textUndergroundDescriptorSet->getDescriptorSetLayout(),
+		this->textWaterDescriptorSet->getDescriptorSetLayout(),
 		this->textSkyboxDescriptorSet->getDescriptorSetLayout()
 	};
 	this->terrainPipeline = ve::VulkanPipeline::createPipeline(
@@ -92,7 +99,7 @@ void Vox::setupVulkan( void )
 		this->vulkanRenderer.getSwapChainRenderPass(),
 		Config::terrainVertShaderPath,
 		Config::terrainFragShaderPath,
-		*this->undergroundModel,
+		*this->terrainModel,
 		false
 	);
 
@@ -138,6 +145,7 @@ void Vox::run( void )
 			this->textTerrainDescriptorSet->setCurrentFrame(currentFrame);
 			this->textUndergroundDescriptorSet->setCurrentFrame(currentFrame);
 			this->textSkyboxDescriptorSet->setCurrentFrame(currentFrame);
+			this->textSkyboxDescriptorSet->setCurrentFrame(currentFrame);
 
 			if (this->updateMatrixUbo == true)
 			{
@@ -153,9 +161,13 @@ void Vox::run( void )
 			this->terrainModel->bind(commandBuffer);
 			this->terrainModel->draw(commandBuffer);
 
-			this->textUndergroundDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
-			this->undergroundModel->bind(commandBuffer);
-			this->undergroundModel->draw(commandBuffer);
+			// this->textUndergroundDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+			// this->undergroundModel->bind(commandBuffer);
+			// this->undergroundModel->draw(commandBuffer);
+
+			// this->textWaterDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+			// this->waterModel->bind(commandBuffer);
+			// this->waterModel->draw(commandBuffer);
 			
 			this->textSkyboxDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 			this->skyboxPipeline->bind(commandBuffer);

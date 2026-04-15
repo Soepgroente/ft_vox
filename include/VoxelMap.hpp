@@ -37,12 +37,13 @@ class VoxelMap
 
 	public:
 
-		enum class VoxelType : ui8
+		enum VoxelType : ui8
 		{
 			Air = 0,
 			Dirt = 1,
 			Stone = 2,
 			Water = 3,
+			EmptyButNotAir = 254,
 			NoMoreBlocksThisColumn = 255
 		};
 
@@ -59,6 +60,7 @@ class VoxelMap
 		vec3	getMapMiddle() const noexcept;
 		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device ) const;
 		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device ) const;
+		std::unique_ptr<ve::VulkanModel> createNewModelWater( ve::VulkanDevice& device ) const;
 		
 		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
 		bool		isReady() const noexcept { return this->ready; }
@@ -81,6 +83,7 @@ class VoxelMap
 		std::vector<VertexVector>	chunksAsVectors;
 		std::vector<VertexVector>	terrainVertexes;
 		std::vector<VertexVector>	undergroundVertexes;
+		std::vector<VertexVector>	waterVertexes;
 
 		PerlinNoiser generator;
 		
@@ -92,10 +95,11 @@ class VoxelMap
 		int		localVisibleFaces(const VoxelType* data, ui32 index) const noexcept;
 		// void	addEdges(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
-		void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
+		// void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	addVertexes(const vec3& position, uint32_t indexChunk, int facesToAdd, VoxelType voxelType);
-		void	addVoxelFace(const vec3& location, uint32_t indexChunk, size_t min, VoxelType voxelType);
-
+		// void	addVoxelFace(const vec3& location, uint32_t indexChunk, size_t min, VoxelType voxelType);
+		
+		void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	addVisibleFaces(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept;
 		void	addVisibleFacesEdges(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept;
 		void	addVoxelFace(const vec3& voxelLocation, ui32 indexChunk, ui32 faceIndex, VoxelType voxelType);

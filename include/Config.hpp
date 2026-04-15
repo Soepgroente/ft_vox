@@ -40,8 +40,9 @@ struct Config
 	static constexpr char skyboxVertShaderPath[] = "build/skybox.vert.spv";
 	static constexpr char skyboxFragShaderPath[] = "build/skybox.frag.spv";
 
-	static constexpr char texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
-	static constexpr char texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
+	static constexpr char textureStonePath[] = "textures/texture_stone_mono.jpeg";
+	static constexpr char textureWaterPath[] = "textures/texture_water_mono.jpeg";
+	static constexpr char textureDirtPath[] = "textures/texture_dirt_atlas.jpeg";
 	static constexpr char textureSkyboxPath[] = "textures/skybox1.png";
 };
 

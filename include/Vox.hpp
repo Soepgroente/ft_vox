@@ -73,11 +73,13 @@ class Vox
 
 		std::unique_ptr<ve::VulkanModel> terrainModel;
 		std::unique_ptr<ve::VulkanModel> undergroundModel;
+		std::unique_ptr<ve::VulkanModel> waterModel;
 		std::unique_ptr<ve::VulkanModel> skyBoxModel;
 
 		std::unique_ptr<ve::VulkanDescriptorSet> matrixDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textTerrainDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textUndergroundDescriptorSet;
+		std::unique_ptr<ve::VulkanDescriptorSet> textWaterDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textSkyboxDescriptorSet;
 
 		std::unique_ptr<ve::VulkanPipeline> terrainPipeline;
