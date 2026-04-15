@@ -12,8 +12,6 @@
 
 namespace vox {
 
-using i32 = int32_t;
-
 VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager), generator{Config::worldSeed, Config::noiseScalar}
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
@@ -124,60 +122,104 @@ void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 			i32 heightValue = static_cast<i32>(this->generator.getPerlinValue(
 				positionX + static_cast<float>(x),
 				positionZ + static_cast<float>(z)
+			) * (static_cast<float>(chunkDimensions.height - 4)));
+
+			chunkData[index(x, 0, z)] = VoxelType::Stone;
+			for (i32 y = 1; y < chunkDimensions.height; y++)
+			{
+				ui32 indexChunk = index(x, y, z);
+				float innerColumnValue = this->generator.getPerlinValue(
+					positionX + static_cast<float>(x),
+			    				static_cast<float>(y),
+					positionZ + static_cast<float>(z)
+				);
+				float t = static_cast<float>(y) / static_cast<float>(chunkDimensions.height);
+				float factor = t * t * (3 - 2 * t);
+				float treshold = 0.5f + 0.45f * factor;
+				if (y < heightValue)
+				{
+					if (innerColumnValue > treshold)	// create cave
+					{
+						chunkData[indexChunk] = VoxelType::Air;
+					}
+					else
+					{
+						chunkData[indexChunk] = VoxelType::Dirt;
+					}
+				}
+				else if (y < heightValue + 4)
+				{
+					chunkData[indexChunk] = VoxelType::Dirt;
+				}
+				else
+				{
+					chunkData[indexChunk] = VoxelType::Air;
+				}
+			}
+		}
+	}
+}
+
+void	VoxelMap::generateCaveGrid(VoxelType* chunkData, const vec2i& pos)
+{
+	float	positionX = static_cast<float>(pos.width * chunkDimensions.width);
+	float	positionZ = static_cast<float>(pos.depth * chunkDimensions.depth);
+
+	for (i32 z = 0; z < chunkDimensions.z; z++)
+	{
+		for (i32 x = 0; x < chunkDimensions.x; x++)
+		{
+			i32 heightValue = static_cast<i32>(this->generator.getPerlinValue(
+				positionX + static_cast<float>(x),
+				positionZ + static_cast<float>(z)
 			) * static_cast<float>(chunkDimensions.height));
 
 			assert(heightValue <= chunkDimensions.height && "height value out of range");
 			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
 
-			// bool isDrawingCave = innerColumnValue > 0.6f;
+			// draw grid on chunk
 			for (i32 y = 0; y < chunkDimensions.height; y++)
 			{
-				float innerColumnValue = this->generator.getPerlinValue(
-					positionX + static_cast<float>(x),
-					static_cast<float>(y),
-					positionZ + static_cast<float>(z)
-				);
 				ui32 indexChunk = index(x, y, z);
-				if (y < heightValue)
+				if ((z == 0 and y == 0) or
+					(z == chunkDimensions.depth - 1 and y == 0) or
+					(z == 0 and y == chunkDimensions.height - 1) or
+					(z == chunkDimensions.depth - 1 and y == chunkDimensions.height - 1) or
+
+					(x == 0 and y == 0) or
+					(x == chunkDimensions.width - 1 and y == 0) or
+					(x == 0 and y == chunkDimensions.height - 1) or
+					(x == chunkDimensions.width - 1 and y == chunkDimensions.height - 1) or
+
+					(z == 0 and x == 0) or
+					(z == chunkDimensions.depth - 1 and x == 0) or
+					(z == 0 and x == chunkDimensions.width - 1) or
+					(z == chunkDimensions.depth - 1 and x == chunkDimensions.width - 1)
+				)
 				{
-					if (innerColumnValue > 0.6f)	// create cave
+					chunkData[indexChunk] = VoxelType::Dirt;
+					continue;
+				}
+				else
+				{
+					float innerColumnValue = this->generator.getPerlinValue(
+						positionX + static_cast<float>(x),
+						static_cast<float>(y),
+						positionZ + static_cast<float>(z)
+					);
+					float t = static_cast<float>(y) / static_cast<float>(chunkDimensions.height);
+					// float factor = t;
+					float factor = t * t * (3 - 2 * t);
+					float threshold = 0.5f + 0.45f * factor;
+					// std::cout << "y: " << y << " threshold: " << threshold << std::endl;
+					if (innerColumnValue > threshold)	// create cave
 					{
-				// 		if (isDrawingCave == true)
-				// 		{
-							chunkData[indexChunk] = VoxelType::Water;
-					// 	}
-					// 	else
-					// 	{
-							// chunkData[indexChunk] = VoxelType::Stone;
-					// 		isDrawingCave = true;
-					// 	}
+						chunkData[indexChunk] = VoxelType::Air;
 					}
 					else
 					{
-					// 	if (isDrawingCave == true)
-					// 	{
-							chunkData[indexChunk] = VoxelType::EmptyButNotAir;
-					// 		isDrawingCave = false;
-					// 	}
-					// 	else
-					// 	{
-					// 		chunkData[indexChunk] = VoxelType::Air;
-					// 	}
+						chunkData[indexChunk] = VoxelType::Water;
 					}
-					// innerColumnValue = this->generator.getPerlinValue(
-					// 	positionX + static_cast<float>(x),
-					// 	static_cast<float>(y),
-					// 	positionZ + static_cast<float>(z)
-					// );
-					// chunkData[indexChunk] = VoxelType::Dirt;
-				}
-				else if (y == heightValue)
-				{
-					chunkData[indexChunk] = VoxelType::Dirt;
-				}
-				else if (y > heightValue)
-				{
-					chunkData[indexChunk] = VoxelType::Air;
 				}
 			}
 		}
@@ -270,24 +312,6 @@ int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcep
 	return visibleFaces;
 }
 
-/**
- * Get the vertex+texture+normal coordinates of a voxel. The texture coordinates are supposed to
- * apply an atlas so that each face of the voxel has a different texture
- * This atlas is used (file textures/texture_dirt_atlas.jpeg)
- *  _______________
- * |   | B |   |   |
- * |___|___|___|___|
- * | L | T | R | B |
- * |___|___|___|___|
- * |   | F |   |   |
- * |___|___|___|___|
- *
- * @param relativeOrigin The origin of the voxel in a 3D space, the coordinates are relative
- * from such position (default is (0.0f, 0.0f, 0.0f))
- *
- * @return a vector of 24 (fixed number of vertexes per voxel) 
- * instances of ve::VulkanModel::Vertex
- */
 void	VoxelMap::addVertexes(const vec3& voxelLocation, uint32_t indexChunk, int facesToAdd, VoxelType voxelType)
 {
 	for (int bit = 0; bit < 6; bit++)
@@ -331,25 +355,15 @@ void	VoxelMap::mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& 
 					static_cast<float>(y),
 					static_cast<float>(z + pos.depth * Config::chunkLength)
 				};
-				/*	front, back, left, right, top, bottom faces	*/
-				if (data[voxelChunkPos] == VoxelType::Dirt)// or (data[voxelChunkPos] == VoxelType::Water))
-				{
-					addVoxelFace(voxelWorldPos, indexChunk, static_cast<size_t>(VertexFaces::FRONT), data[voxelChunkPos]);
-					addVoxelFace(voxelWorldPos, indexChunk, static_cast<size_t>(VertexFaces::BACK), data[voxelChunkPos]);
-					addVoxelFace(voxelWorldPos, indexChunk, static_cast<size_t>(VertexFaces::LEFT), data[voxelChunkPos]);
-					addVoxelFace(voxelWorldPos, indexChunk, static_cast<size_t>(VertexFaces::RIGHT), data[voxelChunkPos]);
-					addVoxelFace(voxelWorldPos, indexChunk, static_cast<size_t>(VertexFaces::TOP), data[voxelChunkPos]);
-					addVoxelFace(voxelWorldPos, indexChunk, static_cast<size_t>(VertexFaces::BOTTOM), data[voxelChunkPos]);
-				}
 
-				// if ((z == 0 or z == depth - 1) or (x == 0 or x == width - 1) or (y == 0 or y == height - 1))	// edge situation, check surrounding chunks
-				// {
-				// 	addVisibleFacesEdges(data, indexChunk, voxelChunkPos, voxelWorldPos);
-				// }
-				// else
-				// {
-				// 	addVisibleFaces(data, indexChunk, voxelChunkPos, voxelWorldPos);
-				// }
+				if ((z == 0 or z == depth - 1) or (x == 0 or x == width - 1) or (y == 0 or y == height - 1))	// edge situation, check surrounding chunks
+				{
+					addVisibleFacesEdges(data, indexChunk, voxelChunkPos, voxelWorldPos);
+				}
+				else
+				{
+					addVisibleFaces(data, indexChunk, voxelChunkPos, voxelWorldPos);
+				}
 			}
 		}
 	}
@@ -491,6 +505,5 @@ void	VoxelMap::addVoxelFace(const vec3& voxelWorldPos, ui32 indexChunk, ui32 min
 		}
 	}
 }
-
 
 }	// namespace vox

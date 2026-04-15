@@ -95,6 +95,7 @@ class VoxelMap
 		int		localVisibleFaces(const VoxelType* data, ui32 index) const noexcept;
 		// void	addEdges(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
+		void	generateCaveGrid(VoxelType* chunkData, const vec2i& chunkPosition);
 		// void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	addVertexes(const vec3& position, uint32_t indexChunk, int facesToAdd, VoxelType voxelType);
 		// void	addVoxelFace(const vec3& location, uint32_t indexChunk, size_t min, VoxelType voxelType);
