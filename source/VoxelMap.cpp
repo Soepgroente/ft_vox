@@ -12,7 +12,9 @@
 
 namespace vox {
 
-VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager), generator{Config::worldSeed, Config::noiseScalar}
+VoxelMap::VoxelMap(ThreadManager& threadManager) : 
+	threadManager(threadManager),
+	generator{Config::worldSeed, Config::noiseScalar}
 {
 	i32 visibleVoxels = static_cast<i32>(Config::minimumViewingDistance * 2);
 	this->squareSize = visibleVoxels / static_cast<i32>(Config::chunkLength) + 1;
@@ -30,7 +32,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager),
 	{
 		throw std::runtime_error("Failed to allocate memory for voxel map");
 	}
-	chunksAsVectors.resize(visibleChunks);
+
 	terrainVertexes.resize(visibleChunks);
 	undergroundVertexes.resize(visibleChunks);
 	waterVertexes.resize(visibleChunks);
@@ -41,19 +43,9 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager),
 	playerOnChunk = vec2i{minPositions.x + squareSize / 2, minPositions.y + squareSize / 2};
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device ) const
+VoxelMap::~VoxelMap()
 {
-	return std::make_unique<ve::VulkanModel>(device, terrainVertexes, VOXEL_VERTEX_INDEXES);
-}
-
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device ) const
-{
-	return std::make_unique<ve::VulkanModel>(device, undergroundVertexes, VOXEL_VERTEX_INDEXES);
-}
-
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelWater( ve::VulkanDevice& device ) const
-{
-	return std::make_unique<ve::VulkanModel>(device, waterVertexes, VOXEL_VERTEX_INDEXES);
+	free(map);
 }
 
 void	VoxelMap::init()
@@ -84,159 +76,19 @@ void	VoxelMap::init()
 	ready = true;
 }
 
-VoxelMap::~VoxelMap()
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device ) const
 {
-	free(map);
+	return std::make_unique<ve::VulkanModel>(device, terrainVertexes, VOXEL_VERTEX_INDEXES);
 }
 
-i32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device ) const
 {
-	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
-	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
-	ui32 chunkX = positiveModulo(position.width, squareSize);
-	ui32 chunkZ = positiveModulo(position.depth, squareSize);
-
-	return chunkZ * squareSize + chunkX;
+	return std::make_unique<ve::VulkanModel>(device, undergroundVertexes, VOXEL_VERTEX_INDEXES);
 }
 
-void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelWater( ve::VulkanDevice& device ) const
 {
-	float	positionX = static_cast<float>(pos.width * chunkDimensions.width);
-	float	positionZ = static_cast<float>(pos.depth * chunkDimensions.depth);
-
-	for (i32 z = 0; z < chunkDimensions.z; z++)
-	{
-		for (i32 x = 0; x < chunkDimensions.x; x++)
-		{
-			i32 heightValue = static_cast<i32>(this->generator.getPerlinValue(
-				positionX + static_cast<float>(x),
-				positionZ + static_cast<float>(z)
-			) * (static_cast<float>(chunkDimensions.height - 4)));
-
-			chunkData[index(x, 0, z)] = VoxelType::Stone;
-			for (i32 y = 1; y < chunkDimensions.height; y++)
-			{
-				ui32 indexChunk = index(x, y, z);
-				float innerColumnValue = this->generator.getPerlinValue(
-					positionX + static_cast<float>(x),
-			    				static_cast<float>(y),
-					positionZ + static_cast<float>(z)
-				);
-				float t = static_cast<float>(y) / static_cast<float>(chunkDimensions.height);
-				float factor = t * t * (3 - 2 * t);
-				float treshold = 0.5f + 0.45f * factor;
-				if (y < heightValue)
-				{
-					if (innerColumnValue > treshold)	// create cave
-					{
-						chunkData[indexChunk] = VoxelType::Air;
-					}
-					else
-					{
-						chunkData[indexChunk] = VoxelType::Dirt;
-					}
-				}
-				else if (y < heightValue + 4)
-				{
-					chunkData[indexChunk] = VoxelType::Dirt;
-				}
-				else
-				{
-					chunkData[indexChunk] = VoxelType::Air;
-				}
-			}
-		}
-	}
-}
-
-void	VoxelMap::generateCaveGrid(VoxelType* chunkData, const vec2i& pos)
-{
-	float	positionX = static_cast<float>(pos.width * chunkDimensions.width);
-	float	positionZ = static_cast<float>(pos.depth * chunkDimensions.depth);
-
-	for (i32 z = 0; z < chunkDimensions.z; z++)
-	{
-		for (i32 x = 0; x < chunkDimensions.x; x++)
-		{
-			i32 heightValue = static_cast<i32>(this->generator.getPerlinValue(
-				positionX + static_cast<float>(x),
-				positionZ + static_cast<float>(z)
-			) * static_cast<float>(chunkDimensions.height));
-
-			assert(heightValue <= chunkDimensions.height && "height value out of range");
-			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
-
-			// draw grid on chunk
-			for (i32 y = 0; y < chunkDimensions.height; y++)
-			{
-				ui32 indexChunk = index(x, y, z);
-				if ((z == 0 and y == 0) or
-					(z == chunkDimensions.depth - 1 and y == 0) or
-					(z == 0 and y == chunkDimensions.height - 1) or
-					(z == chunkDimensions.depth - 1 and y == chunkDimensions.height - 1) or
-
-					(x == 0 and y == 0) or
-					(x == chunkDimensions.width - 1 and y == 0) or
-					(x == 0 and y == chunkDimensions.height - 1) or
-					(x == chunkDimensions.width - 1 and y == chunkDimensions.height - 1) or
-
-					(z == 0 and x == 0) or
-					(z == chunkDimensions.depth - 1 and x == 0) or
-					(z == 0 and x == chunkDimensions.width - 1) or
-					(z == chunkDimensions.depth - 1 and x == chunkDimensions.width - 1)
-				)
-				{
-					chunkData[indexChunk] = VoxelType::Dirt;
-					continue;
-				}
-				else
-				{
-					float innerColumnValue = this->generator.getPerlinValue(
-						positionX + static_cast<float>(x),
-						static_cast<float>(y),
-						positionZ + static_cast<float>(z)
-					);
-					float t = static_cast<float>(y) / static_cast<float>(chunkDimensions.height);
-					// float factor = t;
-					float factor = t * t * (3 - 2 * t);
-					float threshold = 0.5f + 0.45f * factor;
-					// std::cout << "y: " << y << " threshold: " << threshold << std::endl;
-					if (innerColumnValue > threshold)	// create cave
-					{
-						chunkData[indexChunk] = VoxelType::Air;
-					}
-					else
-					{
-						chunkData[indexChunk] = VoxelType::Water;
-					}
-				}
-			}
-		}
-	}
-}
-
-vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
-{
-	vec2i	chunkPos{
-		static_cast<i32>(std::floor(position.x / static_cast<float>(chunkDimensions.x))),
-		static_cast<i32>(std::floor(position.z / static_cast<float>(chunkDimensions.z)))
-	};
-	return chunkPos;
-}
-
-int	VoxelMap::visibleFaces(const vec3i& pos) const noexcept
-{
-	int	visibleFaces = 0;
-
-	/*	front, back, left, right, top, bottom faces	*/
-	if (getVoxelType(pos.x, pos.y, pos.z + 1) == VoxelType::Air) { visibleFaces |= 1; }
-	if (getVoxelType(pos.x, pos.y, pos.z - 1) == VoxelType::Air) { visibleFaces |= 1 << 1; }
-	if (getVoxelType(pos.x - 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 2; }
-	if (getVoxelType(pos.x + 1, pos.y, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 3; }
-	if (getVoxelType(pos.x, pos.y + 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 4; }
-	if (getVoxelType(pos.x, pos.y - 1, pos.z) == VoxelType::Air) { visibleFaces |= 1 << 5; }
-
-	return visibleFaces;
+	return std::make_unique<ve::VulkanModel>(device, waterVertexes, VOXEL_VERTEX_INDEXES);
 }
 
 VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
@@ -252,10 +104,10 @@ VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept
 
 	const i32 width = chunkDimensions.x;
 	const i32 depth = chunkDimensions.z;
-	const i32 chunkX = (x - positiveModulo(x, width)) / width;
-	const i32 chunkZ = (z - positiveModulo(z, depth)) / depth;
 	const i32 localX = positiveModulo(x, width);
 	const i32 localZ = positiveModulo(z, depth);
+	const i32 chunkX = (x - localX) / width;
+	const i32 chunkZ = (z - localZ) / depth;
 
 	if (chunkX < minPositions.width || chunkX > maxPositions.width ||
 		chunkZ < minPositions.depth || chunkZ > maxPositions.depth)
@@ -278,49 +130,75 @@ VoxelMap::VoxelType* VoxelMap::getChunk(const vec2i& position) const noexcept
 	return map + getChunkIndex(position) * chunkSize;
 }
 
-int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcept
+i32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 {
-	if (data[index] == VoxelType::Air)
-	{
-		return 0;
-	}
+	assert(position.width >= minPositions.width && position.width <= maxPositions.width && "width out of range");
+	assert(position.depth >= minPositions.depth && position.depth <= maxPositions.depth && "depth out of range");
+	ui32 chunkX = positiveModulo(position.width, squareSize);
+	ui32 chunkZ = positiveModulo(position.depth, squareSize);
 
-	const ui32 x = chunkDimensions.y;
-	const ui32 z = chunkDimensions.x * chunkDimensions.y;
-
-	int visibleFaces = 0;
-
-	/*	front, back, left, right, top, bottom faces	*/
-	if (data[index + z] == VoxelType::Air) { visibleFaces |= 1; };
-	if (data[index - z] == VoxelType::Air) { visibleFaces |= 1 << 1; }
-	if (data[index - x] == VoxelType::Air) { visibleFaces |= 1 << 2; }
-	if (data[index + x] == VoxelType::Air) { visibleFaces |= 1 << 3; };
-	if (data[index + 1] == VoxelType::Air) { visibleFaces |= 1 << 4; };
-	if (data[index - 1] == VoxelType::Air) { visibleFaces |= 1 << 5; }
-
-	return visibleFaces;
+	return chunkZ * squareSize + chunkX;
 }
 
-void	VoxelMap::addVertexes(const vec3& voxelLocation, uint32_t indexChunk, int facesToAdd, VoxelType voxelType)
+vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
 {
-	for (int bit = 0; bit < 6; bit++)
-	{
-		const int mask = 1 << bit;
-		if ((facesToAdd & mask) == 0) continue;
+	vec2i	chunkPos{
+		static_cast<i32>(std::floor(position.x / static_cast<float>(chunkDimensions.x))),
+		static_cast<i32>(std::floor(position.z / static_cast<float>(chunkDimensions.z)))
+	};
+	return chunkPos;
+}
 
-		switch (mask)
+void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
+{
+	float	positionX = static_cast<float>(pos.width * chunkDimensions.width);
+	float	positionZ = static_cast<float>(pos.depth * chunkDimensions.depth);
+
+	for (i32 z = 0; z < chunkDimensions.z; z++)
+	{
+		for (i32 x = 0; x < chunkDimensions.x; x++)
 		{
-			case FRONT: addVoxelFace(voxelLocation, indexChunk, static_cast<size_t>(VertexFaces::FRONT), voxelType); break;
-			case BACK: addVoxelFace(voxelLocation, indexChunk, static_cast<size_t>(VertexFaces::BACK), voxelType); break;
-			case LEFT: addVoxelFace(voxelLocation, indexChunk, static_cast<size_t>(VertexFaces::LEFT), voxelType); break;
-			case RIGHT: addVoxelFace(voxelLocation, indexChunk, static_cast<size_t>(VertexFaces::RIGHT), voxelType); break;
-			case TOP: addVoxelFace(voxelLocation, indexChunk, static_cast<size_t>(VertexFaces::TOP), voxelType); break;
-			case BOTTOM: addVoxelFace(voxelLocation, indexChunk, static_cast<size_t>(VertexFaces::BOTTOM), voxelType); break;
-			default: break;
+			float perlinTerrain = static_cast<i32>(this->generator.perlinValue2D(
+				positionX + static_cast<float>(x),
+				positionZ + static_cast<float>(z)
+			));
+			i32 heightValue = static_cast<i32>(perlinTerrain * (chunkDimensions.height - 4));
+
+			chunkData[index(x, 0, z)] = VoxelType::Stone;
+			for (i32 y = 1; y < chunkDimensions.height; y++)
+			{
+				ui32 indexChunk = index(x, y, z);
+				if (y < heightValue)
+				{
+					float perlinCave = this->generator.perlinValue3D(
+						positionX + static_cast<float>(x),
+									static_cast<float>(y),
+						positionZ + static_cast<float>(z)
+					);
+					float t = static_cast<float>(y) / static_cast<float>(chunkDimensions.height);
+					float factor = t * t * (3 - 2 * t);
+					float treshold = 0.65f + 0.2f * factor;
+					if (perlinCave > treshold)	// create cave
+					{
+						chunkData[indexChunk] = VoxelType::Water;
+					}
+					else
+					{
+						chunkData[indexChunk] = VoxelType::Air;
+					}
+				}
+				else if (y < heightValue + 4)
+				{
+					chunkData[indexChunk] = VoxelType::Dirt;
+				}
+				else
+				{
+					chunkData[indexChunk] = VoxelType::Air;
+				}
+			}
 		}
 	}
 }
-
 
 void	VoxelMap::mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos)
 {

@@ -47,6 +47,13 @@ bool	VoxelMap::update(const vec3& newPosition)
 	return true;
 }
 
+vec3	VoxelMap::getMapMiddle() const noexcept
+{
+	return vec3((maxPositions.x + minPositions.x + 1) * chunkDimensions.x / 2.0f,
+				chunkDimensions.height - 1.0f,
+				(maxPositions.y + minPositions.y + 1) * chunkDimensions.z / 2.0f);
+}
+
 void	VoxelMap::meshRow(vec2i pos)
 {
 	VoxelType*	ptrToData;
@@ -169,13 +176,6 @@ void	VoxelMap::east()
 	meshColumn(pos);
 	meshColumn({pos.x - 1, pos.y});
 	threadManager.waitIdle();
-}
-
-vec3	VoxelMap::getMapMiddle() const noexcept
-{
-	return vec3((maxPositions.x + minPositions.x + 1) * chunkDimensions.x / 2.0f,
-				chunkDimensions.height - 1.0f,
-				(maxPositions.y + minPositions.y + 1) * chunkDimensions.z / 2.0f);
 }
 
 }	//namespace vox

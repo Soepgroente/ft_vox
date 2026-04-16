@@ -55,9 +55,10 @@ class VoxelMap
 		VoxelMap& operator=(VoxelMap const&) = delete;
 		VoxelMap& operator=(VoxelMap&&) = delete;
 
-		bool	update(const vec3& newPosition);
 		void	init();
+		bool	update(const vec3& newPosition);
 		vec3	getMapMiddle() const noexcept;
+
 		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device ) const;
 		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device ) const;
 		std::unique_ptr<ve::VulkanModel> createNewModelWater( ve::VulkanDevice& device ) const;
@@ -80,7 +81,6 @@ class VoxelMap
 		bool	ready = false;
 
 		ThreadManager&	threadManager;
-		std::vector<VertexVector>	chunksAsVectors;
 		std::vector<VertexVector>	terrainVertexes;
 		std::vector<VertexVector>	undergroundVertexes;
 		std::vector<VertexVector>	waterVertexes;
@@ -89,34 +89,26 @@ class VoxelMap
 		
 		VoxelType*	getChunk(const vec2i& position)	const noexcept;
 		i32 		getChunkIndex(const vec2i& position) const noexcept;
-		i32		positiveModulo(i32 value, i32 modulus)	const noexcept;
-		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
-		int		visibleFaces(const vec3i& pos) const noexcept;
-		int		localVisibleFaces(const VoxelType* data, ui32 index) const noexcept;
-		// void	addEdges(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
-		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
-		void	generateCaveGrid(VoxelType* chunkData, const vec2i& chunkPosition);
-		// void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
-		void	addVertexes(const vec3& position, uint32_t indexChunk, int facesToAdd, VoxelType voxelType);
-		// void	addVoxelFace(const vec3& location, uint32_t indexChunk, size_t min, VoxelType voxelType);
+		vec2i		voxelToChunkPosition(const vec3& position) const noexcept;
 		
+		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	addVisibleFaces(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept;
 		void	addVisibleFacesEdges(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept;
 		void	addVoxelFace(const vec3& voxelLocation, ui32 indexChunk, ui32 faceIndex, VoxelType voxelType);
 
 		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
-		// ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(x + z * chunkDimensions.x + y * chunkDimensions.x * chunkDimensions.z);}
+
+		void	meshRow(vec2i pos);
+		void	meshColumn(vec2i pos);
+	
+		void	generateRow(vec2i pos);
+		void	generateColumn(vec2i pos);
+
 		void	north();
 		void	south();
 		void	west();
 		void	east();
-
-		void	generateRow(vec2i pos);
-		void	generateColumn(vec2i pos);
-
-		void	meshRow(vec2i pos);
-		void	meshColumn(vec2i pos);
 };
 
 }	// namespace vox
