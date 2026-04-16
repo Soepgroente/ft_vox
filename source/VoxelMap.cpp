@@ -11,9 +11,6 @@
 
 
 namespace vox {
-	
-float	perlin(float x, float y, float z);
-float	randomNoise(float, float, ui32& seed);
 
 using i32 = int32_t;
 
@@ -24,13 +21,13 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	i32 visibleChunks = this->squareSize * this->squareSize;
 
 	std::cout << "Visible chunks: " << visibleChunks << std::endl;
-	chunkDimensions = vec3i{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
-	std::cout << "Chunk dimensions: " << chunkDimensions << std::endl;
-	chunkSize = Config::chunkLength * Config::chunkHeight * Config::chunkLength;
+	VoxelChunk::chunkDimensions = vec3i{Config::chunkLength, Config::chunkHeight, Config::chunkLength};
+	std::cout << "Chunk dimensions: " << VoxelChunk::chunkDimensions << std::endl;
+	VoxelChunk::chunkSize = Config::chunkLength * Config::chunkHeight * Config::chunkLength;
 
-	std::cout << "Allocating: " << formatBytes(chunkSize * visibleChunks * sizeof(VoxelType)) << " for voxel map" << std::endl;
+	std::cout << "Allocating: " << formatBytes(VoxelChunk::chunkSize * visibleChunks * sizeof(VoxelType)) << " for voxel map" << std::endl;
 
-	map = reinterpret_cast<VoxelType*>(malloc(chunkSize * visibleChunks * sizeof(VoxelType)));
+	map = reinterpret_cast<VoxelType*>(malloc(VoxelChunk::chunkSize * visibleChunks * sizeof(VoxelType)));
 	if (map == nullptr)
 	{
 		throw std::runtime_error("Failed to allocate memory for voxel map");
@@ -215,12 +212,7 @@ int	VoxelMap::localVisibleFaces(const VoxelType* data, ui32 index) const noexcep
 	int visibleFaces = 0;
 
 	/*	front, back, left, right, top, bottom faces	*/
-	if (data[index + z] == VoxelType::Air) { visibleFaces |= 1; }
-	if (data[index - z] == VoxelType::Air) { visibleFaces |= 1 << 1; }
-	if (data[index - x] == VoxelType::Air) { visibleFaces |= 1 << 2; }
-	if (data[index + x] == VoxelType::Air) { visibleFaces |= 1 << 3; }
-	if (data[index + 1] == VoxelType::Air) { visibleFaces |= 1 << 4; }
-	if (data[index - 1] == VoxelType::Air) { visibleFaces |= 1 << 5; }
+
 
 	return visibleFaces;
 }

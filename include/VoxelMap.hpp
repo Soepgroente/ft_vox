@@ -2,6 +2,7 @@
 
 #include "ThreadManager.hpp"
 #include "Vectors.hpp"
+#include "VoxelChunk.hpp"
 #include "World.hpp"
 
 namespace vox {
@@ -22,18 +23,7 @@ class World;
 
 class VoxelMap
 {
-	using VertexVector = std::vector<ve::VulkanModel::Vertex>;
-
 	public:
-
-		enum class VoxelType : ui8
-		{
-			Air = 0,
-			Dirt = 1,
-			Stone = 2,
-			Water = 3,
-			NoMoreBlocksThisColumn = 255
-		};
 
 		VoxelMap() = delete;
 		VoxelMap(ThreadManager& threadManager);
@@ -55,8 +45,7 @@ class VoxelMap
 		
 		VoxelType*	map;
 		ui32	worldSeed;
-		ui32	chunkSize;
-		vec3i	chunkDimensions;
+
 		i32 	squareSize;
 		vec2i	minPositions;
 		vec2i	maxPositions;
@@ -78,7 +67,6 @@ class VoxelMap
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
 		
-		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
 		void	north();
 		void	south();
 		void	west();
