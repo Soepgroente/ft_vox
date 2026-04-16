@@ -78,8 +78,8 @@ void Vox::setupVulkan( void )
 	this->textSkyboxDescriptorSet->addSamplerToDescriptor(0, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
 
 	this->terrainModel = this->voxelMap.createNewModelTerrain(vulkanDevice);
-	// this->undergroundModel = this->voxelMap.createNewModelUnderground(vulkanDevice);
-	this->waterModel = this->voxelMap.createNewModelWater(vulkanDevice);
+	this->undergroundModel = this->voxelMap.createNewModelUnderground(vulkanDevice);
+	// this->waterModel = this->voxelMap.createNewModelWater(vulkanDevice);
 	this->skyBoxModel = this->createSkyboxModel();
 
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
@@ -157,14 +157,14 @@ void Vox::run( void )
 			this->terrainModel->bind(commandBuffer);
 			this->terrainModel->draw(commandBuffer);
 
-			// this->textUndergroundDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
-			// this->undergroundModel->bind(commandBuffer);
-			// this->undergroundModel->draw(commandBuffer);
+			this->textUndergroundDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+			this->undergroundModel->bind(commandBuffer);
+			this->undergroundModel->draw(commandBuffer);
 
-			this->textWaterDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
-			this->waterModel->bind(commandBuffer);
-			this->waterModel->draw(commandBuffer);
-			
+			// this->textWaterDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+			// this->waterModel->bind(commandBuffer);
+			// this->waterModel->draw(commandBuffer);
+
 			this->textSkyboxDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 			this->skyboxPipeline->bind(commandBuffer);
 			this->skyBoxModel->bind(commandBuffer);

@@ -1,21 +1,133 @@
+#include <cassert>
+
 #include "PerlinNoiser.hpp"
-#include "Vulkan.hpp"		// random number generators
+#include "Utils.hpp"
 
 
 namespace vox {
 
-PerlinNoiser::PerlinNoiser( ui32 seed, float noiseScalar ) : seed{seed}, noiseScalar{noiseScalar}
+PerlinNoiser::PerlinNoiser( ui32 seed, ui32 mapSize )
 {
-	this->setupPermutations( this->seed );
+	assert(mapSize != 0U && "Invalid map size for noiseScalar value");
+	this->nPermutations = mapSize;
+	this->noiseScalar = PerlinNoiser::N_FEATURES / static_cast<float>(this->nPermutations);
+
+	this->setSeed(seed);
 }
 
-float PerlinNoiser::getPerlinValue( float x, float y ) const noexcept
+float PerlinNoiser::perlinValue2D( float x, float y ) const noexcept
 {
 	x *= this->noiseScalar;
 	y *= this->noiseScalar;
 
-	i32 Xi = ((static_cast<i32>(std::floor(x)) & 255) + 256) & 255;
-	i32 Yi = ((static_cast<i32>(std::floor(y)) & 255) + 256) & 255;
+	float perlinValue = this->_perlinValue2D(x, y);
+
+	return (perlinValue + 1.0f) * 0.5f;
+}
+
+float PerlinNoiser::perlinValueSimple3D( float x, float y, float z ) const noexcept
+{
+	x *= this->noiseScalar;
+	y *= this->noiseScalar;
+	z *= this->noiseScalar;
+
+	float perlinValue = this->_perlinValueSimple3D(x, y, z);
+
+	return (perlinValue + 1.0f) * 0.5f;
+}
+
+float PerlinNoiser::perlinValue3D( float x, float y, float z ) const noexcept
+{
+	x *= this->noiseScalar;
+	y *= this->noiseScalar;
+	z *= this->noiseScalar;
+
+	float perlinValue = this->_perlinValue3D(x, y, z);
+
+	return (perlinValue + 1.0f) * 0.5f;
+}
+
+float PerlinNoiser::octavePerlin2D(float x, float y, ui32 octaves) const noexcept
+{
+	float octavePerlin = 0.0f;
+    float amplitude = 1.0f;
+    float frequency = 1.0f;
+    float maxValue  = 0.0f;
+
+	x *= this->noiseScalar;
+	y *= this->noiseScalar;
+
+	for (ui32 i = 0; i < octaves; i++)
+    {
+        octavePerlin += _perlinValue2D(x * frequency, y * frequency) * amplitude;
+        maxValue += amplitude;
+        frequency *= PerlinNoiser::LACUNARITY;
+        amplitude *= PerlinNoiser::PERSISTANCE;
+    }
+
+	octavePerlin /= maxValue;
+    return (octavePerlin + 1.0f) * 0.5f;
+}
+
+float PerlinNoiser::octavePerlinSimple3D(float x, float y, float z, ui32 octaves) const noexcept
+{
+	float octavePerlin = 0.0f;
+    float amplitude = 1.0f;
+    float frequency = 1.0f;
+    float maxValue  = 0.0f;
+
+	x *= this->noiseScalar;
+	y *= this->noiseScalar;
+	z *= this->noiseScalar;
+
+    for (ui32 i = 0; i < octaves; i++)
+    {
+        octavePerlin += _perlinValueSimple3D(x * frequency, y * frequency, z * frequency) * amplitude;
+        maxValue += amplitude;
+        frequency *= PerlinNoiser::LACUNARITY;
+        amplitude *= PerlinNoiser::PERSISTANCE;
+    }
+
+	octavePerlin /= maxValue;
+    return (octavePerlin + 1.0f) * 0.5f;
+}
+
+float PerlinNoiser::octavePerlin3D(float x, float y, float z, ui32 octaves) const noexcept
+{
+	float octavePerlin = 0.0f;
+    float amplitude = 1.0f;
+    float frequency = 1.0f;
+    float maxValue  = 0.0f;
+
+	x *= this->noiseScalar;
+	y *= this->noiseScalar;
+	z *= this->noiseScalar;
+
+    for (ui32 i = 0; i < octaves; i++)
+    {
+        octavePerlin += _perlinValue3D(x * frequency, y * frequency, z * frequency) * amplitude;
+        maxValue += amplitude;
+        frequency *= PerlinNoiser::LACUNARITY;
+        amplitude *= PerlinNoiser::PERSISTANCE;
+    }
+
+	octavePerlin /= maxValue;
+    return (octavePerlin + 1.0f) * 0.5f;
+}
+
+void PerlinNoiser::setSeed( uint32_t baseSeed ) noexcept
+{
+	this->terrainSeed = baseSeed ^ (1 * PerlinNoiser::GOLDEN_RATIO_HASH);
+	this->cavesSeed = baseSeed ^ (2 * PerlinNoiser::GOLDEN_RATIO_HASH);
+	this->rngSeed.seed(baseSeed ^ (3 * PerlinNoiser::GOLDEN_RATIO_HASH));
+
+	this->setPermutations();
+}
+
+float PerlinNoiser::_perlinValue2D( float x, float y ) const noexcept
+{
+	i32 Xi =  positiveModulo(static_cast<i32>(std::floor(x)), this->nPermutations);
+	i32 Yi =  positiveModulo(static_cast<i32>(std::floor(y)), this->nPermutations);
 
 	float xf = x - std::floor(x);
 	float yf = y - std::floor(y);
@@ -38,24 +150,18 @@ float PerlinNoiser::getPerlinValue( float x, float y ) const noexcept
 	float u = this->smooth(xf);
 	float v = this->smooth(yf);
 
-	float perlinValue = this->lerp(
+	return this->lerp(
 		u,
 		this->lerp(v, dotBottomLeft, dotTopLeft),
 		this->lerp(v, dotBottomRight, dotTopRight)
 	);
-
-	return (perlinValue + 1.0f) * 0.5f;
 }
 
-float PerlinNoiser::getPerlinValue( float x, float y, float z ) const noexcept
+float PerlinNoiser::_perlinValueSimple3D( float x, float y, float z ) const noexcept
 {
-	x *= this->noiseScalar;
-	y *= this->noiseScalar;
-	z *= this->noiseScalar;
-
-	i32 Xi = ((static_cast<i32>(std::floor(x)) & 255) + 256) & 255;
-	i32 Yi = ((static_cast<i32>(std::floor(y)) & 255) + 256) & 255;
-	i32 Zi = ((static_cast<i32>(std::floor(z)) & 255) + 256) & 255;
+	i32 Xi =  positiveModulo(static_cast<i32>(std::floor(x)), this->nPermutations);
+	i32 Yi =  positiveModulo(static_cast<i32>(std::floor(y)), this->nPermutations);
+	i32 Zi =  positiveModulo(static_cast<i32>(std::floor(z)), this->nPermutations);
 
 	float xf = x - std::floor(x);
 	float yf = y - std::floor(y);
@@ -92,7 +198,7 @@ float PerlinNoiser::getPerlinValue( float x, float y, float z ) const noexcept
 	float v = this->smooth(yf);
 	float w = this->smooth(zf);
 
-	float perlinValue = this->lerp(u,
+	return this->lerp(u,
 		this->lerp(v,
 			this->lerp(w, d000, d001),
 			this->lerp(w, d010, d011)
@@ -102,15 +208,13 @@ float PerlinNoiser::getPerlinValue( float x, float y, float z ) const noexcept
 			this->lerp(w, d110, d111)
 		)
 	);
-
-	return (perlinValue + 1.0f) * 0.5f;
 }
 
-float PerlinNoiser::getPerlinValueAlt( float x, float y, float z ) const noexcept
+float PerlinNoiser::_perlinValue3D( float x, float y, float z ) const noexcept
 {
-	i32 Xi = ((static_cast<i32>(std::floor(x)) & 255) + 256) & 255;
-	i32 Yi = ((static_cast<i32>(std::floor(y)) & 255) + 256) & 255;
-	i32 Zi = ((static_cast<i32>(std::floor(z)) & 255) + 256) & 255;
+	i32 Xi =  positiveModulo(static_cast<i32>(std::floor(x)), this->nPermutations);
+	i32 Yi =  positiveModulo(static_cast<i32>(std::floor(y)), this->nPermutations);
+	i32 Zi =  positiveModulo(static_cast<i32>(std::floor(z)), this->nPermutations);
 
 	float xf = x - std::floor(x);
 	float yf = y - std::floor(y);
@@ -138,7 +242,7 @@ float PerlinNoiser::getPerlinValueAlt( float x, float y, float z ) const noexcep
 	float v = this->smooth(yf);
 	float w = this->smooth(zf);
 
-	float perlinValue = this->lerp(w,
+	return this->lerp(w,
 		this->lerp(v,
 			this->lerp(u, d000, d100),
 			this->lerp(u, d010, d110)
@@ -148,17 +252,15 @@ float PerlinNoiser::getPerlinValueAlt( float x, float y, float z ) const noexcep
 			this->lerp(u, d011, d111)
 		)
 	);
-
-	return (perlinValue + 1.0f) * 0.5f;
 }
 
-void PerlinNoiser::setupPermutations( ui32 seed ) noexcept
+void PerlinNoiser::setPermutations( void ) noexcept
 {
-	auto endSequence = this->permutations.begin() + 256;
+	this->permutations.resize(this->nPermutations * 2);
+	auto endSequence = this->permutations.begin() + this->nPermutations;
 
-	std::mt19937 rng(seed);
 	std::iota(this->permutations.begin(), endSequence, 0);
-	std::shuffle(this->permutations.begin(), endSequence, rng);
+	std::shuffle(this->permutations.begin(), endSequence, this->rngSeed);
 	std::copy(this->permutations.begin(), endSequence, endSequence);
 }
 

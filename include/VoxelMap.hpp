@@ -61,7 +61,6 @@ class VoxelMap
 
 		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device ) const;
 		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device ) const;
-		std::unique_ptr<ve::VulkanModel> createNewModelWater( ve::VulkanDevice& device ) const;
 		
 		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
 		bool		isReady() const noexcept { return this->ready; }
@@ -83,7 +82,6 @@ class VoxelMap
 		ThreadManager&	threadManager;
 		std::vector<VertexVector>	terrainVertexes;
 		std::vector<VertexVector>	undergroundVertexes;
-		std::vector<VertexVector>	waterVertexes;
 
 		PerlinNoiser generator;
 		

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <random>
 
 #include "Vectors.hpp"
 
@@ -16,26 +17,48 @@ class PerlinNoiser
 {
 	public:
 		PerlinNoiser( void ) = delete;
-		PerlinNoiser( ui32 seed, float noiseScalar );
+		PerlinNoiser( ui32 baseSeed, ui32 permSize );
 
-		float	getPerlinValue( float x, float y ) const noexcept;
-		float	getPerlinValue( float x, float y, float z ) const noexcept;
-		float	getPerlinValueAlt( float x, float y, float z ) const noexcept;
+		float	perlinValue2D( float x, float y ) const noexcept;
+		float	perlinValueSimple3D( float x, float y, float z ) const noexcept;
+		float	perlinValue3D( float x, float y, float z ) const noexcept;
 
-		ui32	getSeed( void ) const noexcept { return this->seed; };
-		void	setSeed( uint32_t seed ) noexcept { this->seed = seed; };
+		float	octavePerlin2D( float x, float y, ui32 octaves = PerlinNoiser::N_OCTAVES) const noexcept;
+		float	octavePerlinSimple3D( float x, float y, float z, ui32 octaves = PerlinNoiser::N_OCTAVES) const noexcept;
+		float	octavePerlin3D( float x, float y, float z, ui32 octaves = PerlinNoiser::N_OCTAVES) const noexcept;
+
+		void	setSeed( uint32_t baseSeed ) noexcept;
 
 	private:
-		void		setupPermutations( ui32 seed ) noexcept;
-		float		lerp(float t, float m1, float m2) const noexcept;
-		float		smooth(float t) const noexcept;
+		float	_perlinValue2D( float x, float y ) const noexcept;
+		float	_perlinValueSimple3D( float x, float y, float z ) const noexcept;
+		float	_perlinValue3D( float x, float y, float z ) const noexcept;
+
+		float	_getGradient2D( vec3 const& deltaDir, i32 randomValue ) const noexcept;
+		float	_getGradientSimple3D( vec3 const& deltaDir, i32 randomValue ) const noexcept;
+		float	_getGradient3D( vec3 const& deltaDir, i32 randomValue ) const noexcept;
+
+		void		setPermutations( void ) noexcept;
+		float		lerp( float t, float m1, float m2 ) const noexcept;
+		float		smooth( float t ) const noexcept;
 		vec2 const&	getGradient2D( i32 input ) const noexcept;
 		vec3 const&	getGradient3D( i32 input ) const noexcept;
 		float		grad3Dalt( ui32 hash, float x, float y, float z ) const noexcept;
+
+		static constexpr ui32	GOLDEN_RATIO_HASH = 2654435761U;
+		static constexpr ui32	N_FEATURES = 4U;
+		static constexpr ui32	N_OCTAVES = 6U;
+		static constexpr float	LACUNARITY = 2.0f;
+		static constexpr float	PERSISTANCE = 0.5f;
 		
-		ui32						seed;
 		float						noiseScalar;
-		std::array<ui32,512>		permutations;
+
+		ui32						terrainSeed;
+		ui32						cavesSeed;
+		std::mt19937				rngSeed;
+
+		ui32						nPermutations;
+		std::vector<ui32>			permutations;
 		std::array<vec2,4> const	gradients2D{
 			vec2{ 1.0f,  1.0f},
 			vec2{-1.0f,  1.0f},
