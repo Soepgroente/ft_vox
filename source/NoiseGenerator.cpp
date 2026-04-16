@@ -8,7 +8,7 @@ namespace vox {
 
 NoiseGenerator::NoiseGenerator( ui32 seed, ui32 mapSize )
 {
-	assert(mapSize != 0U && "Invalid map size for noiseScalar value");
+	assert(mapSize > 1U && "Provide at least 2 slots for permutation array");
 	this->nPermutations = mapSize;
 	this->noiseScalar = NoiseGenerator::N_FEATURES / static_cast<float>(this->nPermutations);
 

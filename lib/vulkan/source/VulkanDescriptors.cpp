@@ -170,7 +170,14 @@ void VulkanDescriptorSet::setCurrentFrame(uint32_t frame) noexcept
 void VulkanDescriptorSet::updateUbo(int32_t binding, void const* data)
 {
 	assert(this->buffers.count(binding) != 0U && "Buffer binding not found in descriptor set");
-	for (uint32_t frame = 0; frame < this->framesInFlight; frame++)
+	// for (uint32_t frame = 0; frame < this->framesInFlight; frame++)		//	NB check
+		this->buffers[binding][this->currentFrame]->writeToBuffer(data);
+}
+
+void VulkanDescriptorSet::updateUboAll(int32_t binding, void const* data)
+{
+	assert(this->buffers.count(binding) != 0U && "Buffer binding not found in descriptor set");
+	for (uint32_t frame = 0; frame < this->framesInFlight; frame++)		//	NB check
 		this->buffers[binding][frame]->writeToBuffer(data);
 }
 
@@ -182,13 +189,13 @@ void VulkanDescriptorSet::bind(VkCommandBuffer commandBuffer, VulkanPipeline con
 		pipeline.getPipelineLayout(),
 		setIndex,
 		1,
-		&this->descriptorSets[currentFrame],
+		&this->descriptorSets[this->currentFrame],
 		0,
 		nullptr
 	);
 }
 
-void VulkanDescriptorSet::addBufferToDescriptor(uint32_t binding, uint32_t bufferSize, void const* data)
+void VulkanDescriptorSet::addBufferDescriptor(uint32_t binding, uint32_t bufferSize)
 {
 	assert(this->buffers.count(binding) != 0U && "Buffer binding not found in descriptor set");
 
@@ -202,7 +209,7 @@ void VulkanDescriptorSet::addBufferToDescriptor(uint32_t binding, uint32_t buffe
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 		this->buffers[binding][frame]->map();
-		this->buffers[binding][frame]->writeToBuffer(data);
+		// this->buffers[binding][frame]->writeToBuffer(data);
 
 		VkDescriptorBufferInfo bufferInfo = this->buffers[binding][frame]->descriptorInfo();
 
@@ -217,7 +224,7 @@ void VulkanDescriptorSet::addBufferToDescriptor(uint32_t binding, uint32_t buffe
 	}
 }
 
-void VulkanDescriptorSet::addSamplerToDescriptor(uint32_t binding, const std::string& texturePath, TextureType type)
+void VulkanDescriptorSet::addSamplerDescriptor(uint32_t binding, const std::string& texturePath, TextureType type)
 {
 	assert(this->textures.count(binding) != 0U && "Sampler binding not found in descriptor set");
 

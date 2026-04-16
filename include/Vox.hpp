@@ -20,19 +20,51 @@ using i32 = int32_t;
 class MatrixUBO
 {
 	public:
-		MatrixUBO(Camera& camera) :
-			model{mat4::idMat()},
-			view{camera.getViewMatrix()},
-			projection{camera.getProjectionMatrix()} {};
+		MatrixUBO( void ) {};
+		MatrixUBO( mat4 const& model, mat4 const& view, mat4 const& projection ) :
+			model{model},
+			view{view},
+			projection{projection} {};
+
+		void		updateModel( mat4 const& model ) noexcept { this->model = model; };
+		void		updateView( mat4 const& view ) noexcept { this->view = view; };
+		void		updateProjection( mat4 const& prj ) noexcept { this->projection = prj; };
 
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 		size_t		getSize( void ) const noexcept { return sizeof(MatrixUBO); };
 
 	private:
-		mat4 model{1.0f};
+		mat4 model{1.0f};		// NB change into ID	( --> MaterialData (per oggetto)) )
 		mat4 view{1.0f};
 		mat4 projection{1.0f};
 };
+
+
+class LightUBO
+{
+	public:
+		LightUBO( void ) {};
+		LightUBO( vec3 const& lightPos, vec4 const& lightColor, vec3 const& viewPos ) :
+			lightPos{lightPos, 1.0f},
+			lightColor{lightColor},
+			viewPos{viewPos, 1.0f} {};
+
+		void		updateLightPos( vec3 const& lightPos ) noexcept { this->lightPos = vec4{lightPos, 1.0f}; };
+		void		updateLightColor( vec3 const& lightColor ) noexcept { this->lightColor = vec4{lightColor, 1.0f}; };
+		void		updateViewPos( vec3 const& viewPos ) noexcept { this->viewPos = vec4{viewPos, 1.0f}; };
+
+		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
+		size_t		getSize( void ) const noexcept { return sizeof(LightUBO); };
+
+	private:
+		vec4 lightPos{0.0f};
+		vec4 lightColor{1.0f};
+		vec4 viewPos{0.0f};
+		float ambientStrength{0.6f};		// NB those two should go in another UBO or push const
+		float specularStrength{0.3f};
+		float _pad[2]; // allineamento std140
+};
+
 
 class Vox
 {
@@ -68,7 +100,7 @@ class Vox
 		std::unique_ptr<ve::VulkanModel> undergroundModel;
 		std::unique_ptr<ve::VulkanModel> skyBoxModel;
 
-		std::unique_ptr<ve::VulkanDescriptorSet> matrixDescriptorSet;
+		std::unique_ptr<ve::VulkanDescriptorSet> uboDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textTerrainDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textUndergroundDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textSkyboxDescriptorSet;
@@ -76,7 +108,7 @@ class Vox
 		std::unique_ptr<ve::VulkanPipeline> terrainPipeline;
 		std::unique_ptr<ve::VulkanPipeline> skyboxPipeline;
 
-		bool	updateMatrixUbo;
+		bool	updateUniforms;
 };
 
 }	// namespace vox

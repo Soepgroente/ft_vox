@@ -66,12 +66,13 @@ class VulkanDescriptorSet
 		VulkanDescriptorSet& operator=( VulkanDescriptorSet const& other ) = delete;
 
 		void	setCurrentFrame( uint32_t frame ) noexcept;
-		void	updateUbo( int32_t binding, void const* data );
+		void	updateUbo( int32_t binding, void const* data );		// NB check with frameInFlight
+		void	updateUboAll( int32_t binding, void const* data );
 		void	bind( VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex );
 
 		VkDescriptorSetLayout	getDescriptorSetLayout( void ) const noexcept { return descriptorSetLayout; };
-		void					addBufferToDescriptor( uint32_t binding, uint32_t bufferSize, void const* data );
-		void					addSamplerToDescriptor( uint32_t binding, const std::string& texturePath, TextureType type );
+		void					addBufferDescriptor( uint32_t binding, uint32_t bufferSize );
+		void					addSamplerDescriptor( uint32_t binding, const std::string& texturePath, TextureType type );
 
 	private:
 		VulkanDevice&			vulkanDevice;
