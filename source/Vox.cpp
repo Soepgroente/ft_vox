@@ -17,13 +17,13 @@ Vox::Vox( void ) :
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	vulkanSetFactory{vulkanDevice},
-	camera{vec3{165.0f, 225.0f, 165.0f}, CameraSettings::cameraForward, Config::cameraLimitsMov},
+	camera{Config::cameraStartPos, Config::cameraForward, Config::cameraLimitsMov},
 	voxelMap{threadManager},
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
 		[this](i32 width, i32 height) { this->resizeWindow(width, height); }
 	},
-	updateMatrixUbo{false}
+	updateUniforms{false}
 {
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
@@ -40,7 +40,7 @@ Vox::Vox( void ) :
 void Vox::setupVulkan( void )
 {
 	uint32_t	maxSetsToCreate = 5;
-	uint32_t	nUniformDescriptors = 1;
+	uint32_t	nUniformDescriptors = 2;
 	uint32_t	nSamplerDescriptors = 4;
 
 	this->vulkanSetFactory
@@ -50,51 +50,45 @@ void Vox::setupVulkan( void )
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nSamplerDescriptors)
 		.createPool();
 
-	ve::VulkanBindingSet matrixSetBindings;
-	matrixSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	ve::VulkanBindingSet uboSetBindings;
+	uboSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	uboSetBindings.addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet(matrixSetBindings);
-	MatrixUBO ubo(this->camera);
-	this->matrixDescriptorSet->addBufferToDescriptor(0, sizeof(ubo), static_cast<void*>(&ubo));
+	this->uboDescriptorSet = this->vulkanSetFactory.createDescriptorSet(uboSetBindings);
+	this->uboDescriptorSet->addBufferDescriptor(0, sizeof(MatrixUBO));
+	this->uboDescriptorSet->addBufferDescriptor(1, sizeof(LightUBO));
 
 	ve::VulkanBindingSet textureTerrainSetBindings;
 	textureTerrainSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	this->textTerrainDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureTerrainSetBindings);
-	this->textTerrainDescriptorSet->addSamplerToDescriptor(0, Config::textureDirtPath, ve::TextureType::TEXTURE_PLAIN);
+	this->textTerrainDescriptorSet->addSamplerDescriptor(0, Config::textureDirtPath, ve::TextureType::TEXTURE_PLAIN);
 
 	ve::VulkanBindingSet textureUndergroundSetBindings;
 	textureUndergroundSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	this->textUndergroundDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureUndergroundSetBindings);
-	this->textUndergroundDescriptorSet->addSamplerToDescriptor(0, Config::textureStonePath, ve::TextureType::TEXTURE_PLAIN);
-
-	ve::VulkanBindingSet textureWaterSetBindings;
-	textureWaterSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	this->textWaterDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureWaterSetBindings);
-	this->textWaterDescriptorSet->addSamplerToDescriptor(0, Config::textureWaterPath, ve::TextureType::TEXTURE_PLAIN);
+	this->textUndergroundDescriptorSet->addSamplerDescriptor(0, Config::textureStonePath, ve::TextureType::TEXTURE_PLAIN);
 
 	ve::VulkanBindingSet textureSkyboxSetBindings;
 	textureSkyboxSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	this->textSkyboxDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureSkyboxSetBindings);
-	this->textSkyboxDescriptorSet->addSamplerToDescriptor(0, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
+	this->textSkyboxDescriptorSet->addSamplerDescriptor(0, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
 
 	this->terrainModel = this->voxelMap.createNewModelTerrain(vulkanDevice);
 	this->undergroundModel = this->voxelMap.createNewModelUnderground(vulkanDevice);
-	// this->waterModel = this->voxelMap.createNewModelWater(vulkanDevice);
 	this->skyBoxModel = this->createSkyboxModel();
 
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
-		this->matrixDescriptorSet->getDescriptorSetLayout(),
+		this->uboDescriptorSet->getDescriptorSetLayout(),
 		this->textTerrainDescriptorSet->getDescriptorSetLayout(),
 		this->textUndergroundDescriptorSet->getDescriptorSetLayout(),
-		this->textWaterDescriptorSet->getDescriptorSetLayout(),
 		this->textSkyboxDescriptorSet->getDescriptorSetLayout()
 	};
 	this->terrainPipeline = ve::VulkanPipeline::createPipeline(
 		this->vulkanDevice,
 		descriptorSetLayouts,
 		this->vulkanRenderer.getSwapChainRenderPass(),
-		Config::terrainVertShaderPath,
-		Config::terrainFragShaderPath,
+		Config::lightVertShaderPath,
+		Config::lightFragShaderPath,
 		*this->terrainModel,
 		false
 	);
@@ -115,15 +109,20 @@ void Vox::setupVulkan( void )
  */
 void Vox::run( void )
 {
+	float deltaTime = 0.0f;
 	Stopwatch timer;
+	MatrixUBO matrixUbo(mat4::idMat(), this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
+	LightUBO lightUbo(Config::sunPos, Config::lightColor, this->camera.getCameraPos());
 
+	this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
+	this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
 		timer.start();
-
-		this->moveCamera(timer.elapsed(Unit::Seconds));
+		deltaTime = timer.elapsed(Unit::Seconds);			// NB why is right after start?
+		this->moveCamera(deltaTime);
 
 		// vec3 playerPos = this->camera.getCameraPos();
 		// if (voxelMap.update(playerPos) == true)
@@ -137,20 +136,22 @@ void Vox::run( void )
 			this->vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
 			
 			ui32 currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
-			this->matrixDescriptorSet->setCurrentFrame(currentFrame);
+			this->uboDescriptorSet->setCurrentFrame(currentFrame);
 			this->textTerrainDescriptorSet->setCurrentFrame(currentFrame);
 			this->textUndergroundDescriptorSet->setCurrentFrame(currentFrame);
 			this->textSkyboxDescriptorSet->setCurrentFrame(currentFrame);
-			this->textSkyboxDescriptorSet->setCurrentFrame(currentFrame);
 
-			if (this->updateMatrixUbo == true)
+			if (this->updateUniforms == true)
 			{
-				MatrixUBO ubo(this->camera);
-				this->matrixDescriptorSet->updateUbo(0, ubo.getData());
-				this->updateMatrixUbo = false;
+				matrixUbo.updateView(this->camera.getViewMatrix());
+				matrixUbo.updateProjection(this->camera.getProjectionMatrix());
+				this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
+				lightUbo.updateViewPos(this->camera.getCameraPos());
+				this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
+				this->updateUniforms = false;
 			}
 
-			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
+			this->uboDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
 			this->terrainPipeline->bind(commandBuffer);
 
 			this->textTerrainDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
@@ -160,10 +161,6 @@ void Vox::run( void )
 			this->textUndergroundDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
 			this->undergroundModel->bind(commandBuffer);
 			this->undergroundModel->draw(commandBuffer);
-
-			// this->textWaterDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
-			// this->waterModel->bind(commandBuffer);
-			// this->waterModel->draw(commandBuffer);
 
 			this->textSkyboxDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 			this->skyboxPipeline->bind(commandBuffer);
@@ -195,61 +192,61 @@ void Vox::moveCamera( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
 	{
 		this->camera.moveForward(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_A))
 	{
 		this->camera.moveLeft(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_S))
 	{
 		this->camera.moveBackward(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_D))
 	{
 		this->camera.moveRight(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_E))
 	{
 		this->camera.moveUp(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q))
 	{
 		this->camera.moveDown(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP))
 	{
 		this->camera.rotate(deltaTime * Config::lookSpeed, 0.0f, 0.0f);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN))
 	{
 		this->camera.rotate(-deltaTime * Config::lookSpeed, 0.0f, 0.0f);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))
 	{
 		this->camera.rotate(0.0f, -deltaTime * Config::lookSpeed, 0.0f);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT))
 	{
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
-		this->updateMatrixUbo = true;
+		this->updateUniforms = true;
 	}
 }
 
@@ -269,7 +266,7 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 	float yaw = (currPos.x - oldPos.x) * CameraSettings::cameraSensitivity;
 	float pitch = (oldPos.y - currPos.y) * CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
-	this->updateMatrixUbo = true;
+	this->updateUniforms = true;
 }
 
 /**
@@ -289,7 +286,7 @@ void Vox::resizeWindow( ui32 width, ui32 height )
 		CameraSettings::projectionNear,
 		CameraSettings::projectionFar
 	);
-	this->updateMatrixUbo = true;
+	this->updateUniforms = true;
 }
 
 /**

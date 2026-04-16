@@ -13,20 +13,26 @@ struct Config
 	static constexpr ui32	defaultWindowHeight = 1300;
 	static constexpr ui32	minimumViewingDistance = 160;
 
-	static constexpr float		noiseScalar = 0.01f;
+	static constexpr float		noiseScalar = 0.01f;		// NB <-- ?
 	static constexpr uint32_t	worldSeed = 0U;
 
-	static constexpr vec3ui	mapLimits{
+	static constexpr vec3ui	mapLimits{		// NB <-- ?
 		16384U,
 		16384U,
 		256U
 	};
 
-	static constexpr vec3	cameraLimitsMov{
+	static constexpr vec3	cameraLimitsMov{		// NB <-- ?
 		-100000.0f,
 		-256.0f,
 		-100000.0f
 	};
+	
+	static constexpr vec3 cameraStartPos{165.0f, 225.0f, 165.0f};
+	static constexpr vec3 cameraForward{0.0f, -5.0f, -10.0f};
+
+	static constexpr vec3 sunPos{10.0f, 20.0f, 10.0f};
+	static constexpr vec4 lightColor{1.0f, 1.0f, 1.0f, 1.0f};
 
 	static constexpr i32	chunkLength = 16U;
 	static constexpr i32	chunkHeight = 256U;
@@ -39,6 +45,8 @@ struct Config
 	static constexpr char terrainFragShaderPath[] = "build/basic.frag.spv";
 	static constexpr char skyboxVertShaderPath[] = "build/skybox.vert.spv";
 	static constexpr char skyboxFragShaderPath[] = "build/skybox.frag.spv";
+	static constexpr char lightVertShaderPath[] = "build/light_base.vert.spv";
+	static constexpr char lightFragShaderPath[] = "build/light_base.frag.spv";
 
 	static constexpr char textureStonePath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char textureWaterPath[] = "textures/texture_water_mono.jpeg";
