@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <cassert>
 
 
 namespace vox {
@@ -31,6 +32,18 @@ std::string formatBytes( size_t bytes ) {
 		oss << bytes << " B";
 
 	return oss.str();
+}
+
+
+int	positiveModulo(int value, int modulus)
+{
+	assert(modulus > 0 && "modulus must be positive");
+	value = value % modulus;
+	if (value < 0)
+	{
+		return value + modulus;
+	}
+	return value;
 }
 
 }	// namespace vox

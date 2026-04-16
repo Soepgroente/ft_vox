@@ -99,17 +99,6 @@ i32	VoxelMap::getChunkIndex(const vec2i& position) const noexcept
 	return chunkZ * squareSize + chunkX;
 }
 
-i32	VoxelMap::positiveModulo(i32 value, i32 modulus) const noexcept
-{
-	assert(modulus > 0 && "modulus must be positive");
-	value = value % modulus;
-	if (value < 0)
-	{
-		return value + modulus;
-	}
-	return value;
-}
-
 void	VoxelMap::generateChunk(VoxelType* chunkData, const vec2i& pos)
 {
 	float	positionX = static_cast<float>(pos.width * chunkDimensions.width);
