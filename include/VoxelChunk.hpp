@@ -49,9 +49,9 @@ class VoxelChunk
 		VertexVector			vertexes;
 		std::array<VoxelChunk*, 4>	adjacentChunks{};
 	
-		void	northernSquare();
 		void	westernSquare();
 		void	easternSquare();
+		void	northernSquare();
 		void	southernSquare();
 };
 

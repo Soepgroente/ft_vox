@@ -60,11 +60,6 @@ void	VoxelChunk::generateMap(float seed)
 	}
 }
 
-void	VoxelChunk::northernSquare()
-{
-
-}
-
 void	VoxelChunk::westernSquare()
 {
 	
@@ -75,6 +70,15 @@ void	VoxelChunk::easternSquare()
 
 }
 
+void	VoxelChunk::northernSquare()
+{
+	if (adjacentChunks[static_cast<size_t>(Direction::North)] == nullptr)
+	{
+		return;
+	}
+	for (i32 )
+}
+
 void	VoxelChunk::southernSquare()
 {
 
@@ -83,52 +87,25 @@ void	VoxelChunk::southernSquare()
 void	VoxelChunk::generateVertexes()
 {
 	i32 widthMax = chunkDimensions.x - 1;
-	i32 dimY = chunkDimensions.y;
+	i32 dimY = chunkDimensions.y - 1;
 	i32 depthMax = chunkDimensions.z - 1;
 
 	i32 widthMin = 1;
 	i32 depthMin = 1;
+	i32 heightMin = 1;
 
-	if (adjacentChunks.at(static_cast<size_t>(Direction::East)) == nullptr)
-	{
-		widthMax++;
-	}
-	else
-	{
-		easternSquare();
-	}
-	if (adjacentChunks.at(static_cast<size_t>(Direction::West)) == nullptr)
-	{
-		widthMin--;
-	}
-	else
-	{
-		westernSquare();
-	}
-	if (adjacentChunks.at(static_cast<size_t>(Direction::North)) == nullptr)
-	{
-		depthMax++;
-	}
-	else
-	{
-		northernSquare();
-	}
-	if (adjacentChunks.at(static_cast<size_t>(Direction::South)) == nullptr)
-	{
-		depthMin--;
-	}
-	else
-	{
-		southernSquare();
-	}
+	westernSquare();
+	easternSquare();
+	northernSquare();
+	southernSquare();
+
 	for (i32 z = depthMin; z < depthMax; z++)
 	{
 		for (i32 x = widthMin; x < widthMax; x++)
 		{
-			for (i32 y = 0; y < dimY; y++)
+			i32 i = index(x, 0, z);
+			for (i32 y = heightMin; y < dimY; y++)
 			{
-				i32 i = index(x, y, z);
-
 				if (map[i] == VoxelType::Air)
 				{
 					continue;
@@ -160,6 +137,7 @@ void	VoxelChunk::generateVertexes()
 				{
 					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::BOTTOM));
 				}
+				i++;
 			}
 		}
 	}
