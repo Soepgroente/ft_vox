@@ -2,7 +2,7 @@
 #include "VulkanObject.hpp"
 
 #include <cassert>
-
+#include <iostream>
 
 namespace ve {
 
@@ -39,7 +39,6 @@ VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<vec3>& vertices
  * @param indexesVoxel sequence of (36) indexes that represent the faces of a voxel
  *
  */
-
 VulkanModel::VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding, ModelLayout type) :
 	vulkanDevice{device}, binding{binding}, type{type}
 {
@@ -178,6 +177,9 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 	uint32_t offsetVertex = 0U;		// careful: this is a bytes offset
 	uint32_t offsetIndex = 0U;		// careful: this is an element (uints) offset
 	for (std::vector<Vertex> const& worldVertexes : vertices) {
+		// some chunks might be empty, skip them
+		if ( worldVertexes.data() == nullptr )
+			continue;
 		uint32_t sizeData = worldVertexes.size() * vertexSize;
 		// insert vertexes of this chunk in staging buffer
 		stagingBufferVertex.writeToBuffer(static_cast<const void*>(worldVertexes.data()), sizeData, offsetVertex);
@@ -257,7 +259,7 @@ std::vector<VkVertexInputBindingDescription>	VulkanModel::getBindingDescriptions
 {
 	std::vector<VkVertexInputBindingDescription>	bindingDescriptions(1);
 
-	bindingDescriptions[0].binding = 0;
+	bindingDescriptions[0].binding = this->binding;
 	bindingDescriptions[0].stride = 0;
 	if (this->type & ModelLayout::VERTEX)
 		bindingDescriptions[0].stride += sizeof(vec3);

@@ -17,7 +17,7 @@ Vox::Vox( void ) :
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	vulkanSetFactory{vulkanDevice},
-	camera{Config::cameraStartPos, Config::cameraForward, Config::cameraLimitsMov},
+	camera{Config::cameraStartPos, Config::cameraForward, this->vulkanWindow.getAspectRatio()},
 	voxelMap{threadManager},
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
@@ -25,16 +25,9 @@ Vox::Vox( void ) :
 	},
 	updateUniforms{false}
 {
-	this->camera.setViewMatrix();
-	this->camera.setPerspectiveProjection(
-		radians(CameraSettings::projectionFov),
-		this->vulkanWindow.getAspectRatio(),
-		CameraSettings::projectionNear,
-		CameraSettings::projectionFar
-	);
-	voxelMap.init();
-	assert(voxelMap.isReady() == true && "map wasn't ready");
-	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
+	this->voxelMap.init();
+	assert(this->voxelMap.isReady() == true && "map wasn't ready");
+	this->inputHandler.setCallbacks(this->vulkanWindow.getGLFWwindow());
 }
 
 void Vox::setupVulkan( void )
@@ -202,55 +195,46 @@ void Vox::moveCamera( float deltaTime )
 		this->camera.moveForward(deltaTime * Config::movementSpeed);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_A))
 	{
 		this->camera.moveLeft(deltaTime * Config::movementSpeed);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_S))
 	{
 		this->camera.moveBackward(deltaTime * Config::movementSpeed);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_D))
 	{
 		this->camera.moveRight(deltaTime * Config::movementSpeed);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_E))
 	{
 		this->camera.moveUp(deltaTime * Config::movementSpeed);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q))
 	{
 		this->camera.moveDown(deltaTime * Config::movementSpeed);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP))
 	{
 		this->camera.rotate(deltaTime * Config::lookSpeed, 0.0f, 0.0f);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN))
 	{
 		this->camera.rotate(-deltaTime * Config::lookSpeed, 0.0f, 0.0f);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))
 	{
 		this->camera.rotate(0.0f, -deltaTime * Config::lookSpeed, 0.0f);
 		this->updateUniforms = true;
 	}
-
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT))
 	{
 		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
@@ -288,12 +272,7 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 void Vox::resizeWindow( ui32 width, ui32 height )
 {
 	this->vulkanWindow.resetWindowSize(width, height);
-	this->camera.setPerspectiveProjection(
-		radians(CameraSettings::projectionFov),
-		this->vulkanWindow.getAspectRatio(),
-		CameraSettings::projectionNear,
-		CameraSettings::projectionFar
-	);
+	this->camera.updateAspect(this->vulkanWindow.getAspectRatio());
 	this->updateUniforms = true;
 }
 

@@ -88,7 +88,7 @@ class VoxelMap
 		VoxelType*	getChunk(const vec2i& position)	const noexcept;
 		i32 		getChunkIndex(const vec2i& position) const noexcept;
 		vec2i		voxelToChunkPosition(const vec3& position) const noexcept;
-		
+
 		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
 		void	mapToVertexes(VoxelType* data, uint32_t indexChunk, const vec2i& pos);
 		void	addVisibleFaces(const VoxelType* data, ui32 indexChunk, ui32 voxelChunkPos, const vec3& voxelWorldPos) noexcept;

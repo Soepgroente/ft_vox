@@ -13,21 +13,8 @@ struct Config
 	static constexpr ui32	defaultWindowHeight = 1300;
 	static constexpr ui32	minimumViewingDistance = 160;
 
-	static constexpr float		noiseScalar = 0.01f;		// NB <-- ?
 	static constexpr uint32_t	worldSeed = 0U;
 
-	static constexpr vec3ui	mapLimits{		// NB <-- ?
-		16384U,
-		16384U,
-		256U
-	};
-
-	static constexpr vec3	cameraLimitsMov{		// NB <-- ?
-		-100000.0f,
-		-256.0f,
-		-100000.0f
-	};
-	
 	static constexpr vec3 cameraStartPos{165.0f, 225.0f, 165.0f};
 	static constexpr vec3 cameraForward{0.0f, -5.0f, -10.0f};
 

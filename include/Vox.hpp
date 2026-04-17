@@ -107,9 +107,6 @@ class Vox
 
 		static std::vector<std::thread>	workerThreads;
 
-		/*	Temporarily global for testing	*/
-		VoxelMap&	getMap() { return voxelMap; };
-
 	private:
 		std::unique_ptr<ve::VulkanModel> createSkyboxModel( void );
 
