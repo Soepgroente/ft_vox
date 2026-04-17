@@ -33,20 +33,16 @@ struct Material
 
 struct MeshMaterial
 {
-	// MeshMaterial( void ) = default;
-	// MeshMaterial( MeshMaterial const& other ) = default;
-	// MeshMaterial( MeshMaterial&& other ) = default;
-	// MeshMaterial& operator=( MeshMaterial const& other ) = default;
-	// MeshMaterial& operator=( MeshMaterial&& other ) = default;
-
 	vec4	ambientClr;			// range [0-1] - indirect light color (darker than diffuse)
 	vec4	diffuseClr;			// range [0-1] - color of the mesh
 	vec4	specularClr;		// range [0-1] - reflex of the light
-	int32_t	shininess;			// range [1-256] - low (2-8): opaque, high (64-256) shiny/metal
+	float	shininess;			// range [1.0-256.0] - low (2-8): opaque, high (64-256) shiny/metal
 	float	opacity;			// alpha of diffuse
 	int32_t	refractionIndex;	// range [1-2.42...] - index of refraction, 1.0: air, 1.33 h2o, 1.5 glass
 	int32_t	illuminationModel;	// range [0-10] - 0: no lighting only texture, 1: ambient + diffuse, 2: ambient + diffuse + specular
 };
+
+static_assert(sizeof(MeshMaterial) == 64);
 
 struct ObjComponent
 {

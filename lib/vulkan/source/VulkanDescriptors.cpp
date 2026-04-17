@@ -181,7 +181,7 @@ void VulkanDescriptorSet::updateUboAll(int32_t binding, void const* data)
 		this->buffers[binding][frame]->writeToBuffer(data);
 }
 
-void VulkanDescriptorSet::bind(VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex)
+void VulkanDescriptorSet::bindSet(VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex)
 {
 	vkCmdBindDescriptorSets(
 		commandBuffer,

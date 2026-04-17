@@ -94,7 +94,7 @@ class VulkanModel
 	VulkanModel& operator=(const VulkanModel&) = delete;
 	VulkanModel& operator=(VulkanModel&&) = delete;
 
-	void	bind(VkCommandBuffer commandBuffer);
+	void	bindBuffer(VkCommandBuffer commandBuffer);
 	void	draw(VkCommandBuffer commandBuffer);
 	void	setName(const std::string& name) { this->name = name; }
 	void	setBoundingBox(const std::vector<Vertex>& vertices) noexcept;

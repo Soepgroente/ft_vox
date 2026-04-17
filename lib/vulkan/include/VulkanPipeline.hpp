@@ -60,7 +60,8 @@ class VulkanPipeline
 			std::string const& vertexShaderFile,
 			std::string const& fragmentShaderFile,
 			VulkanModel const& mesh,
-			bool hasCubemapsTexture
+			bool hasCubemapsTexture,
+			uint32_t sizePushConstants
 		);
 		~VulkanPipeline( void );
 		VulkanPipeline(VulkanPipeline const&) = delete;
@@ -68,7 +69,8 @@ class VulkanPipeline
 		VulkanPipeline& operator=(VulkanPipeline const&) = delete;
 
 		VkPipelineLayout	getPipelineLayout( void ) const noexcept { return pipelineLayout; };
-		void				bind(VkCommandBuffer commandBuffer) const noexcept;
+		void				bindPipeline(VkCommandBuffer commandBuffer) const noexcept;
+		void				updatePushConstants(VkCommandBuffer commandBuffer, void const* data ) const noexcept;
 
 		static std::unique_ptr<VulkanPipeline> createPipeline(
 			VulkanDevice& device,
@@ -77,7 +79,8 @@ class VulkanPipeline
 			std::string const& vertexShaderFile,
 			std::string const& fragmentShaderFile,
 			VulkanModel const& mesh,
-			bool hasCubemapsTexture = false
+			bool hasCubemapsTexture = false,
+			uint32_t sizePushConstants = 0U
 		);
 
 	private:
@@ -88,6 +91,8 @@ class VulkanPipeline
 		VulkanDevice&		vulkanDevice;
 		VkPipelineLayout	pipelineLayout;
 		VkPipeline			pipeline;
+
+		uint32_t			sizePushConstants;
 };
 
 }
