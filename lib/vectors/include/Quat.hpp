@@ -2,6 +2,7 @@
 
 #include "Vec3.hpp"
 #include "Mat4.hpp"
+#include "Mat3.hpp"
 
 #include <algorithm>
 #include <ostream>

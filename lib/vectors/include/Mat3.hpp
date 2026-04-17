@@ -9,6 +9,8 @@ class mat3
 {
 	public:
 
+	static mat3	idMat( void );
+
 	mat3() = default;
 	mat3(float diagonal);
 	mat3(const vec3& row0,

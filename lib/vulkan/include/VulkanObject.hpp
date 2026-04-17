@@ -21,14 +21,31 @@ struct ImageInfo
 struct Material
 {
 	std::string	name;
-	vec3	ambientClr;
-	vec3	diffuseClr;
-	vec3	specularClr;
-	float	shininess;
+	vec4	ambientClr;
+	vec4	diffuseClr;
+	vec4	specularClr;
+	int32_t	shininess;
 	float	opacity;
-	float	illuminationModel;
-	float	refractionIndex;
+	int32_t	refractionIndex;
+	int32_t	illuminationModel;
 	bool	smoothShading;
+};
+
+struct MeshMaterial
+{
+	// MeshMaterial( void ) = default;
+	// MeshMaterial( MeshMaterial const& other ) = default;
+	// MeshMaterial( MeshMaterial&& other ) = default;
+	// MeshMaterial& operator=( MeshMaterial const& other ) = default;
+	// MeshMaterial& operator=( MeshMaterial&& other ) = default;
+
+	vec4	ambientClr;			// range [0-1] - indirect light color (darker than diffuse)
+	vec4	diffuseClr;			// range [0-1] - color of the mesh
+	vec4	specularClr;		// range [0-1] - reflex of the light
+	int32_t	shininess;			// range [1-256] - low (2-8): opaque, high (64-256) shiny/metal
+	float	opacity;			// alpha of diffuse
+	int32_t	refractionIndex;	// range [1-2.42...] - index of refraction, 1.0: air, 1.33 h2o, 1.5 glass
+	int32_t	illuminationModel;	// range [0-10] - 0: no lighting only texture, 1: ambient + diffuse, 2: ambient + diffuse + specular
 };
 
 struct ObjComponent
@@ -53,9 +70,9 @@ struct ObjInfo
 
 struct TransformComponent
 {
-	vec3	translation{};
+	vec3	translation{0.0f};
 	vec3	scale{1.0f, 1.0f, 1.0f};
-	vec3	rotation{};
+	quat	rotation{};
 
 	mat4	matrix4() const noexcept;
 	mat4	matrix4(const vec3& rotationCenter) const noexcept;
@@ -65,28 +82,37 @@ struct TransformComponent
 class VulkanObject
 {
 	public:
+		VulkanObject() = delete;
+		~VulkanObject() = default;
+		VulkanObject(const VulkanObject& other) = delete;
+		VulkanObject& operator=(const VulkanObject& other) = delete;
+		VulkanObject(VulkanObject&& other) = default;
+		VulkanObject& operator=(VulkanObject&& other) = default;
 
-	VulkanObject() = delete;
-	~VulkanObject();
-	VulkanObject(const VulkanObject& other) = delete;
-	VulkanObject& operator=(const VulkanObject& other) = delete;
-	VulkanObject(VulkanObject&& other) = default;
-	VulkanObject& operator=(VulkanObject&& other) = default;
+		static VulkanObject	createVulkanObject() { return VulkanObject(currentID++); };
 
-	static VulkanObject	createVulkanObject() { return VulkanObject(++currentID); }
-	static uint32_t		currentID;
+		uint32_t	getID() const noexcept { return id; }
 
-	std::shared_ptr<VulkanModel>	model;
-	// vec3							color;
-	TransformComponent				transform{};
+		void	rotate( vec3 const& axis, float angle ) noexcept;
+		void	translate( vec3 const& translation ) noexcept;
+		void	scale( vec3 const& scale ) noexcept;
+		void	scale( float scale ) noexcept;
 
-	uint32_t	getID() const noexcept { return id; }
+		mat4				getModelMatrix() const noexcept;
+		mat4				getNormalMatrix() const noexcept;
+		MeshMaterial const&	getMaterial() const noexcept { return materialData; };
 
 	private:
+		VulkanObject(uint32_t objID) : id(objID) {};
+	
+		uint32_t						id;
+		std::shared_ptr<VulkanModel>	model;
+		TransformComponent				transform{};
+		MeshMaterial					materialData{};
+		bool							transformationApplied{false};
+		bool							uniformScale{true};
 
-	VulkanObject(uint32_t objID);
-
-	uint32_t		id;
+		static uint32_t		currentID;
 };
 
 std::ostream&	operator<<(std::ostream& os, const ObjInfo& obj);
