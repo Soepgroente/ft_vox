@@ -17,7 +17,7 @@ enum class VoxelType : ui8
 	Dirt = 1,
 	Stone = 2,
 	Water = 3,
-	NoMoreBlocksThisColumn = 255
+	Padding = 255
 };
 
 class VoxelChunk
@@ -35,11 +35,22 @@ class VoxelChunk
 		VoxelChunk& operator=(VoxelChunk&&) = delete;
 	
 		static vec3i	chunkDimensions;
+		static vec3i	paddedDimensions;
+		static ui32		paddedSize;
 		static ui32		chunkSize;
 
 		void	generateMap(float seed);
 		void	generateVertexes();
-		i32		index(i32 x, i32 y, i32 z) { return ((z * chunkDimensions.x) + x) * chunkDimensions.y + y; }
+
+		const VertexVector&	getVertexData() const noexcept { return vertexes; }
+
+		void	setAdjacentChunks(VoxelChunk* north, VoxelChunk* east, VoxelChunk* south, VoxelChunk* west) noexcept;
+
+		size_t	getVertexSize() const noexcept { return vertexes.size(); }
+		i32		index(i32 x, i32 y, i32 z) const noexcept { return ((z * paddedDimensions.x) + x) * paddedDimensions.y + y; }
+		VoxelType	at(i32 x, i32 y, i32 z) const noexcept { return map[index(x, y, z)]; }
+		VoxelType	at(i32 index) const noexcept { return map[index]; }
+		const VoxelType*	dataAt(i32 index) const noexcept { return map.data() + index; }
 
 	private:
 		
@@ -49,10 +60,7 @@ class VoxelChunk
 		VertexVector			vertexes;
 		std::array<VoxelChunk*, 4>	adjacentChunks{};
 	
-		void	westernSquare();
-		void	easternSquare();
-		void	northernSquare();
-		void	southernSquare();
+		void	copyAdjacentData();
 };
 
 }	// namespace vox

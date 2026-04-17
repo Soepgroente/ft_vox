@@ -27,7 +27,7 @@ class VoxelMap
 
 		VoxelMap() = delete;
 		VoxelMap(ThreadManager& threadManager);
-		~VoxelMap();
+		~VoxelMap() = default;
 		VoxelMap(VoxelMap const&) = delete;
 		VoxelMap(VoxelMap&&) = delete;
 		VoxelMap& operator=(VoxelMap const&) = delete;
@@ -38,12 +38,11 @@ class VoxelMap
 		vec3	getMapMiddle() const noexcept;
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
 		
-		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
 		bool		isReady() const noexcept { return this->ready; }
 		
 		private:
-		
-		VoxelType*	map;
+
+		std::vector<VoxelChunk>	map;
 		ui32	worldSeed;
 
 		i32 	squareSize;
@@ -55,23 +54,13 @@ class VoxelMap
 		bool	ready = false;
 		
 		ThreadManager&	threadManager;
-		std::vector<VertexVector>	chunksAsVectors;
-		
-		VoxelType*	getChunk(const vec2i& position)	const noexcept;
-		i32 		getChunkIndex(const vec2i& position) const noexcept;
-		i32		positiveModulo(i32 value, i32 modulus)	const noexcept;
-		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
-		int		visibleFaces(const vec3i& pos) const noexcept;
-		int		localVisibleFaces(const VoxelType* data, ui32 index) const noexcept;
-		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
-		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
-		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
-		
+
 		void	north();
 		void	south();
 		void	west();
 		void	east();
 
+		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
 		void	generateRow(vec2i pos);
 		void	generateColumn(vec2i pos);
 

@@ -3,6 +3,7 @@
 #include "World.hpp"
 
 #include <cassert>
+#include <cstring>
 
 namespace vox {
 
@@ -10,48 +11,53 @@ float	perlin(float x, float y, float z);
 float	randomNoise(float, float, ui32& seed);
 
 vec3i	chunkDimensions = vec3i::zero();
+vec3i	paddedDimensions = vec3i::zero();
+ui32	paddedSize = 0;
 ui32	chunkSize = 0;
 
 VoxelChunk::VoxelChunk(vec2i loc) : location(loc)
 {
-	map.reserve(VoxelChunk::chunkSize);
-	vertexes.reserve(chunkDimensions.x * chunkDimensions.z);
+	map.assign(static_cast<size_t>(paddedSize), VoxelType::Padding);
+	vertexes.reserve(chunkDimensions.x * chunkDimensions.z * 8);
 
 	worldPosition = vec3i(chunkDimensions.x * location.width, 0, chunkDimensions.z * location.depth);
 }
 
 void	VoxelChunk::generateMap(float seed)
 {
-	i32 y = 0;
-	i32 dimX = chunkDimensions.x;
-	i32 dimY = chunkDimensions.y;
-	i32 dimZ = chunkDimensions.z;
+	i32 y;
+	const i32 waterLevel = Config::seaLevel + 1;
+	const i32 dimX = paddedDimensions.x - 1;
+	const i32 dimY = paddedDimensions.y - 1;
+	const i32 dimZ = paddedDimensions.z - 1;
+	const i32 height = chunkDimensions.y;
 
-	i32 index = 0;
-
-	for (i32 z = 0; z < dimZ; z++)
+	for (i32 z = 1; z < dimZ; z++)
 	{
-		for (i32 x = 0; x < dimX; x++)
+		for (i32 x = 1; x < dimX; x++)
 		{
-			float noiseValue = perlin(
-				static_cast<float>(static_cast<float>(worldPosition.width + x) * Config::noiseScalar),
-				static_cast<float>(static_cast<float>(worldPosition.depth + z) * Config::noiseScalar),
-				static_cast<float>(seed));
-			i32 heightValue = static_cast<i32>(noiseValue * static_cast<float>(dimY));
+			i32 index = this->index(x, 1, z);
+
+			const float worldX = static_cast<float>(worldPosition.width + x - 1);
+			const float worldZ = static_cast<float>(worldPosition.depth + z - 1);
+
+			float noiseValue = perlin(worldX * Config::noiseScalar, worldZ * Config::noiseScalar, static_cast<float>(seed));
+			i32 heightValue = static_cast<i32>(noiseValue * static_cast<float>(height)) + 1;
 
 			assert(heightValue <= chunkDimensions.height && "height value out of range");
 			assert(Config::seaLevel <= chunkDimensions.height && "sea level higher than height of world");
-			for (y = 0; y < heightValue; y++)
+
+			for (y = 1; y < heightValue; y++)
 			{
 				map[index] = VoxelType::Dirt;
 				index++;
 			}
-			for (; y < Config::seaLevel; y++)
+			for (; y < waterLevel; y++)
 			{
 				map[index] = VoxelType::Water;
 				index++;
 			}
-			for (; y < chunkDimensions.height; y++)
+			for (; y < dimY; y++)
 			{
 				map[index] = VoxelType::Air;
 				index++;
@@ -60,82 +66,121 @@ void	VoxelChunk::generateMap(float seed)
 	}
 }
 
-void	VoxelChunk::westernSquare()
+void	VoxelChunk::copyAdjacentData()
 {
-	
-}
+	const VoxelChunk* north = adjacentChunks[static_cast<size_t>(Direction::North)];
+	const VoxelChunk* east = adjacentChunks[static_cast<size_t>(Direction::East)];
+	const VoxelChunk* south = adjacentChunks[static_cast<size_t>(Direction::South)];
+	const VoxelChunk* west = adjacentChunks[static_cast<size_t>(Direction::West)];
 
-void	VoxelChunk::easternSquare()
-{
+	const i32 width = paddedDimensions.x - 1;
+	const i32 height = paddedDimensions.y - 1;
+	const i32 depth = paddedDimensions.z - 1;
+	const i32 copySize = chunkDimensions.y * sizeof(VoxelType);
 
-}
-
-void	VoxelChunk::northernSquare()
-{
-	if (adjacentChunks[static_cast<size_t>(Direction::North)] == nullptr)
+	if (north != nullptr)
 	{
-		return;
+		for (i32 x = 1; x < width; x++)
+		{
+			i32 src = north->index(x, 1, 1);
+			i32 dst = this->index(x, 1, depth);
+
+			std::memcpy(static_cast<void*>(&map[dst]), north->dataAt(src), copySize);
+		}
 	}
-	for (i32 )
+	if (south != nullptr)
+	{
+		for (i32 x = 1; x < width; x++)
+		{
+			i32 src = south->index(x, 1, depth - 1);
+			i32 dst = this->index(x, 1, 0);
+
+			std::memcpy(&map[dst], south->dataAt(src), copySize);
+		}
+	}
+	if (east != nullptr)
+	{
+		for (i32 z = 1; z < depth; z++)
+		{
+			i32 src = east->index(1, 1, z);
+			i32 dst = this->index(width, 1, z);
+
+			std::memcpy(&map[dst], east->dataAt(src), copySize);
+		}
+	}
+	if (west != nullptr)
+	{
+		for (i32 z = 1; z < depth; z++)
+		{
+			i32 src = west->index(width - 1, 1, z);
+			i32 dst = this->index(0, 1, z);
+
+			std::memcpy(&map[dst], west->dataAt(src), copySize);
+		}
+	}
 }
 
-void	VoxelChunk::southernSquare()
+void	VoxelChunk::setAdjacentChunks(VoxelChunk* north, VoxelChunk* east, VoxelChunk* south, VoxelChunk* west) noexcept
 {
-
+	adjacentChunks[static_cast<size_t>(Direction::North)] = north;
+	adjacentChunks[static_cast<size_t>(Direction::North)] = east;
+	adjacentChunks[static_cast<size_t>(Direction::North)] = south;
+	adjacentChunks[static_cast<size_t>(Direction::North)] = west;
 }
 
 void	VoxelChunk::generateVertexes()
 {
-	i32 widthMax = chunkDimensions.x - 1;
-	i32 dimY = chunkDimensions.y - 1;
-	i32 depthMax = chunkDimensions.z - 1;
+	vertexes.clear();
 
-	i32 widthMin = 1;
-	i32 depthMin = 1;
-	i32 heightMin = 1;
+	const i32 widthMax = paddedDimensions.x - 1;
+	const i32 dimY = paddedDimensions.y - 1;
+	const i32 depthMax = paddedDimensions.z - 1;
 
-	westernSquare();
-	easternSquare();
-	northernSquare();
-	southernSquare();
+	const i32 xStride = paddedDimensions.y;
+	const i32 zStride = paddedDimensions.x * paddedDimensions.y;
 
-	for (i32 z = depthMin; z < depthMax; z++)
+	const float worldX = static_cast<float>(worldPosition.x);
+	const float worldZ = static_cast<float>(worldPosition.z);
+
+	copyAdjacentData();
+	for (i32 z = 1; z < depthMax; z++)
 	{
-		for (i32 x = widthMin; x < widthMax; x++)
+		for (i32 x = 1; x < widthMax; x++)
 		{
-			i32 i = index(x, 0, z);
-			for (i32 y = heightMin; y < dimY; y++)
+			i32 i = index(x, 1, z);
+			for (i32 y = 1; y < dimY; y++)
 			{
 				if (map[i] == VoxelType::Air)
 				{
+					i++;
 					continue;
 				}
 
-				vec3 worldPos{worldPos.x + static_cast<float>(x), static_cast<float>(y), worldPos.z + static_cast<float>(z)};
+				vec3 world{worldX + static_cast<float>(x - 1), static_cast<float>(y - 1), worldZ + static_cast<float>(z - 1)};
 
-				if (map[i + z] == VoxelType::Air)
+				if (map[i + zStride] == VoxelType::Air)
 				{
-					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::FRONT));
+					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::FRONT));
 				}
-				if (map[i - z] == VoxelType::Air)
+				if (map[i - zStride] == VoxelType::Air)
 				{
-					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::BACK));
+					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::BACK));
 				}
-				if (map[i - x] == VoxelType::Air)
+				if (map[i - xStride] == VoxelType::Air)
 				{
-					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::LEFT));
+					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::LEFT));
 				}
-				if (map[i + x] == VoxelType::Air)
+				if (map[i + xStride] == VoxelType::Air)
 				{
-					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::RIGHT));
+					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::RIGHT));
 				}
 				if (map[i + 1] == VoxelType::Air)
 				{
-					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::TOP));
+					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::TOP));
 				}
 				if (map[i - 1] == VoxelType::Air)
 				{
-					addVoxelFace(worldPos, vertexes, static_cast<size_t>(VertexFaces::BOTTOM));
+					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::BOTTOM));
 				}
 				i++;
 			}

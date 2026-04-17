@@ -49,69 +49,33 @@ bool	VoxelMap::update(const vec3& newPosition)
 
 void	VoxelMap::meshRow(vec2i pos)
 {
-	VoxelType*	ptrToData;
-	ui32 index;
-
-	for (i32 i = 0; i < squareSize; i++)
+	for (i32 i = pos.width; i < squareSize; i++)
 	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-
-		threadManager.enqueue([this, pos, ptrToData, index] {
-			mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
-		});
-		pos.x += 1;
+		map[i].generateVertexes();
 	}
 }
 
 void	VoxelMap::meshColumn(vec2i pos)
 {
-	VoxelType*	ptrToData;
-	ui32 index;
-
-	for (i32 i = 0; i < squareSize; i++)
+	for (i32 i = pos.depth; i < squareSize; i++)
 	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-
-		threadManager.enqueue([this, pos, ptrToData, index] {
-			mapToVertexes(ptrToData, chunksAsVectors.at(index), pos);
-		});
-		pos.y += 1;
+		map[i].generateVertexes();
 	}
 }
 
 void	VoxelMap::generateRow(vec2i pos)
 {
-	VoxelType*	ptrToData;
-	ui32 index;
-
-	for (i32 i = 0; i < squareSize; i++)
+	for (i32 i = pos.width; i < squareSize; i++)
 	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-
-		threadManager.enqueue([this, pos, ptrToData] {
-			generateChunk(ptrToData, pos);
-		});
-		pos.x += 1;
+		map[i].generateMap(worldSeed);
 	}
 }
 
 void	VoxelMap::generateColumn(vec2i pos)
 {
-	VoxelType*	ptrToData;
-	ui32 index;
-
-	for (i32 i = 0; i < squareSize; i++)
+	for (i32 i = pos.depth; i < squareSize; i++)
 	{
-		index = getChunkIndex(pos);
-		ptrToData = map + index * chunkSize;
-
-		threadManager.enqueue([this, pos, ptrToData] {
-			generateChunk(ptrToData, pos);
-		});
-		pos.y += 1;
+		map[i].generateMap(worldSeed);
 	}
 }
 
@@ -137,10 +101,8 @@ void	VoxelMap::south()
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
 
 	generateRow(pos);
-	threadManager.waitIdle();
 	meshRow(pos);
 	meshRow({pos.x, pos.y + 1});
-	threadManager.waitIdle();
 }
 
 void	VoxelMap::west()
@@ -151,10 +113,8 @@ void	VoxelMap::west()
 	vec2i	pos = vec2i{minPositions.x, minPositions.y};
 
 	generateColumn(pos);
-	threadManager.waitIdle();
 	meshColumn(pos);
 	meshColumn({pos.x + 1, pos.y});
-	threadManager.waitIdle();
 }
 
 void	VoxelMap::east()
@@ -165,17 +125,8 @@ void	VoxelMap::east()
 	vec2i	pos = vec2i{maxPositions.x, minPositions.y};
 
 	generateColumn(pos);
-	threadManager.waitIdle();
 	meshColumn(pos);
 	meshColumn({pos.x - 1, pos.y});
-	threadManager.waitIdle();
-}
-
-vec3	VoxelMap::getMapMiddle() const noexcept
-{
-	return vec3((maxPositions.x + minPositions.x + 1) * chunkDimensions.x / 2.0f,
-				chunkDimensions.height - 1.0f,
-				(maxPositions.y + minPositions.y + 1) * chunkDimensions.z / 2.0f);
 }
 
 }	//namespace vox
