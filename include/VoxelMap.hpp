@@ -35,8 +35,6 @@ class VoxelMap
 	private:
 		std::vector<VoxelChunk>	map;
 
-		ui32			worldSeed;
-
 		i32 	squareSize;
 		vec2i	minPositions;
 		vec2i	maxPositions;

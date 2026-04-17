@@ -170,8 +170,7 @@ void VulkanDescriptorSet::setCurrentFrame(uint32_t frame) noexcept
 void VulkanDescriptorSet::updateUbo(int32_t binding, void const* data)
 {
 	assert(this->buffers.count(binding) != 0U && "Buffer binding not found in descriptor set");
-	// for (uint32_t frame = 0; frame < this->framesInFlight; frame++)		//	NB check
-		this->buffers[binding][this->currentFrame]->writeToBuffer(data);
+	this->buffers[binding][this->currentFrame]->writeToBuffer(data);
 }
 
 void VulkanDescriptorSet::updateUboAll(int32_t binding, void const* data)
