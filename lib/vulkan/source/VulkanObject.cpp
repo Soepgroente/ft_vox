@@ -6,8 +6,6 @@
 
 namespace ve {
 
-id_t	VulkanObject::currentID = 0;
-
 mat4	TransformComponent::matrix4() const noexcept
 {
 	const float c1 = std::cos(rotation.y);
@@ -114,12 +112,125 @@ mat3	TransformComponent::normalMatrix() const noexcept
 	};
 }
 
-VulkanObject::VulkanObject(id_t objID) : id(objID)
+
+uint32_t	VulkanObject::currentID = 0U;
+
+void VulkanObject::rotate( vec3 const& axis, float angle ) noexcept
 {
+	if (this->transformationApplied == false)
+		this->transformationApplied = true;
+
+	this->transform.rotation = quat::product(quat(angle, axis), transform.rotation);	// second factor is applied first, first as last
+	this->transform.rotation.normalize();
 }
 
-VulkanObject::~VulkanObject()
+void VulkanObject::translate( vec3 const& translation ) noexcept
 {
+	if (this->transformationApplied == false)
+		this->transformationApplied = true;
+
+	this->transform.translation += translation;
+}
+
+void VulkanObject::scale( vec3 const& scale ) noexcept
+{
+	if (this->transformationApplied == false)
+		this->transformationApplied = true;
+
+	if (this->uniformScale == true and (scale.x != scale.y or scale.y != scale.z))
+		this->uniformScale = false;
+
+	this->transform.scale.x *= scale.x;
+	this->transform.scale.y *= scale.y;
+	this->transform.scale.z *= scale.z;
+}
+
+void VulkanObject::scale( float scale ) noexcept
+{
+	if (this->transformationApplied == false)
+		this->transformationApplied = true;
+
+	this->transform.scale.x *= scale;
+	this->transform.scale.y *= scale;
+	this->transform.scale.z *= scale;
+}
+
+// return matrix in column major
+mat4 VulkanObject::getModelMatrix() const noexcept
+{
+	// model = T × R × S
+	if (this->transformationApplied == false)
+	{
+		return mat4::idMat();
+	}
+
+	mat4 rotation = this->transform.rotation.getMatrix();
+
+	return mat4(
+		{
+			this->transform.scale.x * rotation[0][0],
+			this->transform.scale.x * rotation[0][1],
+			this->transform.scale.x * rotation[0][2],
+			0.0f
+		},
+		{
+			this->transform.scale.y * rotation[1][0],
+			this->transform.scale.y * rotation[1][1],
+			this->transform.scale.y * rotation[1][2],
+			0.0f
+		},
+		{
+			this->transform.scale.z * rotation[2][0],
+			this->transform.scale.z * rotation[2][1],
+			this->transform.scale.z * rotation[2][2],
+			0.0f
+		},
+		{
+			this->transform.translation.x,
+			this->transform.translation.y,
+			this->transform.translation.z,
+			1.0f
+		}
+	);
+}
+
+// return matrix in column major
+mat4 VulkanObject::getNormalMatrix() const noexcept
+{
+	// model = T × R × S
+	// normalMatrix = (Model⁻¹)ᵀ = ((T × R × S)⁻¹)ᵀ = (S⁻¹ * R⁻¹ * T⁻¹)ᵀ = (T⁻¹)ᵀ * (R⁻¹)ᵀ * (S⁻¹)ᵀ but:
+	// Transpose matrix: since it moves points, doesn't affect the normal so can be removed
+	// Rotation matrix: is orthogonal so R⁻¹ = Rᵀ --> (R⁻¹)ᵀ = (Rᵀ)ᵀ = R
+	// Scale matrix: is diagonal (and therefore symmetric) so Sᵀ = S --> (S⁻¹)ᵀ = S⁻¹ also the inverse of a diagonal matrix
+	//		is a matrix which elements are the inverse of the elements of the original matrix, finally, if the scaling is uniform
+	//		i.e scale.x = scale.y = scale.z the whole matrix can be ignored
+	// therefore: (Model⁻¹)ᵀ = R * [S⁻¹]
+	if (this->transformationApplied == false)
+	{
+		return mat4::idMat();
+	}
+
+	mat4 rotation = this->transform.rotation.getMatrix();
+
+	if (this->uniformScale == false)
+	{
+		const float idx = 1.0f / this->transform.scale.x;
+		const float idy = 1.0f / this->transform.scale.y;
+		const float idz = 1.0f / this->transform.scale.z;
+
+		rotation[0][0] *= idx;
+		rotation[0][1] *= idx;
+		rotation[0][2] *= idx;
+		rotation[1][0] *= idy;
+		rotation[1][1] *= idy;
+		rotation[1][2] *= idy;
+		rotation[2][0] *= idz;
+		rotation[2][1] *= idz;
+		rotation[2][2] *= idz;
+	}
+
+	return rotation;
+
 }
 
 ImageInfo	loadImage(const std::string& imagePath)

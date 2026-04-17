@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Vulkan.hpp"
-#include "Camera.hpp"
-
 #include "Vectors.hpp"
+
+#include "Camera.hpp"
 #include "Config.hpp"
 #include "World.hpp"
 #include "InputHandler.hpp"
@@ -19,24 +19,20 @@ using ui32 = uint32_t;
 using i32 = int32_t;
 
 
-class MatrixUBO
+class ViewProjectUBO
 {
 	public:
-		MatrixUBO( void ) {};
-		MatrixUBO( mat4 const& model, mat4 const& view, mat4 const& projection ) :
-			model{model},
+		ViewProjectUBO( void ) = delete;
+		ViewProjectUBO( mat4 const& view, mat4 const& projection ) :
 			view{view},
 			projection{projection} {};
 
-		void		updateModel( mat4 const& model ) noexcept { this->model = model; };
-		void		updateView( mat4 const& view ) noexcept { this->view = view; };
-		void		updateProjection( mat4 const& prj ) noexcept { this->projection = prj; };
+		void	updateView( mat4 const& view ) noexcept { this->view = view; };
+		void	updateProjection( mat4 const& prj ) noexcept { this->projection = prj; };
 
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
-		size_t		getSize( void ) const noexcept { return sizeof(MatrixUBO); };
 
 	private:
-		mat4 model{1.0f};		// NB change into ID	( --> MaterialData (per oggetto)) )
 		mat4 view{1.0f};
 		mat4 projection{1.0f};
 };
@@ -45,26 +41,47 @@ class MatrixUBO
 class LightUBO
 {
 	public:
-		LightUBO( void ) {};
+		LightUBO( void ) = delete;
 		LightUBO( vec3 const& lightPos, vec4 const& lightColor, vec3 const& viewPos ) :
 			lightPos{lightPos, 1.0f},
 			lightColor{lightColor},
 			viewPos{viewPos, 1.0f} {};
 
-		void		updateLightPos( vec3 const& lightPos ) noexcept { this->lightPos = vec4{lightPos, 1.0f}; };
-		void		updateLightColor( vec3 const& lightColor ) noexcept { this->lightColor = vec4{lightColor, 1.0f}; };
-		void		updateViewPos( vec3 const& viewPos ) noexcept { this->viewPos = vec4{viewPos, 1.0f}; };
+		void	updateLightPos( vec3 const& lightPos ) noexcept { this->lightPos = vec4{lightPos, 1.0f}; };
+		void	updateLightColor( vec3 const& lightColor ) noexcept { this->lightColor = vec4{lightColor, 1.0f}; };
+		void	updateViewPos( vec3 const& viewPos ) noexcept { this->viewPos = vec4{viewPos, 1.0f}; };
 
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
-		size_t		getSize( void ) const noexcept { return sizeof(LightUBO); };
 
 	private:
 		vec4 lightPos{0.0f};
 		vec4 lightColor{1.0f};
 		vec4 viewPos{0.0f};
-		float ambientStrength{0.6f};		// NB those two should go in another UBO or push const
-		float specularStrength{0.3f};
-		float _pad[2]; // allineamento std140
+};
+
+
+class MeshData
+{
+	public:
+		MeshData( void ) = delete;
+		MeshData( mat4 const& modelMatrix, mat4 const& normalMatrix ) :
+			modelMatrix{modelMatrix},
+			normalMatrix{normalMatrix} {};
+		MeshData( MeshData const& other ) = default;
+		MeshData( MeshData&& other ) = default;
+		MeshData& operator=( MeshData const& other ) = default;
+		MeshData& operator=( MeshData&& other ) = default;
+
+		void	updateModelMatrix( mat4 const& modelMatrix ) noexcept { this->modelMatrix = modelMatrix; };
+		void	updateNormalMatrix( mat4 const& normalMatrix ) noexcept { this->normalMatrix = normalMatrix; };
+		// void	updateMaterial( ve::MeshMaterial const& material ) noexcept { this->material = material; };
+
+		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
+
+	private:
+		mat4	modelMatrix{1.0f};
+		mat4	normalMatrix{1.0f};
+		// ve::MeshMaterial	material{};
 };
 
 

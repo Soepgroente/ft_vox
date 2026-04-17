@@ -34,6 +34,16 @@ struct Config
 	static constexpr vec3 sunPos{10.0f, 20.0f, 10.0f};
 	static constexpr vec4 lightColor{1.0f, 1.0f, 1.0f, 1.0f};
 
+	static constexpr ve::MeshMaterial dirtMaterial{
+		vec4(0.1f),		// ambientClr
+		vec4(0.8f),		// diffuseClr
+		vec4(0.4f),		// specularClr
+		8,				// shininess
+		1.0f,			// opacity
+		1,				// refractionIndex
+		2				// illuminationModel
+	};
+
 	static constexpr i32	chunkLength = 16U;
 	static constexpr i32	chunkHeight = 256U;
 	static constexpr i32	seaLevel = 64U;

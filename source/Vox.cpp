@@ -40,7 +40,7 @@ Vox::Vox( void ) :
 void Vox::setupVulkan( void )
 {
 	uint32_t	maxSetsToCreate = 5;
-	uint32_t	nUniformDescriptors = 2;
+	uint32_t	nUniformDescriptors = 4;
 	uint32_t	nSamplerDescriptors = 4;
 
 	this->vulkanSetFactory
@@ -52,11 +52,15 @@ void Vox::setupVulkan( void )
 
 	ve::VulkanBindingSet uboSetBindings;
 	uboSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-	uboSetBindings.addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	uboSetBindings.addBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	uboSetBindings.addBinding(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	uboSetBindings.addBinding(3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	this->uboDescriptorSet = this->vulkanSetFactory.createDescriptorSet(uboSetBindings);
-	this->uboDescriptorSet->addBufferDescriptor(0, sizeof(MatrixUBO));
-	this->uboDescriptorSet->addBufferDescriptor(1, sizeof(LightUBO));
+	this->uboDescriptorSet->addBufferDescriptor(0, sizeof(ViewProjectUBO));
+	this->uboDescriptorSet->addBufferDescriptor(1, sizeof(MeshData));
+	this->uboDescriptorSet->addBufferDescriptor(2, sizeof(LightUBO));
+	this->uboDescriptorSet->addBufferDescriptor(3, sizeof(ve::MeshMaterial));
 
 	ve::VulkanBindingSet textureTerrainSetBindings;
 	textureTerrainSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -109,19 +113,26 @@ void Vox::setupVulkan( void )
  */
 void Vox::run( void )
 {
-	float deltaTime = 0.0f;
-	Stopwatch timer;
-	MatrixUBO matrixUbo(mat4::idMat(), this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
-	LightUBO lightUbo(Config::sunPos, Config::lightColor, this->camera.getCameraPos());
+
+	ViewProjectUBO	matrixUbo(this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
+	LightUBO		lightUbo(Config::sunPos, Config::lightColor, this->camera.getCameraPos());
+	MeshData		terrainData{mat4::idMat(), mat4::idMat()};
+	// ve::MeshMaterial
+	// terrainData.updateMaterial(Config::dirtMaterial);
 
 	this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
-	this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
+	this->uboDescriptorSet->updateUboAll(1, terrainData.getData());
+	this->uboDescriptorSet->updateUboAll(2, lightUbo.getData());
+	this->uboDescriptorSet->updateUboAll(3, &Config::dirtMaterial);
+
+	float deltaTime = 0.0f;
+	Stopwatch timer;
 	std::cout << "\n\n\n\n";
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
 		timer.start();
-		deltaTime = timer.elapsed(Unit::Seconds);			// NB why is right after start?
+		deltaTime = timer.elapsed(Unit::Seconds);			// NB why is it right after start?
 		this->moveCamera(deltaTime);
 
 		// vec3 playerPos = this->camera.getCameraPos();
@@ -151,10 +162,10 @@ void Vox::run( void )
 				this->updateUniforms = false;
 			}
 
-			this->uboDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
 			this->terrainPipeline->bind(commandBuffer);
-
+			this->uboDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
 			this->textTerrainDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+
 			this->terrainModel->bind(commandBuffer);
 			this->terrainModel->draw(commandBuffer);
 
@@ -162,8 +173,8 @@ void Vox::run( void )
 			this->undergroundModel->bind(commandBuffer);
 			this->undergroundModel->draw(commandBuffer);
 
-			this->textSkyboxDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 			this->skyboxPipeline->bind(commandBuffer);
+			this->textSkyboxDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 			this->skyBoxModel->bind(commandBuffer);
 			this->skyBoxModel->draw(commandBuffer);
 

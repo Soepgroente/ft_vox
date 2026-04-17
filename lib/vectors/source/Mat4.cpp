@@ -7,7 +7,8 @@
 #include <cstring>
 
 
-mat4	mat4::idMat( void ) {
+mat4	mat4::idMat( void )
+{
 	mat4	id(0.0f);
 
 	id.data[0][0] = 1.0f;
@@ -17,7 +18,8 @@ mat4	mat4::idMat( void ) {
 	return id;
 }
 
-mat4	mat4::transMat( vec3 const& transVect ) {
+mat4	mat4::transMat( vec3 const& transVect )
+{
 	mat4	trans = idMat();
 
 	trans.data[0][3] = transVect.x;
@@ -26,7 +28,8 @@ mat4	mat4::transMat( vec3 const& transVect ) {
 	return trans;
 }
 
-mat4	mat4::scaleMat( vec3 const& scaleVect ) {
+mat4	mat4::scaleMat( vec3 const& scaleVect )
+{
 	mat4	scale = idMat();
 
 	scale.data[0][0] = scaleVect.x;
@@ -36,7 +39,8 @@ mat4	mat4::scaleMat( vec3 const& scaleVect ) {
 	return scale;
 }
 
-mat4	mat4::rotationMat( float angleRadians, vec3 const& axis ) {
+mat4	mat4::rotationMat( float angleRadians, vec3 const& axis )
+{
 
 	mat4		rotation(0.0f);
 	const float	cosAngle = std::cos(angleRadians);

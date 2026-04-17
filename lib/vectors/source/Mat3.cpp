@@ -2,6 +2,16 @@
 #include "Vec3.hpp"
 #include <cstring>
 
+mat3	mat3::idMat( void )
+{
+	mat3	id(0.0f);
+
+	id.data[0][0] = 1.0f;
+	id.data[1][1] = 1.0f;
+	id.data[2][2] = 1.0f;
+	return id;
+}
+
 mat3::mat3(float diagonal) : data{{0.0f}, {0.0f}, {0.0f}}
 {
 	data[0][0] = diagonal;
