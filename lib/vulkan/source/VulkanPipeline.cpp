@@ -50,7 +50,8 @@ std::unique_ptr<VulkanPipeline> VulkanPipeline::createPipeline(
 	std::string const& vertexShaderFile,
 	std::string const& fragmentShaderFile,
 	VulkanModel const& mesh,
-	bool hasCubemapsTexture
+	bool hasCubemapsTexture,
+	uint32_t sizePushConstants
 )
 {
 	return std::make_unique<VulkanPipeline>(
@@ -60,7 +61,8 @@ std::unique_ptr<VulkanPipeline> VulkanPipeline::createPipeline(
 		vertexShaderFile,
 		fragmentShaderFile,
 		mesh,
-		hasCubemapsTexture
+		hasCubemapsTexture,
+		sizePushConstants
 	);
 }
 
@@ -71,10 +73,13 @@ VulkanPipeline::VulkanPipeline(
 		std::string const& vertexShaderFile,
 		std::string const& fragmentShaderFile,
 		VulkanModel const& mesh,
-		bool hasCubemapsTexture
+		bool hasCubemapsTexture,
+		uint32_t sizePushConstants
 	) :
-	vulkanDevice{device}
+	vulkanDevice{device}, sizePushConstants{sizePushConstants}
 {
+	assert( this->sizePushConstants <= this->vulkanDevice.getMaxPushConstantsSize() && "Push constants size exceeds limit");
+
 	this->setupPipelineLayout(descriptorSetLayouts);
 	this->setupPipeline(vertexShaderFile, fragmentShaderFile, mesh, hasCubemapsTexture, renderPass);
 }
@@ -94,9 +99,23 @@ VulkanPipeline::VulkanPipeline(VulkanPipeline&& other) :
 	other.pipeline = VK_NULL_HANDLE;
 }
 
-void VulkanPipeline::bind(VkCommandBuffer commandBuffer) const noexcept
+void VulkanPipeline::bindPipeline(VkCommandBuffer commandBuffer) const noexcept
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
+}
+
+void VulkanPipeline::updatePushConstants(VkCommandBuffer commandBuffer, void const* data ) const noexcept
+{
+	assert(data && "Data source null");
+
+	vkCmdPushConstants(
+		commandBuffer,
+		this->pipelineLayout,
+		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+		0,
+		this->sizePushConstants,
+		data
+	);
 }
 
 void VulkanPipeline::setupPipelineLayout(std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts)
@@ -105,6 +124,17 @@ void VulkanPipeline::setupPipelineLayout(std::vector<VkDescriptorSetLayout> cons
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+
+	if (this->sizePushConstants > 0U)
+	{
+		VkPushConstantRange pushRange{};
+		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		pushRange.offset = 0;
+		pushRange.size = this->sizePushConstants;
+
+		pipelineLayoutInfo.pushConstantRangeCount = 1;
+		pipelineLayoutInfo.pPushConstantRanges = &pushRange;
+	}
 
 	if (vkCreatePipelineLayout(this->vulkanDevice.device(), &pipelineLayoutInfo, nullptr, &this->pipelineLayout) != VK_SUCCESS)
 	{

@@ -74,15 +74,18 @@ class MeshData
 
 		void	updateModelMatrix( mat4 const& modelMatrix ) noexcept { this->modelMatrix = modelMatrix; };
 		void	updateNormalMatrix( mat4 const& normalMatrix ) noexcept { this->normalMatrix = normalMatrix; };
-		// void	updateMaterial( ve::MeshMaterial const& material ) noexcept { this->material = material; };
+		void	updateMaterial( ve::MeshMaterial const& material ) noexcept { this->material = material; };
 
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
 		mat4	modelMatrix{1.0f};
 		mat4	normalMatrix{1.0f};
-		// ve::MeshMaterial	material{};
+		ve::MeshMaterial	material{};
 };
+
+static_assert(sizeof(MeshData) == 192);
+static_assert(sizeof(MeshData) == 2 * sizeof(mat4) + sizeof(ve::MeshMaterial));
 
 
 class Vox

@@ -213,7 +213,7 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 	vulkanDevice.copyBuffer(stagingBufferIndex.getBuffer(), indexBuffer->getBuffer(), this->indexCount * indexSize);
 }
 
-void	VulkanModel::bind(VkCommandBuffer commandBuffer)
+void	VulkanModel::bindBuffer(VkCommandBuffer commandBuffer)
 {
 	VkBuffer		buffers[] = {vertexBuffer->getBuffer()};
 	VkDeviceSize	offsets[] = {0};

@@ -68,7 +68,7 @@ class VulkanDescriptorSet
 		void	setCurrentFrame( uint32_t frame ) noexcept;
 		void	updateUbo( int32_t binding, void const* data );		// NB check with frameInFlight
 		void	updateUboAll( int32_t binding, void const* data );
-		void	bind( VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex );
+		void	bindSet( VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex );
 
 		VkDescriptorSetLayout	getDescriptorSetLayout( void ) const noexcept { return descriptorSetLayout; };
 		void					addBufferDescriptor( uint32_t binding, uint32_t bufferSize );
