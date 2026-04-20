@@ -10,10 +10,10 @@ namespace vox {
 float	perlin(float x, float y, float z);
 float	randomNoise(float, float, ui32& seed);
 
-vec3i	chunkDimensions = vec3i::zero();
-vec3i	paddedDimensions = vec3i::zero();
-ui32	paddedSize = 0;
-ui32	chunkSize = 0;
+vec3i	VoxelChunk::chunkDimensions = vec3i::zero();
+vec3i	VoxelChunk::paddedDimensions = vec3i::zero();
+ui32	VoxelChunk::paddedSize = 0;
+ui32	VoxelChunk::chunkSize = 0;
 
 VoxelChunk::VoxelChunk(vec2i loc) : location(loc)
 {
@@ -147,11 +147,10 @@ void	VoxelChunk::generateVertexes()
 		for (i32 x = 1; x < widthMax; x++)
 		{
 			i32 i = index(x, 1, z);
-			for (i32 y = 1; y < dimY; y++)
+			for (i32 y = 1; y < dimY; y++, i++)
 			{
 				if (map[i] == VoxelType::Air)
 				{
-					i++;
 					continue;
 				}
 
@@ -181,7 +180,6 @@ void	VoxelChunk::generateVertexes()
 				{
 					addVoxelFace(world, vertexes, static_cast<size_t>(VertexFaces::BOTTOM));
 				}
-				i++;
 			}
 		}
 	}

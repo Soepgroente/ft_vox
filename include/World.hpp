@@ -102,13 +102,20 @@ inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 	20U, 22U, 23U		// bottom face
 };
 
+inline constexpr std::array<ui32, 6> frontFaceIndexes{0U, 1U, 2U, 0U, 2U, 3U};
+inline constexpr std::array<ui32, 6> backFaceIndexes{4U, 5U, 6U, 4U, 6U, 7U};
+inline constexpr std::array<ui32, 6> leftFaceIndexes{8U, 9U, 10U, 8U, 10U, 11U};
+inline constexpr std::array<ui32, 6> rightFaceIndexes{12U, 13U, 14U, 12U, 14U, 15U};
+inline constexpr std::array<ui32, 6> topFaceIndexes{16U, 17U, 18U, 16U, 18U, 19U};
+inline constexpr std::array<ui32, 6> bottomFaceIndexes{20U, 21U, 22U, 20U, 22U, 23U};
+
 using VertexVector = std::vector<ve::VulkanModel::Vertex>;
-using IndexVector = std::vector<uint32_t>;
+using IndexVector = std::vector<ui32>;
 
 void	addVoxelFace(const vec3& voxelLocation, VertexVector& chunk, size_t faceIndex);
 void	addVertexes(const vec3& position, VertexVector& chunk, int facesToAdd);
 
 std::vector<vec3>	getVertexRelative( vec3 const& relativeOrigin );
-IndexVector			getIndexRelative( uint32_t = 0U );
+IndexVector			getIndexRelative( ui32 = 0U );
 
 }	// namespace vox

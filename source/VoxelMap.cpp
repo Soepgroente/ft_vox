@@ -2,6 +2,7 @@
 #include "Config.hpp"
 #include "Utils.hpp"
 #include "World.hpp"
+#include "Vulkan.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -35,55 +36,66 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 	worldSeed = 0;
 	playerOnChunk = vec2i{minPositions.x + squareSize / 2, minPositions.y + squareSize / 2};
 	rawPosition = vec3::zero();
+	VoxelChunk::paddedDimensions = VoxelChunk::chunkDimensions + vec3i{2, 2, 2};
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device ) const
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device )
 {
 	std::unique_ptr<ve::VulkanModel> model;
 	size_t totalVertexes = 0;
 
+	modelVector.clear();
+	modelIndexes.clear();
 	for (size_t i = 0; i < map.size(); i++)
 	{
 		totalVertexes += map[i].getVertexSize();
 	}
-	VertexVector modelVector;
-
-	modelVector.reserve(totalVertexes);
+	if (totalVertexes > modelVector.capacity())
+	{
+		modelVector.reserve(totalVertexes);
+		modelIndexes.reserve(totalVertexes * 6 / 4);
+	}
 	for (size_t i = 0; i < map.size(); i++)
 	{
-		const VertexVector& chunk = map[i].getVertexData();
+		const VertexVector& chunkVertexes = map[i].getVertexData();
 
-		modelVector.insert(modelVector.end(), chunk.begin(), chunk.end());
+		modelVector.insert(modelVector.end(), chunkVertexes.begin(), chunkVertexes.end());
 	}
-
-	model = std::make_unique<ve::VulkanModel>(device, modelVector, VOXEL_VERTEX_INDEXES);
+	for (ui32 i = 0; i < modelVector.size(); i += 4)
+	{
+		IndexVector indexes = {0U + i, 1U + i, 2U + i, 0U + i, 2U + i, 3U + i};
+		modelIndexes.insert(modelIndexes.end(), indexes.begin(), indexes.end());
+	}
+	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, 0U, ve::DEFAULT_MODEL_LAYOUT);
 	return model;
 }
 
 void	VoxelMap::init()
 {
-	i32 index = 0;
 	Stopwatch timer;
-
+	
 	timer.start();
-
+	
 	for (i32 z = 0; z < squareSize; z++)
 	{
 		for (i32 x = 0; x < squareSize; x++)
 		{
 			VoxelChunk chunk(vec2i(minPositions.x + x, minPositions.y + z));
-
-			chunk.generateMap(worldSeed);
 			map.emplace_back(std::move(chunk));
-			index++;
 		}
+	}
+	for (VoxelChunk& chunk : map)
+	{
+		threadManager.enqueue([&] {
+			chunk.generateMap(worldSeed);
+		});
 	}
 	threadManager.waitIdle();
 	timer.stop();
 	std::cout << "Initial chunk generation complete in: " << timer << std::endl;
 	timer.reset();
 	timer.start();
-	index = 0;
+	i32 index = 0;
 	for (i32 depth = 0; depth < squareSize; depth++)
 	{
 		for (i32 width = 0; width < squareSize; width++)

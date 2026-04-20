@@ -36,7 +36,7 @@ class VoxelMap
 		bool	update(const vec3& newPosition);
 		void	init();
 		vec3	getMapMiddle() const noexcept;
-		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
+		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device );
 		
 		bool		isReady() const noexcept { return this->ready; }
 		
@@ -51,6 +51,9 @@ class VoxelMap
 		vec2i	playerOnChunk;
 		vec3	rawPosition;
 		
+		VertexVector	modelVector;
+		IndexVector		modelIndexes;
+
 		bool	ready = false;
 		
 		ThreadManager&	threadManager;
