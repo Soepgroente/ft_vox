@@ -18,25 +18,25 @@ bool	VoxelMap::update(const vec3& newPosition)
 	}
 	playerOnChunk = playerOnChunk + moveDirection;
 	rawPosition = newPosition;
+	while (moveDirection.depth > 0)
+	{
+		north();
+		moveDirection.depth--;
+	}
 	while (moveDirection.width > 0)
 	{
 		east();
 		moveDirection.width--;
-	}
-	while (moveDirection.width < 0)
-	{
-		west();
-		moveDirection.width++;
 	}
 	while (moveDirection.depth < 0)
 	{
 		south();
 		moveDirection.depth++;
 	}
-	while (moveDirection.depth > 0)
+	while (moveDirection.width < 0)
 	{
-		north();
-		moveDirection.depth--;
+		west();
+		moveDirection.width++;
 	}
 	timer.stop();
 	threadManager.waitIdle();
@@ -57,7 +57,7 @@ void	VoxelMap::meshRow(vec2i pos)
 
 void	VoxelMap::meshColumn(vec2i pos)
 {
-	for (i32 i = pos.depth; i < squareSize; i++)
+	for (i32 i = pos.depth; i < squareSize; i += squareSize)
 	{
 		map[i].generateVertexes();
 	}
@@ -73,7 +73,7 @@ void	VoxelMap::generateRow(vec2i pos)
 
 void	VoxelMap::generateColumn(vec2i pos)
 {
-	for (i32 i = pos.depth; i < squareSize; i++)
+	for (i32 i = pos.depth; i < squareSize; i += squareSize)
 	{
 		map[i].generateMap(worldSeed);
 	}

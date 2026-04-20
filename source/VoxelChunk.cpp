@@ -74,7 +74,6 @@ void	VoxelChunk::copyAdjacentData()
 	const VoxelChunk* west = adjacentChunks[static_cast<size_t>(Direction::West)];
 
 	const i32 width = paddedDimensions.x - 1;
-	const i32 height = paddedDimensions.y - 1;
 	const i32 depth = paddedDimensions.z - 1;
 	const i32 copySize = chunkDimensions.y * sizeof(VoxelType);
 

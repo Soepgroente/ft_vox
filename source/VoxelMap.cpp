@@ -129,7 +129,7 @@ void	VoxelMap::init()
 			index++;
 		}
 	}
-	for (i32 i = 0; i < map.size(); i++)
+	for (size_t i = 0; i < map.size(); i++)
 	{
 		map[i].generateVertexes();
 	}
