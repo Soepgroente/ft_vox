@@ -13,7 +13,7 @@ layout(location = 0) out vec3 fragDir;
 
 void main()
 {
-    fragDir = inPosition;
+	fragDir = inPosition;
 	mat4 viewWithoutTranslation = mat4(mat3(ubo.view));
 	vec4 pos = ubo.projection * viewWithoutTranslation * vec4(inPosition, 1.0);
 	gl_Position = pos.xyww;		// forcing fragment of far plane (depth = 1.0)

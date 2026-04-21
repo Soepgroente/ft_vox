@@ -28,26 +28,27 @@ layout(push_constant) uniform MeshData {
 	int   illuminationModel;
 } meshData;
 
-
 void main()
 {
-	vec3 textColor = texture(textSampler, fragTextureUV).rgb;
-	vec3 normalFrag = normalize(fragNormal);
-
 	// Ambient
 	vec3 ambient = meshData.ambientClr.xyz * lightUbo.lightColor.xyz;
 
 	// Diffuse
+	vec3 normalFrag = normalize(fragNormal);
 	vec3 lightDir = normalize(lightUbo.lightPos.xyz - fragPos);
 	float diff = max(dot(normalFrag, lightDir), 0.0);
-	vec3 diffuse = diff * meshData.diffuseClr.xyz * lightUbo.lightColor.xyz;
+	vec3 diffuse = diff * lightUbo.lightColor.xyz;		// meshData.diffuseClr.xyz * 
 
-	// Specular (Blinn-Phong)
-	vec3 viewDir = normalize(lightUbo.viewPos.xyz - fragPos);
-	vec3 halfwayDir = normalize(lightDir + viewDir);
-	float spec = pow(max(dot(normalFrag, halfwayDir), 0.0), meshData.shininess);
-	vec3 specular = meshData.specularClr.xyz * spec * lightUbo.lightColor.xyz;
+	// // Specular (Blinn-Phong)
+	// vec3 viewDir = normalize(lightUbo.viewPos.xyz - fragPos);
+	// vec3 halfwayDir = normalize(lightDir + viewDir);
+	// float spec = pow(max(dot(normalFrag, halfwayDir), 0.0), meshData.shininess);
+	// vec3 specular = meshData.specularClr.xyz * spec * lightUbo.lightColor.xyz;
 
-	vec3 result = (ambient + diffuse + specular) * textColor;
-	outColor = vec4(result, meshData.opacity);
+	// outColor = vec4(result, meshData.opacity);
+
+	// vec4 textColor = texture(textSampler, fragTextureUV);
+	vec3 result = (ambient + diffuse) * meshData.diffuseClr.xyz;
+
+	outColor = vec4(result, 1.0f);
 }

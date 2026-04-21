@@ -79,8 +79,8 @@ class MeshData
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
-		mat4	modelMatrix{1.0f};
-		mat4	normalMatrix{1.0f};
+		mat4				modelMatrix{1.0f};
+		mat4				normalMatrix{1.0f};
 		ve::MeshMaterial	material{};
 };
 
@@ -108,7 +108,7 @@ class Vox
 		static std::vector<std::thread>	workerThreads;
 
 	private:
-		std::shared_ptr<ve::VulkanModel> createSkyboxModel( void );
+		std::shared_ptr<ve::VulkanModel> createVoxelMesh( vec3 const& = vec3{-0.5f, -0.5f, -0.5f} );
 
 		ve::VulkanWindow				vulkanWindow;
 		ve::VulkanDevice				vulkanDevice;
@@ -123,6 +123,7 @@ class Vox
 		std::unique_ptr<ve::VulkanObject> terrainObject;
 		std::unique_ptr<ve::VulkanObject> undergroundObject;
 		std::unique_ptr<ve::VulkanObject> skyboxObject;
+		std::unique_ptr<ve::VulkanObject> sunObject;
 
 		std::unique_ptr<ve::VulkanDescriptorSet> uboDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textTerrainDescriptorSet;
@@ -131,6 +132,7 @@ class Vox
 
 		std::unique_ptr<ve::VulkanPipeline> terrainPipeline;
 		std::unique_ptr<ve::VulkanPipeline> skyboxPipeline;
+		std::unique_ptr<ve::VulkanPipeline> sunPipeline;
 
 		bool	updateUniforms;
 };
