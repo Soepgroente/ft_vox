@@ -17,11 +17,10 @@ bool	VoxelMap::update(const vec3& newPosition)
 		return false;
 	}
 	playerOnChunk = playerOnChunk + moveDirection;
+	minPositions = minPositions + moveDirection;
+	maxPositions = maxPositions + moveDirection;
 	rawPosition = newPosition;
-	if (squareSize < 2)
-	{
-		return false;
-	}
+	assert(squareSize >= 2 && "squaresize too small");
 	while (moveDirection.depth > 0)
 	{
 		north();
@@ -43,7 +42,6 @@ bool	VoxelMap::update(const vec3& newPosition)
 		moveDirection.width++;
 	}
 	timer.stop();
-	threadManager.waitIdle();
 	std::cout << "regeneration took: " << timer << std::endl;
 	// std::cout << "New map limits: " << minPositions << " to " << maxPositions << std::endl;
 	assert(minPositions.x + squareSize - 1 == maxPositions.x && "Error: min/max X don't line up");
@@ -55,7 +53,9 @@ void	VoxelMap::meshRow(i32 index)
 {
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		map[index].generateVertexes();
+		threadManager.enqueue([this, index] {
+			map[index].generateVertexes();
+		});
 		index++;
 	}
 }
@@ -64,7 +64,9 @@ void	VoxelMap::meshColumn(i32 index)
 {
 	for (i32 i = 0; i < squareSize; i++)
 	{
-		map[index].generateVertexes();
+		threadManager.enqueue([this, index] {
+			map[index].generateVertexes();
+		});
 		index += squareSize;
 	}
 }
@@ -95,9 +97,6 @@ void	VoxelMap::generateColumn(i32 index)
 
 void	VoxelMap::north()
 {
-	minPositions.y += 1;
-	maxPositions.y += 1;
-
 	std::rotate(map.begin(), map.begin() + squareSize, map.end());
 	setAdjacentPointers();
 
@@ -105,26 +104,22 @@ void	VoxelMap::north()
 	generateRow(bottomRowIndex);
 	meshRow(bottomRowIndex);
 	meshRow(bottomRowIndex - squareSize);
+	threadManager.waitIdle();
 }
 
 void	VoxelMap::south()
 {
-	minPositions.y -= 1;
-	maxPositions.y -= 1;
-	
     std::rotate(map.begin(), map.end() - squareSize, map.end());
 	setAdjacentPointers();
 	
 	generateRow(0);
 	meshRow(0);
 	meshRow(0 + squareSize);
+	threadManager.waitIdle();
 }
 
 void	VoxelMap::west()
 {
-	minPositions.x -= 1;
-	maxPositions.x -= 1;
-
 	for (i32 row = 0; row < squareSize; row++)
 	{
 		auto begin = map.begin() + row * squareSize;
@@ -135,13 +130,11 @@ void	VoxelMap::west()
 	generateColumn(0);
 	meshColumn(0);
 	meshColumn(1);
+	threadManager.waitIdle();
 }
 
 void	VoxelMap::east()
 {
-	minPositions.x += 1;
-	maxPositions.x += 1;
-
 	for (i32 row = 0; row < squareSize; row++)
 	{
 		auto begin = map.begin() + row * squareSize;
@@ -152,6 +145,7 @@ void	VoxelMap::east()
 	generateColumn(squareSize - 1);
 	meshColumn(squareSize - 1);
 	meshColumn(squareSize - 2);
+	threadManager.waitIdle();
 }
 
 }	//namespace vox
