@@ -47,6 +47,7 @@ class VoxelChunk
 		const VertexVector&	getVertexData() const noexcept { return vertexes; }
 
 		void	setAdjacentChunks(VoxelChunk* north, VoxelChunk* east, VoxelChunk* south, VoxelChunk* west) noexcept;
+		void	setLocation(vec2i loc);
 
 		size_t	getVertexSize() const noexcept { return vertexes.size(); }
 		i32		index(i32 x, i32 y, i32 z) const noexcept { return ((z * paddedDimensions.x) + x) * paddedDimensions.y + y; }

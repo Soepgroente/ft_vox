@@ -23,6 +23,14 @@ VoxelChunk::VoxelChunk(vec2i loc) : location(loc)
 	worldPosition = vec3i(chunkDimensions.x * location.width, 0, chunkDimensions.z * location.depth);
 }
 
+void	VoxelChunk::setLocation(vec2i loc)
+{
+	location = loc;
+	worldPosition.x = chunkDimensions.x * loc.width;
+	worldPosition.y = 0;
+	worldPosition.z = chunkDimensions.z * loc.depth;
+}
+
 void	VoxelChunk::generateMap(float seed)
 {
 	i32 y;
@@ -31,6 +39,8 @@ void	VoxelChunk::generateMap(float seed)
 	const i32 dimY = paddedDimensions.y - 1;
 	const i32 dimZ = paddedDimensions.z - 1;
 	const i32 height = chunkDimensions.y;
+
+	std::fill(map.begin(), map.end(), VoxelType::Padding);
 
 	for (i32 z = 1; z < dimZ; z++)
 	{
@@ -122,9 +132,9 @@ void	VoxelChunk::copyAdjacentData()
 void	VoxelChunk::setAdjacentChunks(VoxelChunk* north, VoxelChunk* east, VoxelChunk* south, VoxelChunk* west) noexcept
 {
 	adjacentChunks[static_cast<size_t>(Direction::North)] = north;
-	adjacentChunks[static_cast<size_t>(Direction::North)] = east;
-	adjacentChunks[static_cast<size_t>(Direction::North)] = south;
-	adjacentChunks[static_cast<size_t>(Direction::North)] = west;
+	adjacentChunks[static_cast<size_t>(Direction::East)] = east;
+	adjacentChunks[static_cast<size_t>(Direction::South)] = south;
+	adjacentChunks[static_cast<size_t>(Direction::West)] = west;
 }
 
 void	VoxelChunk::generateVertexes()

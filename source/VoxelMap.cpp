@@ -70,31 +70,8 @@ std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& dev
 	return model;
 }
 
-void	VoxelMap::init()
+void	VoxelMap::setAdjacentPointers()
 {
-	Stopwatch timer;
-	
-	timer.start();
-	
-	for (i32 z = 0; z < squareSize; z++)
-	{
-		for (i32 x = 0; x < squareSize; x++)
-		{
-			VoxelChunk chunk(vec2i(minPositions.x + x, minPositions.y + z));
-			map.emplace_back(std::move(chunk));
-		}
-	}
-	for (VoxelChunk& chunk : map)
-	{
-		threadManager.enqueue([&] {
-			chunk.generateMap(worldSeed);
-		});
-	}
-	threadManager.waitIdle();
-	timer.stop();
-	std::cout << "Initial chunk generation complete in: " << timer << std::endl;
-	timer.reset();
-	timer.start();
 	i32 index = 0;
 	for (i32 depth = 0; depth < squareSize; depth++)
 	{
@@ -141,6 +118,34 @@ void	VoxelMap::init()
 			index++;
 		}
 	}
+}
+
+void	VoxelMap::init()
+{
+	Stopwatch timer;
+	
+	timer.start();
+	
+	for (i32 z = 0; z < squareSize; z++)
+	{
+		for (i32 x = 0; x < squareSize; x++)
+		{
+			VoxelChunk chunk(vec2i(minPositions.x + x, minPositions.y + z));
+			map.emplace_back(std::move(chunk));
+		}
+	}
+	setAdjacentPointers();
+	for (VoxelChunk& chunk : map)
+	{
+		threadManager.enqueue([&] {
+			chunk.generateMap(worldSeed);
+		});
+	}
+	threadManager.waitIdle();
+	timer.stop();
+	std::cout << "Initial chunk generation complete in: " << timer << std::endl;
+	timer.reset();
+	timer.start();
 	for (size_t i = 0; i < map.size(); i++)
 	{
 		map[i].generateVertexes();

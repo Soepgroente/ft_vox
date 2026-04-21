@@ -64,11 +64,12 @@ class VoxelMap
 		void	east();
 
 		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
-		void	generateRow(vec2i pos);
-		void	generateColumn(vec2i pos);
+		void	generateRow(i32 index);
+		void	generateColumn(i32 index);
 
-		void	meshRow(vec2i pos);
-		void	meshColumn(vec2i pos);
+		void	meshRow(i32 index);
+		void	meshColumn(i32 index);
+		void	setAdjacentPointers();
 };
 
 }	// namespace vox
