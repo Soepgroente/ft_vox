@@ -19,8 +19,6 @@ enum class Direction : ui8
 	West
 };
 
-class World;
-
 class VoxelMap
 {
 	public:
@@ -37,9 +35,7 @@ class VoxelMap
 		void	init();
 		vec3	getMapMiddle() const noexcept;
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device );
-		
-		bool		isReady() const noexcept { return this->ready; }
-		
+
 		private:
 
 		std::vector<VoxelChunk>	map;
@@ -53,8 +49,6 @@ class VoxelMap
 		
 		VertexVector	modelVector;
 		IndexVector		modelIndexes;
-
-		bool	ready = false;
 		
 		ThreadManager&	threadManager;
 

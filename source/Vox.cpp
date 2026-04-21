@@ -36,7 +36,6 @@ Vox::Vox( void ) :
 		CameraSettings::projectionFar
 	);
 	voxelMap.init();
-	assert(voxelMap.isReady() == true && "map wasn't ready");
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 }
 

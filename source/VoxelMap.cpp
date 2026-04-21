@@ -153,7 +153,6 @@ void	VoxelMap::init()
 	threadManager.waitIdle();
 	timer.stop();
 	std::cout << "Initial voxel map generation took: " << timer << std::endl;
-	ready = true;
 }
 
 vec2i	VoxelMap::voxelToChunkPosition(const vec3& position) const noexcept
