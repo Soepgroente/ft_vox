@@ -5,44 +5,32 @@
 
 namespace vox {
 
-using ui32 = uint32_t;
-
 struct Config
 {
 	static constexpr ui32	defaultWindowWidth = 1300;
 	static constexpr ui32	defaultWindowHeight = 1300;
 	static constexpr ui32	minimumViewingDistance = 160;
 
-	static constexpr uint32_t	worldSeed = 0U;
+	static constexpr ui32	worldSeed = 0U;
 
 	static constexpr vec3 cameraStartPos{165.0f, 225.0f, 165.0f};
-	static constexpr vec3 cameraForward{0.0f, -5.0f, -10.0f};
+	static constexpr vec3 cameraForward{20.0f, 0.0f, 20.0f};		// camera has weird pitch rotations if y is not 0
 
-	static constexpr vec3 sunPos{10.0f, 20.0f, 10.0f};
-	static constexpr vec4 lightColor{1.0f, 1.0f, 1.0f, 1.0f};
-
-	static constexpr ve::MeshMaterial dirtMaterial{
-		vec4(0.1f),		// ambientClr
-		vec4(0.8f),		// diffuseClr
-		vec4(0.4f),		// specularClr
-		8,				// shininess
-		1.0f,			// opacity
-		1,				// refractionIndex
-		2				// illuminationModel
-	};
+	static constexpr vec3 lightDirection{64.0f, 256.0f, 64.0f};
+	static constexpr vec3 lightAmbientColor{0.15f, 0.15f, 0.15f};
+	static constexpr vec3 lightColor{0.4f, 0.4f, 0.4f};
+	static constexpr vec3 lightSpecularColor{0.1f, 0.1f, 0.1f};
 
 	static constexpr i32	chunkLength = 16U;
 	static constexpr i32	chunkHeight = 256U;
 
 	static constexpr float	movementSpeed = 100.0f;
-	static constexpr float	lookSpeed = 75.0f;
+	static constexpr float	lookSpeed = 25.0f;
 
-	static constexpr char terrainVertShaderPath[] = "build/basic.vert.spv";
-	static constexpr char terrainFragShaderPath[] = "build/basic.frag.spv";
 	static constexpr char skyboxVertShaderPath[] = "build/skybox.vert.spv";
 	static constexpr char skyboxFragShaderPath[] = "build/skybox.frag.spv";
-	static constexpr char lightVertShaderPath[] = "build/light_base.vert.spv";
-	static constexpr char lightFragShaderPath[] = "build/light_base.frag.spv";
+	static constexpr char simpleVertShaderPath[] = "build/terrain.vert.spv";
+	static constexpr char simpleFragShaderPath[] = "build/terrain.frag.spv";
 
 	static constexpr char textureStonePath[] = "textures/texture_stone_mono.jpeg";
 	static constexpr char textureWaterPath[] = "textures/texture_water_mono.jpeg";

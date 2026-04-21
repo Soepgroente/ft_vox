@@ -216,10 +216,10 @@ mat4 VulkanObject::getModelMatrix() const noexcept
 // return matrix in column major
 mat4 VulkanObject::getNormalMatrix() const noexcept
 {
-	// model = T × R × S
+	// (model = T × R × S)
 	// normalMatrix = (Model⁻¹)ᵀ = ((T × R × S)⁻¹)ᵀ = (S⁻¹ * R⁻¹ * T⁻¹)ᵀ = (T⁻¹)ᵀ * (R⁻¹)ᵀ * (S⁻¹)ᵀ but:
 	// Transpose matrix: since it moves points, doesn't affect the normal so can be removed
-	// Rotation matrix: is orthogonal so R⁻¹ = Rᵀ --> (R⁻¹)ᵀ = (Rᵀ)ᵀ = R
+	// Rotation matrix: is orthogonal so  R⁻¹ = Rᵀ --> (R⁻¹)ᵀ = (Rᵀ)ᵀ = R
 	// Scale matrix: is diagonal (and therefore symmetric) so Sᵀ = S --> (S⁻¹)ᵀ = S⁻¹ also the inverse of a diagonal matrix
 	//		is a matrix which elements are the inverse of the elements of the original matrix, finally, if the scaling is uniform
 	//		i.e scale.x = scale.y = scale.z the whole matrix can be ignored
@@ -229,7 +229,7 @@ mat4 VulkanObject::getNormalMatrix() const noexcept
 		return mat4::idMat();
 	}
 
-	mat4 rotation = this->transform.rotation.getMatrix();
+	mat4 normal = this->transform.rotation.getMatrix();
 
 	if (this->uniformScale == false)
 	{
@@ -237,19 +237,34 @@ mat4 VulkanObject::getNormalMatrix() const noexcept
 		const float idy = 1.0f / this->transform.scale.y;
 		const float idz = 1.0f / this->transform.scale.z;
 
-		rotation[0][0] *= idx;
-		rotation[0][1] *= idx;
-		rotation[0][2] *= idx;
-		rotation[1][0] *= idy;
-		rotation[1][1] *= idy;
-		rotation[1][2] *= idy;
-		rotation[2][0] *= idz;
-		rotation[2][1] *= idz;
-		rotation[2][2] *= idz;
+		normal[0][0] *= idx;
+		normal[0][1] *= idx;
+		normal[0][2] *= idx;
+		normal[1][0] *= idy;
+		normal[1][1] *= idy;
+		normal[1][2] *= idy;
+		normal[2][0] *= idz;
+		normal[2][1] *= idz;
+		normal[2][2] *= idz;
 	}
 
-	return rotation;
+	return normal;
+}
 
+mat4 VulkanObject::getNormalViewMatrix(const mat4& viewNoTranslation) const noexcept
+{
+	// (model = T × R × S)
+	// normalMatrix = ((View * Model)⁻¹)ᵀ = (Model⁻¹)ᵀ * (View⁻¹)ᵀ = ... = R * [S⁻¹] * (View⁻¹)ᵀ but:
+	// ViewMatrix with no translation: has only rotation features which is again orthogonal
+	//		so  View⁻¹ = Viewᵀ --> (View⁻¹)ᵀ = (Viewᵀ)ᵀ = View
+	// therefore: normalMatrix = R * [S⁻¹] * ViewNoTrans
+
+	if (this->transformationApplied == false)
+	{
+		return viewNoTranslation;
+	}
+
+	return viewNoTranslation * this->getNormalMatrix();
 }
 
 MeshlayoutDescription VulkanObject::getVboLayout() const

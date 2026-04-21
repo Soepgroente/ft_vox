@@ -17,6 +17,7 @@ using ui32 = uint32_t;
 using i32 = int32_t;
 
 
+// Vulkan variables layout for shaders is 16b so each member size has to multiple of 16 or padded
 class ViewProjectUBO
 {
 	public:
@@ -31,30 +32,31 @@ class ViewProjectUBO
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
-		mat4 view{1.0f};
-		mat4 projection{1.0f};
+		mat4 view;
+		mat4 projection;
 };
 
-
+// Vulkan variables layout for shaders is 16b so each member size has to multiple of 16 or padded
 class LightUBO
 {
 	public:
 		LightUBO( void ) = delete;
-		LightUBO( vec3 const& lightPos, vec4 const& lightColor, vec3 const& viewPos ) :
-			lightPos{lightPos, 1.0f},
-			lightColor{lightColor},
-			viewPos{viewPos, 1.0f} {};
+		LightUBO( vec3 const& lightDir, mat4 const& viewMatrix, vec3 const& ambientColor, vec3 const& diffuseColor, vec3 const& specularColor ) :	// , vec3 const& viewPos
+			lightAmbientColor{ambientColor, 1.0f},
+			lightColor{diffuseColor, 1.0f},
+			lightSpecularColor{specularColor, 1.0f} {
+				this->updateLightDir(lightDir, viewMatrix);
+			};
 
-		void	updateLightPos( vec3 const& lightPos ) noexcept { this->lightPos = vec4{lightPos, 1.0f}; };
-		void	updateLightColor( vec3 const& lightColor ) noexcept { this->lightColor = vec4{lightColor, 1.0f}; };
-		void	updateViewPos( vec3 const& viewPos ) noexcept { this->viewPos = vec4{viewPos, 1.0f}; };
+		void	updateLightDir( vec3 const& lightDir, mat4 const& viewMatrix ) noexcept;
 
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
-		vec4 lightPos{0.0f};
-		vec4 lightColor{1.0f};
-		vec4 viewPos{0.0f};
+		vec4 	lightDir;
+		vec4	lightAmbientColor;
+		vec4	lightColor;
+		vec4	lightSpecularColor;
 };
 
 
@@ -62,9 +64,10 @@ class MeshData
 {
 	public:
 		MeshData( void ) = delete;
-		MeshData( mat4 const& modelMatrix, mat4 const& normalMatrix ) :
+		MeshData( mat4 const& modelMatrix, mat4 const& normalMatrix, ve::MeshMaterial const& material ) :
 			modelMatrix{modelMatrix},
-			normalMatrix{normalMatrix} {};
+			normalMatrix{normalMatrix},
+			material{material} {};
 		MeshData( MeshData const& other ) = default;
 		MeshData( MeshData&& other ) = default;
 		MeshData& operator=( MeshData const& other ) = default;
@@ -77,11 +80,12 @@ class MeshData
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
-		mat4	modelMatrix{1.0f};
-		mat4	normalMatrix{1.0f};
+		mat4				modelMatrix{1.0f};
+		mat4				normalMatrix{1.0f};
 		ve::MeshMaterial	material{};
 };
 
+// vulkan push_constant max size should be 128 or 256 b
 static_assert(sizeof(MeshData) == 192);
 static_assert(sizeof(MeshData) == 2 * sizeof(mat4) + sizeof(ve::MeshMaterial));
 
@@ -104,7 +108,7 @@ class Vox
 		void resizeWindow( ui32, ui32 );
 
 	private:
-		std::shared_ptr<ve::VulkanModel> createSkyboxModel( void );
+		std::shared_ptr<ve::VulkanModel> createVoxelMesh( vec3 const& = vec3{-0.5f, -0.5f, -0.5f} );
 
 		ve::VulkanWindow				vulkanWindow;
 		ve::VulkanDevice				vulkanDevice;

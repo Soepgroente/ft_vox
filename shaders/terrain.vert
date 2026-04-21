@@ -7,16 +7,16 @@ layout(set = 0, binding = 0) uniform ViewProjectUBO
 }	ubo;
 
 layout(push_constant) uniform MeshData {
-    mat4 modelMatrix;
-    mat4 normalMatrix;
+	mat4	modelMatrix;
+	mat4	normalMatrix;
 
-    vec4  ambientClr;
-    vec4  diffuseClr;
-    vec4  specularClr;
-    float shininess;
-    float opacity;
-    int   refractionIndex;
-    int   illuminationModel;
+	vec4	ambientClr;
+	vec4	diffuseClr;
+	vec4	specularClr;
+	float	shininess;
+	float	opacity;
+	int		refractionIndex;
+	int		illuminationModel;
 } meshData;
 
 layout(location = 0) in vec3 position;
@@ -30,9 +30,11 @@ layout(location = 2) out vec2 fragTextureUV;
 
 void main()
 {
-	vec4 worldPos = meshData.modelMatrix * vec4(position, 1.0f);
+	vec4 worldPos = ubo.view * meshData.modelMatrix * vec4(position, 1.0f);
 	fragNormal = mat3(meshData.normalMatrix) * normal;
+	// fragNormal = normal;
 	fragTextureUV = textureUV;
 	fragPos = worldPos.xyz;
-	gl_Position = ubo.projection * ubo.view * worldPos;
+
+	gl_Position = ubo.projection * worldPos;
 }

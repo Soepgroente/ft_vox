@@ -4,10 +4,36 @@
 #include "World.hpp"
 
 #include <iostream>
-#include <chrono>
 #include <cassert>
 
 namespace vox {
+
+// Phong lighting model, a combination of the following:
+// Ambient lighting: even when it is dark there is usually still some light somewhere in the world
+// 		(the moon, a distant light) so objects are almost never completely dark. To simulate this
+// 		we use an ambient lighting constant that always gives the object some color.
+// Diffuse lighting: simulates the directional impact a light object has on an object. This is the
+// 		most visually significant component of the lighting model. The more a part of an object
+// 		faces the light source, the brighter it becomes.
+// Specular lighting: simulates the bright spot of a light that appears on shiny objects. Specular
+// 		highlights are more inclined to the color of the light than the color of the object.
+constexpr ve::MeshMaterial dirtMaterial{
+	vec4(0.15f),						// ambientColor
+	vec4(0.2f, 0.2f, 0.2f, 1.0f),		// diffuseColor
+	vec4(0.2f),							// specularColor
+	8.0f,								// shininess
+	1.0f,								// opacity
+	1,									// refractionIndex
+	2									// illuminationModel
+};
+
+
+void LightUBO::updateLightDir( vec3 const& lightDir, mat4 const& viewMatrix ) noexcept
+{
+	vec3 lightViewDir = viewMatrix * (lightDir * -1);
+	lightViewDir.normalize();
+	this->lightDir = vec4{lightViewDir, 0.0f};
+}
 
 /**
  * Create the engine of the game
@@ -71,7 +97,7 @@ void Vox::setupVulkan( void )
 
 	this->terrainObject->setModel(this->voxelMap.createNewModelTerrain(vulkanDevice));
 	this->undergroundObject->setModel(this->voxelMap.createNewModelUnderground(vulkanDevice));
-	this->skyboxObject->setModel(this->createSkyboxModel());
+	this->skyboxObject->setModel(this->createVoxelMesh());
 
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
 		this->uboDescriptorSet->getDescriptorSetLayout(),
@@ -83,8 +109,8 @@ void Vox::setupVulkan( void )
 		this->vulkanDevice,
 		descriptorSetLayouts,
 		this->vulkanRenderer.getSwapChainRenderPass(),
-		Config::lightVertShaderPath,
-		Config::lightFragShaderPath,
+		Config::simpleVertShaderPath,
+		Config::simpleFragShaderPath,
 		this->terrainObject->getVboLayout(),
 		false,
 		sizeof(MeshData)
@@ -107,12 +133,18 @@ void Vox::setupVulkan( void )
 void Vox::run( void )
 {
 	ViewProjectUBO	matrixUbo(this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
-	LightUBO		lightUbo(Config::sunPos, Config::lightColor, this->camera.getCameraPos());
-	MeshData		terrainData{mat4::idMat(), mat4::idMat()};
-	terrainData.updateMaterial(Config::dirtMaterial);
+	LightUBO		lightUbo(
+		-Config::lightDirection,
+		this->camera.getViewMatrix(),
+		Config::lightAmbientColor,
+		Config::lightColor,
+		Config::lightSpecularColor
+	);
 
 	this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
 	this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
+
+	MeshData	terrainData{this->terrainObject->getModelMatrix(), this->terrainObject->getNormalViewMatrix(this->camera.getViewMatrixNoTranslation()), dirtMaterial};
 
 	float deltaTime = 0.0f;
 	Stopwatch timer;
@@ -146,7 +178,7 @@ void Vox::run( void )
 				matrixUbo.updateView(this->camera.getViewMatrix());
 				matrixUbo.updateProjection(this->camera.getProjectionMatrix());
 				this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
-				lightUbo.updateViewPos(this->camera.getCameraPos());
+				lightUbo.updateLightDir(-Config::lightDirection, this->camera.getViewMatrix());
 				this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
 				this->updateUniforms = false;
 			}
@@ -160,7 +192,6 @@ void Vox::run( void )
 			this->terrainObject->draw(commandBuffer);
 
 			this->textUndergroundDescriptorSet->bindSet(commandBuffer, *this->terrainPipeline, 1U);
-
 			this->undergroundObject->bindBuffer(commandBuffer);
 			this->undergroundObject->draw(commandBuffer);
 
@@ -287,9 +318,9 @@ void Vox::resizeWindow( ui32 width, ui32 height )
  *
  * @return pointer to the newly created model
  */
-std::shared_ptr<ve::VulkanModel> Vox::createSkyboxModel( void )
+std::shared_ptr<ve::VulkanModel> Vox::createVoxelMesh( vec3 const& relativePos )
 {
-	return std::make_shared<ve::VulkanModel>(vulkanDevice, getVertexRelative(vec3{-0.5f, -0.5f, -0.5f}), getIndexRelative());
+	return std::make_shared<ve::VulkanModel>(vulkanDevice, getVertexAtlasRelative(relativePos), getIndexRelative());
 }
 
 }	// namespace vox

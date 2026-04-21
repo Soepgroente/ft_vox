@@ -13,3 +13,14 @@ vec4&	vec4::operator=(const vec4& other)
 	}
 	return *this;
 }
+
+vec4&	vec4::normalize() noexcept
+{
+	float len = length();
+
+	if (len != 0.0f)
+	{
+		*this /= len;
+	}
+	return *this;
+}

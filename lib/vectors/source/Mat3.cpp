@@ -26,6 +26,17 @@ mat3::mat3(const vec3& row0, const vec3& row1, const vec3& row2)
 	data[2][0] = row2.x; data[2][1] = row2.y; data[2][2] = row2.z;
 }
 
+mat3::mat3(const mat4& matrix4x4)
+{
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < 2; j++)
+		{
+			data[i][j] = matrix4x4[i][j];
+		}
+	}
+}
+
 mat3::mat3(std::initializer_list<std::initializer_list<float>> rows)
 {
 	int i = 0;

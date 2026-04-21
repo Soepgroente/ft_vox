@@ -43,4 +43,9 @@ class vec4
 
 	float&			operator[](int index) noexcept { return data[index]; }
 	const float&	operator[](int index) const noexcept { return data[index]; }
+
+	vec4	clone() const noexcept { return vec4(x, y, z, w); }
+	float	length() const noexcept { return std::sqrt(x * x + y * y + z * z + w * w); }
+	vec4&	normalize() noexcept;
+	vec4	normalized() const noexcept { return this->clone().normalize(); }
 };

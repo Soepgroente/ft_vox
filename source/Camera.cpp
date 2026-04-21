@@ -35,6 +35,15 @@ mat4 Camera::getViewMatrix( void ) const noexcept {
 	};
 }
 
+mat4 Camera::getViewMatrixNoTranslation( void ) const noexcept {
+	return mat4{
+		{this->cameraLeft.x,  this->cameraUp.x,  this->cameraForward.x,  0.0f},
+		{this->cameraLeft.y,  this->cameraUp.y,  this->cameraForward.y,  0.0f},
+		{this->cameraLeft.z,  this->cameraUp.z,  this->cameraForward.z,  0.0f},
+		{0.0f,                0.0f,              0.0f,                   1.0f}
+	};
+}
+
 vec3 const& Camera::getCameraPos( void ) const noexcept {
 	return this->position;
 }

@@ -99,6 +99,7 @@ class VulkanObject
 		MeshMaterial const&				getMaterial() const noexcept { return this->materialData; };
 		mat4							getModelMatrix() const noexcept;
 		mat4							getNormalMatrix() const noexcept;
+		mat4							getNormalViewMatrix(const mat4& viewNoTranslation) const noexcept;
 		uint32_t						getID() const noexcept { return this->id; }
 		MeshlayoutDescription			getVboLayout() const;
 
