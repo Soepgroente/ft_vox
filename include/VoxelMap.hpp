@@ -2,6 +2,7 @@
 
 #include "ThreadManager.hpp"
 #include "Vectors.hpp"
+#include "VoxelChunk.hpp"
 #include "World.hpp"
 
 namespace vox {
@@ -18,26 +19,13 @@ enum class Direction : ui8
 	West
 };
 
-class World;
-
 class VoxelMap
 {
-	using VertexVector = std::vector<ve::VulkanModel::Vertex>;
-
 	public:
-
-		enum class VoxelType : ui8
-		{
-			Air = 0,
-			Dirt = 1,
-			Stone = 2,
-			Water = 3,
-			NoMoreBlocksThisColumn = 255
-		};
 
 		VoxelMap() = delete;
 		VoxelMap(ThreadManager& threadManager);
-		~VoxelMap();
+		~VoxelMap() = default;
 		VoxelMap(VoxelMap const&) = delete;
 		VoxelMap(VoxelMap&&) = delete;
 		VoxelMap& operator=(VoxelMap const&) = delete;
@@ -46,49 +34,36 @@ class VoxelMap
 		bool	update(const vec3& newPosition);
 		void	init();
 		vec3	getMapMiddle() const noexcept;
-		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device ) const;
-		
-		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
-		bool		isReady() const noexcept { return this->ready; }
-		
+		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device );
+
 		private:
-		
-		VoxelType*	map;
+
+		std::vector<VoxelChunk>	map;
 		ui32	worldSeed;
-		ui32	chunkSize;
-		vec3i	chunkDimensions;
+
 		i32 	squareSize;
 		vec2i	minPositions;
 		vec2i	maxPositions;
 		vec2i	playerOnChunk;
 		vec3	rawPosition;
 		
-		bool	ready = false;
+		VertexVector	modelVector;
+		IndexVector		modelIndexes;
 		
 		ThreadManager&	threadManager;
-		std::vector<VertexVector>	chunksAsVectors;
-		
-		VoxelType*	getChunk(const vec2i& position)	const noexcept;
-		i32 		getChunkIndex(const vec2i& position) const noexcept;
-		i32		positiveModulo(i32 value, i32 modulus)	const noexcept;
-		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
-		int		visibleFaces(const vec3i& pos) const noexcept;
-		int		localVisibleFaces(const VoxelType* data, ui32 index) const noexcept;
-		void	addEdges(VoxelType* data, VertexVector& chunk, const vec2i& pos);
-		void	generateChunk(VoxelType* chunkData, const vec2i& chunkPosition);
-		void	mapToVertexes(VoxelType* data, VertexVector& chunk, const vec2i& pos);
-		
-		ui32	index(i32 x, i32 y, i32 z) { return static_cast<ui32>(((z * chunkDimensions.x) + x) * chunkDimensions.y + y);}
+
 		void	north();
 		void	south();
 		void	west();
 		void	east();
 
-		void	generateRow(vec2i pos);
-		void	generateColumn(vec2i pos);
+		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
+		void	generateRow(i32 index);
+		void	generateColumn(i32 index);
 
-		void	meshRow(vec2i pos);
-		void	meshColumn(vec2i pos);
+		void	meshRow(i32 index);
+		void	meshColumn(i32 index);
+		void	setAdjacentPointers();
 };
 
 }	// namespace vox

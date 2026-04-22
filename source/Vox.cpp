@@ -36,7 +36,6 @@ Vox::Vox( void ) :
 		CameraSettings::projectionFar
 	);
 	voxelMap.init();
-	assert(voxelMap.isReady() == true && "map wasn't ready");
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
 }
 
@@ -101,6 +100,7 @@ void Vox::run( void )
 	Stopwatch timer;
 
 	std::cout << "\n\n\n\n";
+	this->terrainModel = this->voxelMap.createNewModel(vulkanDevice);
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
@@ -118,7 +118,7 @@ void Vox::run( void )
 		if (commandBuffer != nullptr)
 		{
 			this->vulkanRenderer.beginSwapChainRenderPass(commandBuffer);
-			
+
 			ui32 currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
 			this->matrixDescriptorSet->setCurrentFrame(currentFrame);
 			this->samplersDescriptorSet->setCurrentFrame(currentFrame);

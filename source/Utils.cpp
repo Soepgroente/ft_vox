@@ -3,7 +3,6 @@
 #include <sstream>
 #include <iomanip>
 
-
 namespace vox {
 
 /**
@@ -31,6 +30,17 @@ std::string formatBytes( size_t bytes ) {
 		oss << bytes << " B";
 
 	return oss.str();
+}
+
+i32	positiveModulo(i32 value, i32 modulus)
+{
+	assert(modulus > 0 && "modulus must be positive");
+	value = value % modulus;
+	if (value < 0)
+	{
+		return value + modulus;
+	}
+	return value;
 }
 
 }	// namespace vox
