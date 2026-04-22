@@ -49,7 +49,7 @@ std::unique_ptr<VulkanPipeline> VulkanPipeline::createPipeline(
 	VkRenderPass renderPass,
 	std::string const& vertexShaderFile,
 	std::string const& fragmentShaderFile,
-	VulkanModel const& mesh,
+	MeshlayoutDescription const& meshLayout,
 	bool hasCubemapsTexture,
 	uint32_t sizePushConstants
 )
@@ -60,7 +60,7 @@ std::unique_ptr<VulkanPipeline> VulkanPipeline::createPipeline(
 		renderPass,
 		vertexShaderFile,
 		fragmentShaderFile,
-		mesh,
+		meshLayout,
 		hasCubemapsTexture,
 		sizePushConstants
 	);
@@ -72,7 +72,7 @@ VulkanPipeline::VulkanPipeline(
 		VkRenderPass renderPass,
 		std::string const& vertexShaderFile,
 		std::string const& fragmentShaderFile,
-		VulkanModel const& mesh,
+		MeshlayoutDescription const& meshLayout,
 		bool hasCubemapsTexture,
 		uint32_t sizePushConstants
 	) :
@@ -81,7 +81,7 @@ VulkanPipeline::VulkanPipeline(
 	assert( this->sizePushConstants <= this->vulkanDevice.getMaxPushConstantsSize() && "Push constants size exceeds limit");
 
 	this->setupPipelineLayout(descriptorSetLayouts);
-	this->setupPipeline(vertexShaderFile, fragmentShaderFile, mesh, hasCubemapsTexture, renderPass);
+	this->setupPipeline(vertexShaderFile, fragmentShaderFile, meshLayout, hasCubemapsTexture, renderPass);
 }
 
 VulkanPipeline::~VulkanPipeline()
@@ -142,7 +142,7 @@ void VulkanPipeline::setupPipelineLayout(std::vector<VkDescriptorSetLayout> cons
 	}
 }
 
-void VulkanPipeline::setupPipeline(std::string const& vertexShaderFile, std::string const& fragmentShaderFile, VulkanModel const& mesh, bool hasCubemapsTexture, VkRenderPass renderPass)
+void VulkanPipeline::setupPipeline(std::string const& vertexShaderFile, std::string const& fragmentShaderFile, MeshlayoutDescription const& meshLayout, bool hasCubemapsTexture, VkRenderPass renderPass)
 {
 	assert(this->pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
@@ -150,7 +150,7 @@ void VulkanPipeline::setupPipeline(std::string const& vertexShaderFile, std::str
 	shaders.emplace_back(this->vulkanDevice, VK_SHADER_STAGE_VERTEX_BIT, vertexShaderFile);
 	shaders.emplace_back(this->vulkanDevice, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentShaderFile);
 
-	VulkanPipelineConfig pipelineConfig = this->getPipelineConfig(shaders, mesh, hasCubemapsTexture);
+	VulkanPipelineConfig pipelineConfig = this->getPipelineConfig(shaders, meshLayout, hasCubemapsTexture);
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -171,25 +171,25 @@ void VulkanPipeline::setupPipeline(std::string const& vertexShaderFile, std::str
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 	if (vkCreateGraphicsPipelines(
-			this->vulkanDevice.device(),
-			VK_NULL_HANDLE,
-			1,
-			&pipelineInfo,
-			nullptr,
-			&this->pipeline) != VK_SUCCESS)
+		this->vulkanDevice.device(),
+		VK_NULL_HANDLE,
+		1,
+		&pipelineInfo,
+		nullptr,
+		&this->pipeline) != VK_SUCCESS)
 	{
 		vkDestroyPipelineLayout(this->vulkanDevice.device(), this->pipelineLayout, nullptr);
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 }
 
-VulkanPipelineConfig VulkanPipeline::getPipelineConfig( std::vector<VulkanShader> const& shaders, VulkanModel const& mesh, bool hasCubemapsTexture ) const noexcept
+VulkanPipelineConfig VulkanPipeline::getPipelineConfig( std::vector<VulkanShader> const& shaders, MeshlayoutDescription const& meshLayout, bool hasCubemapsTexture ) const noexcept
 {
 	assert(this->pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
 	VulkanPipelineConfig configInfo{};
-	configInfo.bindingVboConfig = mesh.getBindingDescriptions();
-	configInfo.attributeVboConfig = mesh.getAttributeDescriptions();
+	configInfo.bindingVboConfig = meshLayout.bindingConfig;
+	configInfo.attributeVboConfig = meshLayout.attributeConfig;
 	configInfo.vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	configInfo.vertexInputInfo.pNext = nullptr;
 	configInfo.vertexInputInfo.flags = 0U;

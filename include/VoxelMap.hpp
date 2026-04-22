@@ -59,8 +59,8 @@ class VoxelMap
 		bool	update(const vec3& newPosition);
 		vec3	getMapMiddle() const noexcept;
 
-		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device ) const;
-		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device ) const;
+		std::shared_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device, uint32_t binding = 0U ) const;
+		std::shared_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device, uint32_t binding = 0U ) const;
 		
 		VoxelType	getVoxelType(i32 wx, i32 wy, i32 wz) const noexcept;
 		bool		isReady() const noexcept { return this->ready; }

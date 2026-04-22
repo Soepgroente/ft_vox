@@ -75,14 +75,14 @@ void	VoxelMap::init()
 	ready = true;
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device ) const
+std::shared_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device, uint32_t binding ) const
 {
-	return std::make_unique<ve::VulkanModel>(device, terrainVertexes, VOXEL_VERTEX_INDEXES);
+	return std::make_shared<ve::VulkanModel>(device, terrainVertexes, VOXEL_VERTEX_INDEXES, binding);
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device ) const
+std::shared_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device, uint32_t binding ) const
 {
-	return std::make_unique<ve::VulkanModel>(device, undergroundVertexes, VOXEL_VERTEX_INDEXES);
+	return std::make_shared<ve::VulkanModel>(device, undergroundVertexes, VOXEL_VERTEX_INDEXES, binding);
 }
 
 VoxelMap::VoxelType	VoxelMap::getVoxelType(i32 x, i32 y, i32 z) const noexcept

@@ -108,7 +108,7 @@ class Vox
 		static std::vector<std::thread>	workerThreads;
 
 	private:
-		std::unique_ptr<ve::VulkanModel> createSkyboxModel( void );
+		std::shared_ptr<ve::VulkanModel> createSkyboxModel( void );
 
 		ve::VulkanWindow				vulkanWindow;
 		ve::VulkanDevice				vulkanDevice;
@@ -120,9 +120,9 @@ class Vox
 		InputHandler	inputHandler;
 		ThreadManager	threadManager;
 
-		std::unique_ptr<ve::VulkanModel> terrainModel;
-		std::unique_ptr<ve::VulkanModel> undergroundModel;
-		std::unique_ptr<ve::VulkanModel> skyBoxModel;
+		std::unique_ptr<ve::VulkanObject> terrainObject;
+		std::unique_ptr<ve::VulkanObject> undergroundObject;
+		std::unique_ptr<ve::VulkanObject> skyboxObject;
 
 		std::unique_ptr<ve::VulkanDescriptorSet> uboDescriptorSet;
 		std::unique_ptr<ve::VulkanDescriptorSet> textTerrainDescriptorSet;

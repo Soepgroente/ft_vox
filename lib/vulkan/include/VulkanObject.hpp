@@ -78,31 +78,33 @@ struct TransformComponent
 class VulkanObject
 {
 	public:
-		VulkanObject() = delete;
-		~VulkanObject() = default;
+		VulkanObject() : id(currentID++) {};
 		VulkanObject(const VulkanObject& other) = delete;
-		VulkanObject& operator=(const VulkanObject& other) = delete;
 		VulkanObject(VulkanObject&& other) = default;
-		VulkanObject& operator=(VulkanObject&& other) = default;
-
-		static VulkanObject	createVulkanObject() { return VulkanObject(currentID++); };
-
-		uint32_t	getID() const noexcept { return id; }
+		VulkanObject& operator=(const VulkanObject& other) = delete;
+		VulkanObject& operator=(VulkanObject&& other) = delete;
+		~VulkanObject() = default;
 
 		void	rotate( vec3 const& axis, float angle ) noexcept;
 		void	translate( vec3 const& translation ) noexcept;
 		void	scale( vec3 const& scale ) noexcept;
 		void	scale( float scale ) noexcept;
-
-		mat4				getModelMatrix() const noexcept;
-		mat4				getNormalMatrix() const noexcept;
-		MeshMaterial const&	getMaterial() const noexcept { return materialData; };
+		
+		void	bindBuffer(VkCommandBuffer commandBuffer) const;
+		void	draw(VkCommandBuffer commandBuffer) const;
+		
+		void							setModel(std::shared_ptr<VulkanModel> newModel) noexcept { this->model = newModel; };
+		std::shared_ptr<VulkanModel>	getModel() const;
+		void							setMaterial(MeshMaterial const& material) noexcept { this->materialData = material; };
+		MeshMaterial const&				getMaterial() const noexcept { return this->materialData; };
+		mat4							getModelMatrix() const noexcept;
+		mat4							getNormalMatrix() const noexcept;
+		uint32_t						getID() const noexcept { return this->id; }
+		MeshlayoutDescription			getVboLayout() const;
 
 	private:
-		VulkanObject(uint32_t objID) : id(objID) {};
-	
 		uint32_t						id;
-		std::shared_ptr<VulkanModel>	model;
+		std::shared_ptr<VulkanModel>	model{nullptr};
 		TransformComponent				transform{};
 		MeshMaterial					materialData{};
 		bool							transformationApplied{false};
