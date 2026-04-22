@@ -36,7 +36,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) :
 	VoxelChunk::paddedDimensions = VoxelChunk::chunkDimensions + vec3i{2, 2, 2};
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device )
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device, uint32_t binding )
 {
 	std::unique_ptr<ve::VulkanModel> model;
 	size_t totalVertexes = 0;
@@ -63,11 +63,11 @@ std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevi
 		IndexVector indexes = {0U + i, 1U + i, 2U + i, 0U + i, 2U + i, 3U + i};
 		modelIndexes.insert(modelIndexes.end(), indexes.begin(), indexes.end());
 	}
-	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, 0U, ve::DEFAULT_MODEL_LAYOUT);
+	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, binding, ve::DEFAULT_MODEL_LAYOUT);
 	return model;
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device )
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device, uint32_t binding )
 {
 	std::unique_ptr<ve::VulkanModel> model;
 	size_t totalVertexes = 0;
@@ -94,7 +94,7 @@ std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::Vulkan
 		IndexVector indexes = {0U + i, 1U + i, 2U + i, 0U + i, 2U + i, 3U + i};
 		modelIndexes.insert(modelIndexes.end(), indexes.begin(), indexes.end());
 	}
-	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, 0U, ve::DEFAULT_MODEL_LAYOUT);
+	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, binding, ve::DEFAULT_MODEL_LAYOUT);
 	return model;
 }
 

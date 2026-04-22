@@ -29,8 +29,8 @@ class VoxelMap
 		bool	update(const vec3& newPosition);
 		void	init();
 
-		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device );
-		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device );
+		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device, uint32_t binding = 0U );
+		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device, uint32_t binding = 0U );
 
 	private:
 		std::vector<VoxelChunk>	map;

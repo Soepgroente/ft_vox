@@ -44,7 +44,7 @@ class VulkanBuffer
 	VkDeviceSize	getAlignmentSize() const { return instanceSize; }
 	VkDeviceSize	getBufferSize() const { return bufferSize; }
 
-	VkBufferUsageFlags	getUsageFlags() const { return usageFlags; }
+	VkBufferUsageFlags		getUsageFlags() const { return usageFlags; }
 	VkMemoryPropertyFlags	getMemoryPropertyFlags() const { return memoryPropertyFlags; }
 
 	private:

@@ -59,17 +59,17 @@ class VulkanPipeline
 			VkRenderPass renderPass,
 			std::string const& vertexShaderFile,
 			std::string const& fragmentShaderFile,
-			VulkanModel const& mesh,
+			MeshlayoutDescription const& meshLayout,
 			bool hasCubemapsTexture,
 			uint32_t sizePushConstants
 		);
 		~VulkanPipeline( void );
-		VulkanPipeline(VulkanPipeline const&) = delete;
-		VulkanPipeline(VulkanPipeline&&);
-		VulkanPipeline& operator=(VulkanPipeline const&) = delete;
+		VulkanPipeline( VulkanPipeline const& ) = delete;
+		VulkanPipeline( VulkanPipeline&& );
+		VulkanPipeline& operator=( VulkanPipeline const& ) = delete;
 
 		VkPipelineLayout	getPipelineLayout( void ) const noexcept { return pipelineLayout; };
-		void				bindPipeline(VkCommandBuffer commandBuffer) const noexcept;
+		void				bindPipeline(VkCommandBuffer commandBuffer ) const noexcept;
 		void				updatePushConstants(VkCommandBuffer commandBuffer, void const* data ) const noexcept;
 
 		static std::unique_ptr<VulkanPipeline> createPipeline(
@@ -78,15 +78,15 @@ class VulkanPipeline
 			VkRenderPass renderPass,
 			std::string const& vertexShaderFile,
 			std::string const& fragmentShaderFile,
-			VulkanModel const& mesh,
+			MeshlayoutDescription const& meshLayout,
 			bool hasCubemapsTexture = false,
 			uint32_t sizePushConstants = 0U
 		);
 
 	private:
 		void					setupPipelineLayout( std::vector<VkDescriptorSetLayout> const& descriptorSetLayouts );
-		void					setupPipeline( std::string const& vertexShaderFile, std::string const& fragmentShaderFile, VulkanModel const& mesh, bool hasCubemapsTexture, VkRenderPass renderPass );
-		VulkanPipelineConfig	getPipelineConfig( std::vector<VulkanShader> const& shaders, VulkanModel const& mesh, bool hasCubemapsTexture ) const noexcept;
+		void					setupPipeline( std::string const& vertexShaderFile, std::string const& fragmentShaderFile, MeshlayoutDescription const& meshLayout, bool hasCubemapsTexture, VkRenderPass renderPass );
+		VulkanPipelineConfig	getPipelineConfig( std::vector<VulkanShader> const& shaders, MeshlayoutDescription const& meshLayout, bool hasCubemapsTexture ) const noexcept;
 
 		VulkanDevice&		vulkanDevice;
 		VkPipelineLayout	pipelineLayout;

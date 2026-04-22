@@ -2,6 +2,7 @@
 #include "stb_image.h"
 
 #include <iostream>
+#include <cassert>
 
 
 namespace ve {
@@ -155,6 +156,24 @@ void VulkanObject::scale( float scale ) noexcept
 	this->transform.scale.z *= scale;
 }
 
+void VulkanObject::bindBuffer(VkCommandBuffer commandBuffer) const
+{
+	assert(this->model != nullptr && "Model not set");
+	this->model->bindBuffer(commandBuffer);
+};
+
+void VulkanObject::draw(VkCommandBuffer commandBuffer) const
+{
+	assert(this->model != nullptr && "Model not set");
+	this->model->draw(commandBuffer);
+};
+
+std::shared_ptr<VulkanModel>	VulkanObject::getModel() const
+{
+	assert(this->model != nullptr && "Model not set");
+	return this->model;
+};
+
 // return matrix in column major
 mat4 VulkanObject::getModelMatrix() const noexcept
 {
@@ -232,6 +251,12 @@ mat4 VulkanObject::getNormalMatrix() const noexcept
 	return rotation;
 
 }
+
+MeshlayoutDescription VulkanObject::getVboLayout() const
+{
+	assert(this->model != nullptr && "Model not set");
+	return this->model->getVboLayout();
+};
 
 ImageInfo	loadImage(const std::string& imagePath)
 {
