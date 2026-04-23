@@ -13,30 +13,14 @@ struct Config
 
 	static constexpr ui32	worldSeed = 0U;
 
-	static constexpr vec3 cameraStartPos{10.0f, 5.0f, 10.0f};
+	static constexpr vec3 cameraStartPos{25.0f, 7.0f, 25.0f};
 	static constexpr vec3 cameraForward{20.0f, 5.0f, 20.0f};
 
-	static constexpr vec3 sunPos{15.0f, 10.0f, 15.0f};
-	static constexpr vec4 lightColor{1.0f, 1.0f, 1.0f, 1.0f};
+	static constexpr vec3 sunPos{-15.0f, 10.0f, -15.0f};
 
-	// Phong lighting model, a combination of the following:
-	// Ambient lighting: even when it is dark there is usually still some light somewhere in the world
-	// 		(the moon, a distant light) so objects are almost never completely dark. To simulate this
-	// 		we use an ambient lighting constant that always gives the object some color.
-	// Diffuse lighting: simulates the directional impact a light object has on an object. This is the
-	// 		most visually significant component of the lighting model. The more a part of an object
-	// 		faces the light source, the brighter it becomes.
-	// Specular lighting: simulates the bright spot of a light that appears on shiny objects. Specular
-	// 		highlights are more inclined to the color of the light than the color of the object.
-	static constexpr ve::MeshMaterial dirtMaterial{
-		vec4(0.1f),						// ambientClr
-		vec4(0.4f, 0.8f, 0.3f, 1.0f),	// diffuseClr
-		vec4(0.4f),						// specularClr
-		8,								// shininess
-		1.0f,							// opacity
-		1,								// refractionIndex
-		2								// illuminationModel
-	};
+	static constexpr vec3 lightAmbientColor{0.2f, 0.2f, 0.2f};
+	static constexpr vec3 lightColor{0.5f, 0.5f, 0.5f};
+	static constexpr vec3 lightSpecularColor{0.1f, 0.1f, 0.1f};
 
 	static constexpr i32	chunkLength = 16U;
 	static constexpr i32	chunkHeight = 256U;

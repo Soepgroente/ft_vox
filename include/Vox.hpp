@@ -1,10 +1,8 @@
 #pragma once
 
 #include "Vulkan.hpp"
-#include "Vectors.hpp"
 
 #include "Camera.hpp"
-#include "Config.hpp"
 #include "World.hpp"
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"
@@ -19,6 +17,7 @@ using ui32 = uint32_t;
 using i32 = int32_t;
 
 
+// Vulkan layout veriables for shaders in 16b so each member size has to be 16 or multiple or padded
 class ViewProjectUBO
 {
 	public:
@@ -33,30 +32,33 @@ class ViewProjectUBO
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
-		mat4 view{1.0f};
-		mat4 projection{1.0f};
+		mat4 view;
+		mat4 projection;
 };
 
-
+// Vulkan layout veriables for shaders in 16b so each member size has to be 16 or multiple or padded
 class LightUBO
 {
 	public:
 		LightUBO( void ) = delete;
-		LightUBO( vec3 const& lightPos, vec4 const& lightColor, vec3 const& viewPos ) :
+		LightUBO( vec3 const& lightPos, vec3 const& viewPos, vec3 const& ambientColor, vec3 const& diffuseColor, vec3 const& specularColor ) :
 			lightPos{lightPos, 1.0f},
-			lightColor{lightColor},
-			viewPos{viewPos, 1.0f} {};
+			viewPos{viewPos, 1.0f},			// NB instead of updating the viewPos every time, it is possible to apply view trasnformation to normals, but view matrix has to change 
+			lightAmbientColor{ambientColor, 1.0f},
+			lightColor{diffuseColor, 1.0f},
+			lightSpecularColor{specularColor, 1.0f} {};
 
 		void	updateLightPos( vec3 const& lightPos ) noexcept { this->lightPos = vec4{lightPos, 1.0f}; };
-		void	updateLightColor( vec3 const& lightColor ) noexcept { this->lightColor = vec4{lightColor, 1.0f}; };
 		void	updateViewPos( vec3 const& viewPos ) noexcept { this->viewPos = vec4{viewPos, 1.0f}; };
 
 		const void*	getData( void ) const noexcept { return static_cast<const void*>(this); };
 
 	private:
-		vec4 lightPos{0.0f};
-		vec4 lightColor{1.0f};
-		vec4 viewPos{0.0f};
+		vec4 	lightPos;
+		vec4 	viewPos;
+		vec4	lightAmbientColor;
+		vec4	lightColor;
+		vec4	lightSpecularColor;
 };
 
 
@@ -84,6 +86,7 @@ class MeshData
 		ve::MeshMaterial	material{};
 };
 
+// vulkan push_constant max size should be 128 or 256 b
 static_assert(sizeof(MeshData) == 192);
 static_assert(sizeof(MeshData) == 2 * sizeof(mat4) + sizeof(ve::MeshMaterial));
 

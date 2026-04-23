@@ -1,5 +1,5 @@
 #include "Vox.hpp"
-#include "Stopwatch.hpp"
+#include "Config.hpp"
 #include "Stopwatch.hpp"
 #include "Utils.hpp"
 
@@ -9,6 +9,36 @@
 
 namespace vox {
 
+// Phong lighting model, a combination of the following:
+// Ambient lighting: even when it is dark there is usually still some light somewhere in the world
+// 		(the moon, a distant light) so objects are almost never completely dark. To simulate this
+// 		we use an ambient lighting constant that always gives the object some color.
+// Diffuse lighting: simulates the directional impact a light object has on an object. This is the
+// 		most visually significant component of the lighting model. The more a part of an object
+// 		faces the light source, the brighter it becomes.
+// Specular lighting: simulates the bright spot of a light that appears on shiny objects. Specular
+// 		highlights are more inclined to the color of the light than the color of the object.
+constexpr ve::MeshMaterial dirtMaterial{
+	vec4(0.15f),						// ambientClr
+	vec4(0.4f, 0.8f, 0.3f, 1.0f),		// diffuseClr
+	// vec4(1.0f, 1.0f, 1.0f, 1.0f),	// diffuseClr (for texture)
+	vec4(0.4f),							// specularClr
+	8,									// shininess
+	1.0f,								// opacity
+	1,									// refractionIndex
+	2									// illuminationModel
+};
+
+constexpr ve::MeshMaterial OrangeMaterial{
+	vec4(0.1f, 0.1f, 0.1f, 1.0f),						// ambientClr
+	vec4(1.0f, 0.5f, 0.31f, 1.0f),		// diffuseClr
+	vec4(0.5f, 0.5f, 0.5f, 1.0f),							// specularClr
+	32,									// shininess
+	1.0f,								// opacity
+	1,									// refractionIndex
+	2									// illuminationModel
+};
+
 /**
  * Create the engine of the game
  */
@@ -17,7 +47,7 @@ Vox::Vox( void ) :
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	vulkanSetFactory{vulkanDevice},
-	camera{Config::cameraStartPos, Config::cameraForward, this->vulkanWindow.getAspectRatio()},
+	camera{Config::cameraStartPos, Config::sunPos - Config::cameraStartPos, this->vulkanWindow.getAspectRatio()},
 	voxelMap{threadManager},
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
@@ -122,15 +152,21 @@ void Vox::setupVulkan( void )
 void Vox::run( void )
 {
 	ViewProjectUBO	matrixUbo(this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
-	LightUBO		lightUbo(Config::sunPos, Config::lightColor, this->camera.getCameraPos());
+	LightUBO		lightUbo(
+		Config::sunPos,
+		this->camera.getCameraPos(),
+		Config::lightAmbientColor,
+		Config::lightColor,
+		Config::lightSpecularColor
+	);
 
 	this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
 	this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
 
 	// this->sunObject->scale(0.2f);
-	MeshData		sunData{this->sunObject->getModelMatrix(), this->sunObject->getNormalMatrix()};
-	MeshData		terrainData{this->terrainObject->getModelMatrix(), this->terrainObject->getNormalMatrix()};
-	terrainData.updateMaterial(Config::dirtMaterial);
+	MeshData	sunData{this->sunObject->getModelMatrix(), this->sunObject->getNormalMatrix()};
+	MeshData	terrainData{this->terrainObject->getModelMatrix(), this->terrainObject->getNormalMatrix()};
+	terrainData.updateMaterial(dirtMaterial);
 
 	float deltaTime = 0.0f;
 	Stopwatch timer;

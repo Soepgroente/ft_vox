@@ -1,11 +1,12 @@
 #version 450
 
-layout(set = 0, binding = 1) uniform LightUBO
-{
+layout(set = 0, binding = 1) uniform LightUBO {
 	vec4 lightPos;
-	vec4 lightColor;
 	vec4 viewPos;
-} lightUbo;
+	vec4 lightAmbientColor;
+	vec4 lightColor;
+	vec4 lightSpecularColor;
+} lightUBO;
 
 layout(set = 1, binding = 0) uniform sampler2D textSampler;
 
@@ -19,36 +20,33 @@ layout(push_constant) uniform MeshData {
 	mat4 modelMatrix;
 	mat4 normalMatrix;
 
-	vec4  ambientClr;
-	vec4  diffuseClr;
-	vec4  specularClr;
+	vec4 ambientClr;
+	vec4 diffuseClr;
+	vec4 specularClr;
 	float shininess;
 	float opacity;
-	int   refractionIndex;
-	int   illuminationModel;
+	int refractionIndex;
+	int illuminationModel;
 } meshData;
 
 void main()
 {
+	vec4 diffuseColor = texture(textSampler, fragTextureUV);
 	// Ambient
-	vec3 ambient = meshData.ambientClr.xyz * lightUbo.lightColor.xyz;
+	vec3 ambient = lightUBO.lightAmbientColor.xyz * diffuseColor.xyz;
 
 	// Diffuse
 	vec3 normalFrag = normalize(fragNormal);
-	vec3 lightDir = normalize(lightUbo.lightPos.xyz - fragPos);
+	vec3 lightDir = normalize(lightUBO.lightPos.xyz - fragPos);
 	float diff = max(dot(normalFrag, lightDir), 0.0);
-	vec3 diffuse = diff * lightUbo.lightColor.xyz;		// meshData.diffuseClr.xyz * 
+	vec3 diffuse = lightUBO.lightColor.xyz * diff * diffuseColor.xyz;
 
-	// // Specular (Blinn-Phong)
-	// vec3 viewDir = normalize(lightUbo.viewPos.xyz - fragPos);
-	// vec3 halfwayDir = normalize(lightDir + viewDir);
-	// float spec = pow(max(dot(normalFrag, halfwayDir), 0.0), meshData.shininess);
-	// vec3 specular = meshData.specularClr.xyz * spec * lightUbo.lightColor.xyz;
+	// Specular (Blinn-Phong)
+	vec3 viewDir = normalize(lightUBO.viewPos.xyz - fragPos);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	float spec = pow(max(dot(normalFrag, halfwayDir), 0.0), meshData.shininess);
+	vec3 specular = lightUBO.lightSpecularColor.xyz * spec * meshData.specularClr.xyz;
 
-	// outColor = vec4(result, meshData.opacity);
-
-	// vec4 textColor = texture(textSampler, fragTextureUV);
-	vec3 result = (ambient + diffuse) * meshData.diffuseClr.xyz;
-
-	outColor = vec4(result, 1.0f);
+	vec3 result = ambient + diffuse + specular;
+	outColor = vec4(result, meshData.opacity);
 }
