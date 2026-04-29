@@ -132,7 +132,9 @@ class Vox
 		std::unique_ptr<ve::VulkanPipeline> terrainPipeline;
 		std::unique_ptr<ve::VulkanPipeline> skyboxPipeline;
 
-		bool	updateUniforms;
+		// since there's a copy of every descriptor for every frame in flight,
+		// this flag is to update each ubo in a set, for every frame
+		i32	countFramesToUpdate = 0;
 };
 
 }	// namespace vox

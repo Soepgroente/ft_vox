@@ -182,11 +182,12 @@ mat4&	mat4::operator*=(const mat4& other)
 	return *this;
 }
 
-vec3	mat4::operator*( vec3 const& v ) const {
-	return vec3{
-		(*this)[0][0] * v.x + (*this)[0][1] * v.y + (*this)[0][2] * v.z + (*this)[0][3],
-		(*this)[1][0] * v.x + (*this)[1][1] * v.y + (*this)[1][2] * v.z + (*this)[1][3],
-		(*this)[2][0] * v.x + (*this)[2][1] * v.y + (*this)[2][2] * v.z + (*this)[2][3]
+vec4	mat4::operator*( vec4 const& v ) const {
+	return vec4{
+		(*this)[0][0] * v.x + (*this)[0][1] * v.y + (*this)[0][2] * v.z + (*this)[0][3] * v.w,
+		(*this)[1][0] * v.x + (*this)[1][1] * v.y + (*this)[1][2] * v.z + (*this)[1][3] * v.w,
+		(*this)[2][0] * v.x + (*this)[2][1] * v.y + (*this)[2][2] * v.z + (*this)[2][3] * v.w,
+		(*this)[3][0] * v.x + (*this)[3][1] * v.y + (*this)[3][2] * v.z + (*this)[3][3] * v.w,
 	};
 }
 

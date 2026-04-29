@@ -13,9 +13,9 @@ namespace ve {
 struct ImageInfo
 {
 	const unsigned char*	imageData;
-	int		width;
-	int		height;
-	int		channels;
+	int						width;
+	int						height;
+	int						channels;
 };
 
 struct Material
@@ -33,9 +33,9 @@ struct Material
 
 struct MeshMaterial
 {
-	vec4	ambientClr;			// range [0-1] - indirect light color (darker than diffuse)
-	vec4	diffuseClr;			// range [0-1] - color of the mesh
-	vec4	specularClr;		// range [0-1] - reflex of the light
+	vec4	ambientColor;		// range [0-1] - indirect light color (darker than diffuse)
+	vec4	diffuseColor;		// range [0-1] - color of the mesh
+	vec4	specularColor;		// range [0-1] - reflex of the light
 	float	shininess;			// range [1.0-256.0] - low (2-8): opaque, high (64-256) shiny/metal
 	float	opacity;			// alpha of diffuse
 	int32_t	refractionIndex;	// range [1-2.42...] - index of refraction, 1.0: air, 1.33 h2o, 1.5 glass
@@ -54,25 +54,14 @@ struct ObjComponent
 
 struct ObjInfo
 {
-	std::string					name;
-	std::string					mtlFile;
-	std::vector<vec3>			vertices;
-	std::vector<vec2>			textureCoords;
-	std::vector<vec3>			normals;
-	std::vector<vec3>			colors;
-	std::vector<ObjComponent>	components;
-	std::map<std::string, Material>		materials;
-};
-
-struct TransformComponent
-{
-	vec3	translation{0.0f};
-	vec3	scale{1.0f, 1.0f, 1.0f};
-	quat	rotation{};
-
-	mat4	matrix4() const noexcept;
-	mat4	matrix4(const vec3& rotationCenter) const noexcept;
-	mat3	normalMatrix() const noexcept;
+	std::string						name;
+	std::string						mtlFile;
+	std::vector<vec3>				vertices;
+	std::vector<vec2>				textureCoords;
+	std::vector<vec3>				normals;
+	std::vector<vec3>				colors;
+	std::vector<ObjComponent>		components;
+	std::map<std::string, Material>	materials;
 };
 
 class VulkanObject
@@ -90,26 +79,31 @@ class VulkanObject
 		void	scale( vec3 const& scale ) noexcept;
 		void	scale( float scale ) noexcept;
 		
-		void	bindBuffer(VkCommandBuffer commandBuffer) const;
-		void	draw(VkCommandBuffer commandBuffer) const;
+		void	bindBuffer(VkCommandBuffer commandBuffer) const noexcept;
+		void	draw(VkCommandBuffer commandBuffer) const noexcept;
 		
 		void							setModel(std::shared_ptr<VulkanModel> newModel) noexcept { this->model = newModel; };
-		std::shared_ptr<VulkanModel>	getModel() const;
+		std::shared_ptr<VulkanModel>	getModel() const noexcept;
 		void							setMaterial(MeshMaterial const& material) noexcept { this->materialData = material; };
 		MeshMaterial const&				getMaterial() const noexcept { return this->materialData; };
-		mat4							getModelMatrix() const noexcept;
-		mat4							getNormalMatrix() const noexcept;
-		mat4							getNormalViewMatrix(const mat4& viewNoTranslation) const noexcept;
 		uint32_t						getID() const noexcept { return this->id; }
-		MeshlayoutDescription			getVboLayout() const;
+		MeshlayoutDescription			getVboLayout() const noexcept;
+
+		mat4							getModelMatrix(bool columnMajor = false) const noexcept;
+		mat4							getNormalMatrix(bool columnMajor = false) const noexcept;
+		mat4							getNormalViewMatrix(const mat4& viewNoTranslation, bool columnMajor = false) const noexcept;
 
 	private:
 		uint32_t						id;
 		std::shared_ptr<VulkanModel>	model{nullptr};
-		TransformComponent				transform{};
 		MeshMaterial					materialData{};
-		bool							transformationApplied{false};
-		bool							uniformScale{true};
+		
+		vec3	_translation{0.0f};
+		vec3	_scale{1.0f, 1.0f, 1.0f};
+		quat	_rotation{};
+
+		bool	transformationApplied{false};
+		bool	uniformScale{true};
 
 		static uint32_t		currentID;
 };

@@ -66,7 +66,7 @@ class VulkanDescriptorSet
 		VulkanDescriptorSet& operator=( VulkanDescriptorSet const& other ) = delete;
 
 		void	setCurrentFrame( uint32_t frame ) noexcept;
-		void	updateUbo( int32_t binding, void const* data );		// NB check with frameInFlight
+		void	updateUbo( int32_t binding, void const* data );
 		void	updateUboAll( int32_t binding, void const* data );
 		void	bindSet( VkCommandBuffer commandBuffer, VulkanPipeline const& pipeline, uint32_t setIndex );
 

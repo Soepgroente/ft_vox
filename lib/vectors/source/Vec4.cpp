@@ -24,3 +24,10 @@ vec4&	vec4::normalize() noexcept
 	}
 	return *this;
 }
+
+
+std::ostream&	operator<<(std::ostream& os, const vec4& v)
+{
+	os << "vec4(" << v.x << ", " << v.y << ", " << v.z << ", " << v.w << ")";
+	return os;
+}

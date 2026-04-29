@@ -16,9 +16,9 @@ struct Config
 	static constexpr vec3 cameraStartPos{165.0f, 225.0f, 165.0f};
 	static constexpr vec3 cameraForward{20.0f, 0.0f, 20.0f};		// camera has weird pitch rotations if y is not 0
 
-	static constexpr vec3 lightDirection{64.0f, 256.0f, 64.0f};
-	static constexpr vec3 lightAmbientColor{0.15f, 0.15f, 0.15f};
-	static constexpr vec3 lightColor{0.4f, 0.4f, 0.4f};
+	static constexpr vec3 lightDirection{0.0f, -300.0f, 0.0f};
+	static constexpr vec3 lightAmbientColor{0.2f, 0.2f, 0.2f};
+	static constexpr vec3 lightColor{0.6f, 0.6f, 0.6f};
 	static constexpr vec3 lightSpecularColor{0.1f, 0.1f, 0.1f};
 
 	static constexpr i32	chunkLength = 16U;

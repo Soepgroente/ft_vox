@@ -6,7 +6,7 @@
 
 namespace vox {
 
-mat4 Camera::getProjectionMatrix( void ) const noexcept {
+mat4 Camera::getProjectionMatrix( bool columnMajor ) const noexcept {
 	float fov = CameraSettings::projectionFov;
 	if ( fov > M_2_PI or fov < -M_2_PI )
 		fov = radians(fov);
@@ -14,34 +14,70 @@ mat4 Camera::getProjectionMatrix( void ) const noexcept {
 	float far = CameraSettings::projectionFar;
 	const float tanHalfFovy = std::tan(fov / 2.f);
 
-	return mat4{
-		{1.f / (this->aspect * tanHalfFovy), 0.0f,               0.0f,                         0.0f},
-		{0.0f,                               -1.f / tanHalfFovy, 0.0f,                         0.0f},
-		{0.0f,                               0.0f,               far / (far - near),           1.0f},
-		{0.0f,                               0.0f,               -(far * near) / (far - near), 0.0f}
-	};
+	if (columnMajor == true)
+	{
+		return mat4{
+			{1.f / (this->aspect * tanHalfFovy),  0.0f,                0.0f,                          0.0f},
+			{0.0f,                                -1.f / tanHalfFovy,  0.0f,                          0.0f},
+			{0.0f,                                0.0f,                far / (far - near),            1.0f},
+			{0.0f,                                0.0f,                -(far * near) / (far - near),  0.0f}
+		};
+	}
+	else
+	{
+		return mat4{
+			{1.f / (this->aspect * tanHalfFovy),  0.0f,                0.0f,                0.0f                        },
+			{0.0f,                                -1.f / tanHalfFovy,  0.0f,                0.0f                        },
+			{0.0f,                                0.0f,                far / (far - near),  -(far * near) / (far - near)},
+			{0.0f,                                0.0f,                1.0f,                0.0f                        }
+		};
+	}
 }
 
-mat4 Camera::getViewMatrix( void ) const noexcept {
-	float dotLeftPos = vec3::dot(this->cameraLeft, this->position);
+mat4 Camera::getViewMatrix( bool columnMajor ) const noexcept {
+	float dotLeftPos = vec3::dot(this->cameraRight, this->position);
 	float dotUpPos = vec3::dot(this->cameraUp, this->position);
 	float dotForwardPos = vec3::dot(this->cameraForward, this->position);
 
-	return mat4{
-		{this->cameraLeft.x,  this->cameraUp.x,  this->cameraForward.x,  0.0f},
-		{this->cameraLeft.y,  this->cameraUp.y,  this->cameraForward.y,  0.0f},
-		{this->cameraLeft.z,  this->cameraUp.z,  this->cameraForward.z,  0.0f},
-		{-dotLeftPos,         -dotUpPos,         -dotForwardPos,         1.0f}
-	};
+	if (columnMajor == true)
+	{
+		return mat4{
+			{this->cameraRight.x,  this->cameraUp.x,  -this->cameraForward.x,  0.0f},
+			{this->cameraRight.y,  this->cameraUp.y,  -this->cameraForward.y,  0.0f},
+			{this->cameraRight.z,  this->cameraUp.z,  -this->cameraForward.z,  0.0f},
+			{-dotLeftPos,          -dotUpPos,         dotForwardPos,           1.0f}
+		};
+	}
+	else
+	{
+		return mat4{
+			{this->cameraRight.x,     this->cameraRight.y,     this->cameraRight.z,     -dotLeftPos},
+			{this->cameraUp.x,        this->cameraUp.y,        this->cameraUp.z,        -dotUpPos},
+			{-this->cameraForward.x,  -this->cameraForward.y,  -this->cameraForward.z,  dotForwardPos},
+			{0.0f,                    0.0f,                    0.0f,                    1.0f}
+		};
+	}
 }
 
-mat4 Camera::getViewMatrixNoTranslation( void ) const noexcept {
-	return mat4{
-		{this->cameraLeft.x,  this->cameraUp.x,  this->cameraForward.x,  0.0f},
-		{this->cameraLeft.y,  this->cameraUp.y,  this->cameraForward.y,  0.0f},
-		{this->cameraLeft.z,  this->cameraUp.z,  this->cameraForward.z,  0.0f},
-		{0.0f,                0.0f,              0.0f,                   1.0f}
-	};
+mat4 Camera::getViewMatrixNoTranslation( bool columnMajor ) const noexcept {
+	if (columnMajor == true)
+	{
+		return mat4{
+			{this->cameraRight.x,  this->cameraUp.x,  -this->cameraForward.x,  0.0f},
+			{this->cameraRight.y,  this->cameraUp.y,  -this->cameraForward.y,  0.0f},
+			{this->cameraRight.z,  this->cameraUp.z,  -this->cameraForward.z,  0.0f},
+			{0.0f,                 0.0f,              0.0f,                    1.0f}
+		};
+	}
+	else
+	{
+		return mat4{
+			{this->cameraRight.x,     this->cameraRight.y,     this->cameraRight.z,     0.0f},
+			{this->cameraUp.x,        this->cameraUp.y,        this->cameraUp.z,        0.0f},
+			{-this->cameraForward.x,  -this->cameraForward.y,  -this->cameraForward.z,  0.0f},
+			{0.0f,                    0.0f,                    0.0f,                    1.0f}
+		};
+	}
 }
 
 vec3 const& Camera::getCameraPos( void ) const noexcept {
@@ -49,22 +85,22 @@ vec3 const& Camera::getCameraPos( void ) const noexcept {
 }
 
 void Camera::moveForward( float delta ) noexcept {
-	this->position += this->cameraForward * delta;
-	this->updateCameraAxis();
-}
-
-void Camera::moveBackward( float delta ) noexcept {
 	this->position -= this->cameraForward * delta;
 	this->updateCameraAxis();
 }
 
+void Camera::moveBackward( float delta ) noexcept {
+	this->position += this->cameraForward * delta;
+	this->updateCameraAxis();
+}
+
 void Camera::moveRight( float delta ) noexcept {
-	this->position += this->cameraLeft * delta;
+	this->position += this->cameraRight * delta;
 	this->updateCameraAxis();
 }
 
 void Camera::moveLeft( float delta ) noexcept {
-	this->position -= this->cameraLeft * delta;
+	this->position -= this->cameraRight * delta;
 	this->updateCameraAxis();
 }
 
@@ -76,6 +112,15 @@ void Camera::moveUp( float delta ) noexcept {
 void Camera::moveDown( float delta ) noexcept {
 	this->position -= this->cameraUp * delta;
 	this->updateCameraAxis();
+}
+
+void Camera::move(const vec3& direction) noexcept
+{
+	vec3 right = this->cameraRight * direction.x;
+	vec3 up = this->cameraUp * direction.y;
+	vec3 forward = this->cameraForward * direction.z;
+
+	this->position += up + right + forward;
 }
 
 void Camera::rotate( float pitch, float yaw, float roll ) noexcept {
@@ -93,7 +138,7 @@ void Camera::rotate( float pitch, float yaw, float roll ) noexcept {
 	roll = radians(roll / 2.0f);
 
 	quat qYaw(-yaw, this->_up);
-	quat qPitch(pitch, this->cameraLeft);
+	quat qPitch(pitch, this->cameraRight);
 	quat qRoll(roll, this->cameraForward);
 
 	quat qForward{0.0f, this->forward.x, this->forward.y, this->forward.z};
@@ -118,10 +163,9 @@ void Camera::updateAspect( float aspect ) noexcept {
 }
 
 void Camera::updateCameraAxis( void ) noexcept {
-	vec3 cameraTarget = this->position + this->forward;
-	this->cameraForward = (cameraTarget - this->position).normalize();
-	this->cameraLeft = vec3::cross(this->cameraForward, this->_up).normalize();
-	this->cameraUp = vec3::cross(this->cameraLeft, this->cameraForward);
+	this->cameraForward = this->forward.normalize();
+	this->cameraRight = vec3::cross(this->_up, this->cameraForward).normalize();
+	this->cameraUp = vec3::cross(this->cameraForward, this->cameraRight).normalize();
 }
 
 }	// namespace vox

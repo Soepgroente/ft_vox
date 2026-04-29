@@ -25,9 +25,9 @@ class Camera
 			forward(forward),
 			aspect(aspect) { this->updateCameraAxis(); };
 
-		mat4	getProjectionMatrix( void ) const noexcept;
-		mat4	getViewMatrix( void ) const noexcept;
-		mat4	getViewMatrixNoTranslation( void ) const noexcept;
+		mat4	getProjectionMatrix( bool columnMajor = true ) const noexcept;
+		mat4	getViewMatrix( bool columnMajor = true ) const noexcept;
+		mat4	getViewMatrixNoTranslation( bool columnMajor = true ) const noexcept;
 
 		vec3 const&	getCameraPos( void ) const noexcept;
 
@@ -37,6 +37,7 @@ class Camera
 		void	moveLeft( float ) noexcept;
 		void	moveUp( float ) noexcept;
 		void	moveDown( float ) noexcept;
+		void	move(const vec3& direction) noexcept;
 		void	rotate( float, float, float ) noexcept;
 		void	updateAspect( float ) noexcept;
 
@@ -47,9 +48,9 @@ class Camera
 		vec3	forward;										// where the camera is looking at
 		float	aspect;											// ratio screen width / height
 		vec3	_up{CameraSettings::cameraDefaultUp};			// general up, stored in a variabile since it can change due to roll rotations
-		vec3	cameraForward;	// z axis of the camera
-		vec3	cameraLeft;		// x axis of the camera
-		vec3	cameraUp;		// y axis of the camera
+		vec3	cameraForward;									// z axis of the camera
+		vec3	cameraRight;									// x axis of the camera
+		vec3	cameraUp;										// y axis of the camera
 
 		float	currentPitch = 0.0f;	// to avoid vertical rotations > 90° or < -90°
 };

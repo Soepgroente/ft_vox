@@ -30,9 +30,12 @@ constexpr ve::MeshMaterial dirtMaterial{
 
 void LightUBO::updateLightDir( vec3 const& lightDir, mat4 const& viewMatrix ) noexcept
 {
-	vec3 lightViewDir = viewMatrix * (lightDir * -1);
-	lightViewDir.normalize();
-	this->lightDir = vec4{lightViewDir, 0.0f};
+	// light dir goes from fragment to light source, but shaders assume the opposite, so it has to be negated
+	// also, viewMatrix has to be in row major
+	vec4 lightDir4 = vec4{lightDir * -1, 0.0f};
+	lightDir4 = viewMatrix * lightDir4;
+	lightDir4.normalize();
+	this->lightDir = lightDir4;
 }
 
 /**
@@ -48,8 +51,7 @@ Vox::Vox( void ) :
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
 		[this](i32 width, i32 height) { this->resizeWindow(width, height); }
-	},
-	updateUniforms{false}
+	}
 {
 	this->voxelMap.init();
 	this->inputHandler.setCallbacks(this->vulkanWindow.getGLFWwindow());
@@ -132,19 +134,23 @@ void Vox::setupVulkan( void )
  */
 void Vox::run( void )
 {
-	ViewProjectUBO	matrixUbo(this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
-	LightUBO		lightUbo(
-		-Config::lightDirection,
+	ViewProjectUBO matrixUbo(
 		this->camera.getViewMatrix(),
+		this->camera.getProjectionMatrix()
+	);
+	LightUBO lightUbo(
+		Config::lightDirection,
+		this->camera.getViewMatrix(false),
 		Config::lightAmbientColor,
 		Config::lightColor,
 		Config::lightSpecularColor
 	);
-
-	this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
-	this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
-
-	MeshData	terrainData{this->terrainObject->getModelMatrix(), this->terrainObject->getNormalViewMatrix(this->camera.getViewMatrixNoTranslation()), dirtMaterial};
+	MeshData terrainData(
+		this->terrainObject->getModelMatrix(),
+		this->terrainObject->getNormalViewMatrix(this->camera.getViewMatrixNoTranslation()),
+		dirtMaterial
+	);
+	this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 
 	float deltaTime = 0.0f;
 	Stopwatch timer;
@@ -153,13 +159,14 @@ void Vox::run( void )
 	{
 		glfwPollEvents();
 		timer.start();
-		deltaTime = timer.elapsed(Unit::Seconds);			// NB why is it right after start?
+		deltaTime = timer.elapsed(Unit::Seconds);
 		this->moveCamera(deltaTime);
 
 		// vec3 playerPos = this->camera.getCameraPos();
 		// if (voxelMap.update(playerPos) == true)
 		// {
-		// 	this->terrainObject = voxelMap.createNewModelTerrain(vulkanDevice);
+		// 	this->terrainObject->setModel(this->voxelMap.createNewModelTerrain(vulkanDevice));
+		// 	this->undergroundObject->setModel(this->voxelMap.createNewModelUnderground(vulkanDevice));
 		// }
 
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
@@ -173,14 +180,14 @@ void Vox::run( void )
 			this->textUndergroundDescriptorSet->setCurrentFrame(currentFrame);
 			this->textSkyboxDescriptorSet->setCurrentFrame(currentFrame);
 
-			if (this->updateUniforms == true)
+			if (this->countFramesToUpdate > 0)
 			{
 				matrixUbo.updateView(this->camera.getViewMatrix());
 				matrixUbo.updateProjection(this->camera.getProjectionMatrix());
-				this->uboDescriptorSet->updateUboAll(0, matrixUbo.getData());
-				lightUbo.updateLightDir(-Config::lightDirection, this->camera.getViewMatrix());
-				this->uboDescriptorSet->updateUboAll(1, lightUbo.getData());
-				this->updateUniforms = false;
+				this->uboDescriptorSet->updateUbo(0, matrixUbo.getData());
+				lightUbo.updateLightDir(Config::lightDirection, this->camera.getViewMatrix(false));
+				this->uboDescriptorSet->updateUbo(1, lightUbo.getData());
+				this->countFramesToUpdate--;
 			}
 
 			this->terrainPipeline->bindPipeline(commandBuffer);
@@ -224,55 +231,32 @@ void Vox::run( void )
  */
 void Vox::moveCamera( float deltaTime )
 {
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
+	vec3	moveDirection = vec3::zero();
+	vec3	rotation = vec3::zero();
+	float	moveScalar = deltaTime * Config::movementSpeed;
+	float	rotationScalar = deltaTime * Config::lookSpeed;
+
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_W)) { moveDirection.z -= moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_S)) { moveDirection.z += moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_A)) { moveDirection.x -= moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_D)) { moveDirection.x += moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q)) { moveDirection.y -= moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_E)) { moveDirection.y += moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP)) { rotation.x += rotationScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN)) { rotation.x -= rotationScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
+
+	if (rotation != vec3::zero())
 	{
-		this->camera.moveForward(deltaTime * Config::movementSpeed);
-		this->updateUniforms = true;
+		this->camera.rotate(rotation.x, rotation.y, 0.0f);
+		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_A))
+	if (moveDirection != vec3::zero())
 	{
-		this->camera.moveLeft(deltaTime * Config::movementSpeed);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_S))
-	{
-		this->camera.moveBackward(deltaTime * Config::movementSpeed);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_D))
-	{
-		this->camera.moveRight(deltaTime * Config::movementSpeed);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_E))
-	{
-		this->camera.moveUp(deltaTime * Config::movementSpeed);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q))
-	{
-		this->camera.moveDown(deltaTime * Config::movementSpeed);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP))
-	{
-		this->camera.rotate(deltaTime * Config::lookSpeed, 0.0f, 0.0f);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN))
-	{
-		this->camera.rotate(-deltaTime * Config::lookSpeed, 0.0f, 0.0f);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))
-	{
-		this->camera.rotate(0.0f, -deltaTime * Config::lookSpeed, 0.0f);
-		this->updateUniforms = true;
-	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT))
-	{
-		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
-		this->updateUniforms = true;
+		// test for movement
+		this->camera.move(moveDirection);
+		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 	}
 }
 
@@ -292,7 +276,7 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 	float yaw = (currPos.x - oldPos.x) * CameraSettings::cameraSensitivity;
 	float pitch = (oldPos.y - currPos.y) * CameraSettings::cameraSensitivity;  // reversed since y-coordinates range from bottom to top
 	this->camera.rotate(pitch, yaw, 0.0f);
-	this->updateUniforms = true;
+	this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
 /**
@@ -307,7 +291,7 @@ void Vox::resizeWindow( ui32 width, ui32 height )
 {
 	this->vulkanWindow.resetWindowSize(width, height);
 	this->camera.updateAspect(this->vulkanWindow.getAspectRatio());
-	this->updateUniforms = true;
+	this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
 /**

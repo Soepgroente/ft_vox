@@ -31,8 +31,7 @@ layout(location = 2) out vec2 fragTextureUV;
 void main()
 {
 	vec4 worldPos = ubo.view * meshData.modelMatrix * vec4(position, 1.0f);
-	fragNormal = mat3(meshData.normalMatrix) * normal;
-	// fragNormal = normal;
+	fragNormal = normalize(mat3(meshData.normalMatrix) * normal);
 	fragTextureUV = textureUV;
 	fragPos = worldPos.xyz;
 

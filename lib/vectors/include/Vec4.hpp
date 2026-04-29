@@ -49,3 +49,5 @@ class vec4
 	vec4&	normalize() noexcept;
 	vec4	normalized() const noexcept { return this->clone().normalize(); }
 };
+
+std::ostream&	operator<<(std::ostream& os, const vec4& v);
