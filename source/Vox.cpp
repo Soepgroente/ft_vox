@@ -7,6 +7,7 @@
 #include <iostream>
 #include <chrono>
 #include <cassert>
+#include <future>
 
 namespace vox {
 
@@ -37,6 +38,7 @@ Vox::Vox( void ) :
 	);
 	voxelMap.init();
 	this->inputHandler.setCallbacks(vulkanWindow.getGLFWwindow());
+
 }
 
 void Vox::setupVulkan( void )
@@ -98,20 +100,43 @@ void Vox::setupVulkan( void )
 void Vox::run( void )
 {
 	Stopwatch timer;
+	std::future<bool>	mapUpdateResult;
 
 	std::cout << "\n\n\n\n";
-	this->terrainModel = this->voxelMap.createNewModel(vulkanDevice);
+
+	this->camera.rotate(-45.0f, 0.0f, 0.0f);
+	this->updateMatrixUbo = true;
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
 		timer.start();
 
 		this->moveCamera(timer.elapsed(Unit::Seconds));
-
 		vec3 playerPos = this->camera.getCameraPos();
-		if (voxelMap.update(playerPos) == true)
+		this->inputHandler.reset();
+
+		if (mapUpdateResult.valid() == false)
 		{
-			this->terrainModel = voxelMap.createNewModel(vulkanDevice);
+			mapUpdateResult = std::async(std::launch::async, [this, playerPos] {
+				return voxelMap.update(playerPos);
+			});
+		}
+		else
+		{
+			const std::future_status status = mapUpdateResult.wait_for(std::chrono::milliseconds(0));
+
+			if (status == std::future_status::ready)
+			{
+				const bool changed = mapUpdateResult.get(); // consumes future; now invalid
+
+				if (changed == true)
+				{
+					this->terrainModel = voxelMap.createNewModel(vulkanDevice); // main thread
+				}
+				mapUpdateResult = std::async(std::launch::async, [this, playerPos] {
+					return voxelMap.update(playerPos);
+				});
+			}
 		}
 
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
@@ -144,7 +169,6 @@ void Vox::run( void )
 			this->vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			this->vulkanRenderer.endFrame();
 		}
-		this->inputHandler.reset();
 		timer.stop();
 
 		// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
@@ -163,63 +187,31 @@ void Vox::run( void )
  */
 void Vox::moveCamera( float deltaTime )
 {
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_W))
-	{
-		this->camera.moveForward(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
-	}
+	vec3	moveDirection = vec3::zero();
+	vec3	rotation = vec3::zero();
+	float	moveScalar = deltaTime * Config::movementSpeed;
+	float	rotationScalar = deltaTime * Config::lookSpeed;
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_A))
-	{
-		this->camera.moveLeft(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
-	}
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_W)) { moveDirection.z += moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_A)) { moveDirection.x -= moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_S)) { moveDirection.z -= moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_D)) { moveDirection.x += moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_E)) { moveDirection.y += moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q)) { moveDirection.y -= moveScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP)) { rotation.x += rotationScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN)) { rotation.x -= rotationScalar; }
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_S))
+	if (rotation != vec3::zero())
 	{
-		this->camera.moveBackward(deltaTime * Config::movementSpeed);
 		this->updateMatrixUbo = true;
+		this->camera.rotate(rotation.x, rotation.y, 0.0f);
 	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_D))
+	if (moveDirection != vec3::zero())
 	{
-		this->camera.moveRight(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
-	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_E))
-	{
-		this->camera.moveUp(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
-	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_Q))
-	{
-		this->camera.moveDown(deltaTime * Config::movementSpeed);
-		this->updateMatrixUbo = true;
-	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_UP))
-	{
-		this->camera.rotate(deltaTime * Config::lookSpeed, 0.0f, 0.0f);
-		this->updateMatrixUbo = true;
-	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN))
-	{
-		this->camera.rotate(-deltaTime * Config::lookSpeed, 0.0f, 0.0f);
-		this->updateMatrixUbo = true;
-	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))
-	{
-		this->camera.rotate(0.0f, -deltaTime * Config::lookSpeed, 0.0f);
-		this->updateMatrixUbo = true;
-	}
-
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT))
-	{
-		this->camera.rotate(0.0f, deltaTime * Config::lookSpeed, 0.0f);
+		// test for movement
+		this->camera.move(moveDirection);
 		this->updateMatrixUbo = true;
 	}
 }

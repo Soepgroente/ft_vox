@@ -10,7 +10,7 @@ struct CameraSettings {
 	static constexpr float	projectionFar = 1000.0f;
 	static constexpr float	cameraDistance = 50.0f;
 	static constexpr float	cameraSensitivity = 0.1f;
-	static constexpr vec3	cameraForward{0.0f, -5.0f, 10.0f};
+	static constexpr vec3	cameraForward{0.0f, 0.0f, 10.0f};
 	static constexpr vec3	cameraUpDefault{0.0f, 1.0f, 0.0f};
 };
 
@@ -43,6 +43,8 @@ class Camera
 		void	moveUp( float ) noexcept;
 		void	moveDown( float ) noexcept;
 		void	rotate( float, float, float ) noexcept;
+
+		void	move(const vec3& direction) noexcept;
 
 	private:
 		mat4	projectionMatrix{1.0f};

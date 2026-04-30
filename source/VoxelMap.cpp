@@ -42,18 +42,35 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) : threadManager(threadManager)
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& device )
 {
 	std::unique_ptr<ve::VulkanModel> model;
+
+	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, 0U, ve::DEFAULT_MODEL_LAYOUT);
+	return model;
+}
+
+void	VoxelMap::updateModel()
+{
 	size_t totalVertexes = 0;
 
-	modelVector.clear();
-	modelIndexes.clear();
 	for (size_t i = 0; i < map.size(); i++)
 	{
 		totalVertexes += map[i].getVertexSize();
 	}
-	if (totalVertexes > modelVector.capacity())
+	if (totalVertexes > modelVector.size())
 	{
+		const ui32 prevSize = static_cast<ui32>(modelVector.size());
+
 		modelVector.reserve(totalVertexes);
 		modelIndexes.reserve(totalVertexes * 6 / 4);
+
+		for (ui32 i = prevSize; i < modelVector.capacity(); i += 4)
+		{
+			IndexVector indexes = {0U + i, 1U + i, 2U + i, 0U + i, 2U + i, 3U + i};
+			modelIndexes.insert(modelIndexes.end(), indexes.begin(), indexes.end());
+		}
+	}
+	else
+	{
+		modelVector.clear();
 	}
 	for (size_t i = 0; i < map.size(); i++)
 	{
@@ -61,13 +78,6 @@ std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModel( ve::VulkanDevice& dev
 
 		modelVector.insert(modelVector.end(), chunkVertexes.begin(), chunkVertexes.end());
 	}
-	for (ui32 i = 0; i < modelVector.size(); i += 4)
-	{
-		IndexVector indexes = {0U + i, 1U + i, 2U + i, 0U + i, 2U + i, 3U + i};
-		modelIndexes.insert(modelIndexes.end(), indexes.begin(), indexes.end());
-	}
-	model = std::make_unique<ve::VulkanModel>(device, modelVector, modelIndexes, 0U, ve::DEFAULT_MODEL_LAYOUT);
-	return model;
 }
 
 void	VoxelMap::setAdjacentPointers()
@@ -153,6 +163,7 @@ void	VoxelMap::init()
 		});
 	}
 	threadManager.waitIdle();
+	updateModel();
 	timer.stop();
 	std::cout << "Initial voxel map generation took: " << timer << std::endl;
 }

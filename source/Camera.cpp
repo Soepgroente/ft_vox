@@ -122,6 +122,17 @@ void Camera::moveDown( float delta ) noexcept {
 	this->_position = progression;
 }
 
+void	Camera::move(const vec3& direction)	noexcept
+{
+	vec3 left = this->_cameraLeft * direction.x;
+	vec3 up = this->_cameraUp * direction.y;
+	vec3 forward = this->_cameraForward * direction.z;
+
+	this->_position += up;
+	this->_position += left;
+	this->_position += forward;
+}
+
 void Camera::rotate( float pitch, float yaw, float roll ) noexcept {
 	if (this->_currentPitch + pitch > 89.0f) {
 		pitch = 89.0f - this->_currentPitch;
