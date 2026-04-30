@@ -45,7 +45,8 @@ class VoxelChunk
 		void	generateVertexes();
 
 		const VertexVector&	getVertexData() const noexcept { return vertexes; }
-
+		const vec3i getWorldPos() { return this->worldPosition; }
+		
 		void	setAdjacentChunks(VoxelChunk* north, VoxelChunk* east, VoxelChunk* south, VoxelChunk* west) noexcept;
 		void	setLocation(vec2i loc);
 

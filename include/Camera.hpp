@@ -36,15 +36,11 @@ class Camera
 
 		vec3 const&	getCameraPos( void ) noexcept;
 
-		void	moveForward( float ) noexcept;
-		void	moveBackward( float ) noexcept;
-		void	moveRight( float ) noexcept;
-		void	moveLeft( float ) noexcept;
-		void	moveUp( float ) noexcept;
-		void	moveDown( float ) noexcept;
 		void	rotate( float, float, float ) noexcept;
 
-		void	move(const vec3& direction) noexcept;
+		void	move(const vec3& translation) noexcept;
+
+		vec3	getRelativeMoveDirection(const vec3& rawDirection);
 
 	private:
 		mat4	projectionMatrix{1.0f};

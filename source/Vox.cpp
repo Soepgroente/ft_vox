@@ -133,9 +133,9 @@ void Vox::run( void )
 				{
 					this->terrainModel = voxelMap.createNewModel(vulkanDevice); // main thread
 				}
-				mapUpdateResult = std::async(std::launch::async, [this, playerPos] {
-					return voxelMap.update(playerPos);
-				});
+				// mapUpdateResult = std::async(std::launch::async, [this, playerPos] {
+				// 	return voxelMap.update(playerPos);
+				// });
 			}
 		}
 
@@ -210,8 +210,10 @@ void Vox::moveCamera( float deltaTime )
 	}
 	if (moveDirection != vec3::zero())
 	{
-		// test for movement
-		this->camera.move(moveDirection);
+		vec3 relativeMoveDirection = this->camera.getRelativeMoveDirection(moveDirection);
+
+		this->voxelMap.detectCollision(relativeMoveDirection);
+		this->camera.move(relativeMoveDirection);
 		this->updateMatrixUbo = true;
 	}
 }

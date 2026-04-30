@@ -34,7 +34,10 @@ class VoxelMap
 		bool	update(const vec3& newPosition);
 		void	init();
 		vec3	getMapMiddle() const noexcept;
+		void	detectCollision(vec3& movement);
 		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device );
+
+		VoxelType	getVoxelAt(const vec3& location);
 
 		private:
 
