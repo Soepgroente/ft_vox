@@ -84,7 +84,7 @@ quat	quat::fastNormalized() const noexcept
 	return this->clone().fastNormalize();
 }
 
-mat4 quat::getMatrix(bool columnMajor) const
+mat4 quat::getMatrix(bool columnMajor) const noexcept
 {
 	const float x2  = x + x;
 	const float y2  = y + y;

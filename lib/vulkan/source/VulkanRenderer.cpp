@@ -160,7 +160,7 @@ void	VulkanRenderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer)
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 }
 
-void	VulkanRenderer::endSwapChainRenderPass(VkCommandBuffer commandBuffer)
+void	VulkanRenderer::endSwapChainRenderPass(VkCommandBuffer commandBuffer) noexcept
 {
 	assert(isFrameStarted == true && "Can't call endSwapChainRenderPass if frame not in progress");
 	assert(

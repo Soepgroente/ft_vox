@@ -49,19 +49,19 @@ void VulkanObject::scale( float scale ) noexcept
 	this->_scale.z *= scale;
 }
 
-void VulkanObject::bindBuffer(VkCommandBuffer commandBuffer) const
+void VulkanObject::bindBuffer(VkCommandBuffer commandBuffer) const noexcept
 {
 	assert(this->model != nullptr && "Model not set");
 	this->model->bindBuffer(commandBuffer);
 };
 
-void VulkanObject::draw(VkCommandBuffer commandBuffer) const
+void VulkanObject::draw(VkCommandBuffer commandBuffer) const noexcept
 {
 	assert(this->model != nullptr && "Model not set");
 	this->model->draw(commandBuffer);
 };
 
-std::shared_ptr<VulkanModel>	VulkanObject::getModel() const
+std::shared_ptr<VulkanModel>	VulkanObject::getModel() const noexcept
 {
 	assert(this->model != nullptr && "Model not set");
 	return this->model;
@@ -163,7 +163,7 @@ mat4 VulkanObject::getNormalViewMatrix(const mat4& viewNoTranslation, bool colum
 	}
 }
 
-MeshlayoutDescription VulkanObject::getVboLayout() const
+MeshlayoutDescription VulkanObject::getVboLayout() const noexcept
 {
 	assert(this->model != nullptr && "Model not set");
 	return this->model->getVboLayout();
