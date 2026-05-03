@@ -36,7 +36,7 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) :
 	VoxelChunk::paddedDimensions = VoxelChunk::chunkDimensions + vec3i{2, 2, 2};
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device, uint32_t binding )
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevice& device, ui32 binding )
 {
 	std::unique_ptr<ve::VulkanModel> model;
 	size_t totalVertexes = 0;
@@ -67,7 +67,7 @@ std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelTerrain( ve::VulkanDevi
 	return model;
 }
 
-std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device, uint32_t binding )
+std::unique_ptr<ve::VulkanModel> VoxelMap::createNewModelUnderground( ve::VulkanDevice& device, ui32 binding )
 {
 	std::unique_ptr<ve::VulkanModel> model;
 	size_t totalVertexes = 0;

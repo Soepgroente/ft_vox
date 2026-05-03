@@ -6,15 +6,10 @@
 #include "VulkanModel.hpp"
 #include "Vectors.hpp"
 #include "NoiseGenerator.hpp"
+#include "TypeAliases.hpp"
 
 
 namespace vox {
-
-using ui8 = uint8_t;
-using i32 = int32_t;
-using ui32 = uint32_t;
-using VertexVector = std::vector<ve::VulkanModel::Vertex>;
-using IndexVector = std::vector<ui32>;
 
 enum class VoxelType : ui8
 {

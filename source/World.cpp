@@ -13,7 +13,7 @@ namespace vox {
  */
 std::vector<vec3> getVertexRelative( vec3 const& relativeOrigin ) {
 	std::vector<vec3> voxelVertexes(VERTEX_PER_VOXEL);
-	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+	for (ui32 i=0; i<VERTEX_PER_VOXEL; i++) {
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
 		voxelVertexes[i].x = VOXEL_VERTEXES_ATLAS[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
 		voxelVertexes[i].y = VOXEL_VERTEXES_ATLAS[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
@@ -24,7 +24,7 @@ std::vector<vec3> getVertexRelative( vec3 const& relativeOrigin ) {
 
 // std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& relativeOrigin ) {
 // 	std::vector<ve::VulkanModel::Vertex> voxelVertexes(VERTEX_PER_VOXEL);
-// 	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+// 	for (ui32 i=0; i<VERTEX_PER_VOXEL; i++) {
 // 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
 // 		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
 // 		voxelVertexes[i].pos.y = VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
@@ -37,7 +37,7 @@ std::vector<vec3> getVertexRelative( vec3 const& relativeOrigin ) {
 
 std::vector<ve::VulkanModel::Vertex> getVertexAtlasRelative( vec3 const& relativeOrigin ) {
 	std::vector<ve::VulkanModel::Vertex> voxelVertexes(VERTEX_PER_VOXEL);
-	for (uint32_t i=0; i<VERTEX_PER_VOXEL; i++) {
+	for (ui32 i=0; i<VERTEX_PER_VOXEL; i++) {
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
 		voxelVertexes[i].pos.x = VOXEL_VERTEXES_ATLAS[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
 		voxelVertexes[i].pos.y = VOXEL_VERTEXES_ATLAS[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
@@ -56,10 +56,10 @@ std::vector<ve::VulkanModel::Vertex> getVertexAtlasRelative( vec3 const& relativ
  *
  * @return a vector of 36 uin32_t starting from the offset value
  */
-IndexVector getIndexRelative( uint32_t start ) {
+IndexVector getIndexRelative( ui32 start ) {
 	IndexVector indexes(INDEX_PER_VOXEL);
 
-	for (uint32_t i=0; i<INDEX_PER_VOXEL; i++)
+	for (ui32 i=0; i<INDEX_PER_VOXEL; i++)
 		indexes[i] = start + VOXEL_VERTEX_INDEXES[i];
 	return indexes;
 }

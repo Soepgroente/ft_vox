@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+namespace vox {
+
 using Clock = std::chrono::steady_clock;
 using Time = Clock::time_point;
 using Duration = Clock::duration;
@@ -44,3 +46,5 @@ class Stopwatch
 };
 
 std::ostream&	operator<<(std::ostream& os, const Stopwatch& stopwatch);
+
+}	// namespace vox

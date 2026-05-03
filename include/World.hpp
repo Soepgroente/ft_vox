@@ -6,6 +6,7 @@
 #include "Stopwatch.hpp"
 #include "VoxelMap.hpp"
 #include "Config.hpp"
+#include "TypeAliases.hpp"
 
 #include <unordered_map>
 #include <array>
@@ -13,8 +14,8 @@
 
 namespace vox {
 
-inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
-inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
+inline constexpr ui32	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
+inline constexpr ui32	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
 inline constexpr float		VOXEL_SIZE = 1.0f;		// length of a voxel edge
 
 enum VertexFaces : size_t
@@ -100,7 +101,7 @@ inline constexpr std::array<ve::VulkanModel::Vertex,VERTEX_PER_VOXEL> VOXEL_VERT
 };
 
 // hard-coded face indexes of a voxel
-inline constexpr std::array<uint32_t, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
+inline constexpr std::array<ui32, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 	0U, 1U, 2U, 		// front face
 	0U, 2U, 3U, 		// front face
 	4U, 5U, 6U, 		// back face

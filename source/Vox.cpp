@@ -59,9 +59,9 @@ Vox::Vox( void ) :
 
 void Vox::setupVulkan( void )
 {
-	uint32_t	maxSetsToCreate = 5;
-	uint32_t	nUniformDescriptors = 2;
-	uint32_t	nSamplerDescriptors = 4;
+	ui32	maxSetsToCreate = 5;
+	ui32	nUniformDescriptors = 2;
+	ui32	nSamplerDescriptors = 4;
 
 	this->terrainObject = std::make_unique<ve::VulkanObject>();
 	this->undergroundObject = std::make_unique<ve::VulkanObject>();
@@ -162,12 +162,12 @@ void Vox::run( void )
 		deltaTime = timer.elapsed(Unit::Seconds);
 		this->moveCamera(deltaTime);
 
-		// vec3 playerPos = this->camera.getCameraPos();
-		// if (voxelMap.update(playerPos) == true)
-		// {
-		// 	this->terrainObject->setModel(this->voxelMap.createNewModelTerrain(vulkanDevice));
-		// 	this->undergroundObject->setModel(this->voxelMap.createNewModelUnderground(vulkanDevice));
-		// }
+		vec3 playerPos = this->camera.getCameraPos();
+		if (voxelMap.update(playerPos) == true)
+		{
+			this->terrainObject->setModel(this->voxelMap.createNewModelTerrain(vulkanDevice));
+			this->undergroundObject->setModel(this->voxelMap.createNewModelUnderground(vulkanDevice));
+		}
 
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
@@ -216,7 +216,7 @@ void Vox::run( void )
 		timer.stop();
 
 		// std::cout << "\033[K" << "Player position - x: " << playerPos.x << " y: " << playerPos.y << " z: " << playerPos.z << std::endl;
-		// int	fps = static_cast<int> (1.0f / timer.elapsed(Unit::Seconds));
+		// int32_t	fps = static_cast<int32_t> (1.0f / timer.elapsed(Unit::Seconds));
 		// std::cout << "\033[3A" << "\033[K" << "Frames per second: " << fps << ", Frame time: " << timer.elapsed(Unit::Milliseconds) << "ms " << std::endl;
 	}
 	vkDeviceWaitIdle(vulkanDevice.device());

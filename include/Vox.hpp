@@ -6,16 +6,14 @@
 #include "InputHandler.hpp"
 #include "ThreadManager.hpp"
 #include "VoxelMap.hpp"
+#include "TypeAliases.hpp"
 
 #include <array>
 #include <memory>
 #include <vector>
 
+
 namespace vox {
-
-using ui32 = uint32_t;
-using i32 = int32_t;
-
 
 // Vulkan variables layout for shaders is 16b so each member size has to multiple of 16 or padded
 class ViewProjectUBO

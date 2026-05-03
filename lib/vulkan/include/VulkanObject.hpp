@@ -13,9 +13,9 @@ namespace ve {
 struct ImageInfo
 {
 	const unsigned char*	imageData;
-	int						width;
-	int						height;
-	int						channels;
+	int32_t					width;
+	int32_t					height;
+	int32_t					channels;
 };
 
 struct Material

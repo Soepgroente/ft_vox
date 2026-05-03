@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 
+
 namespace vox {
 
 vec3i	VoxelChunk::chunkDimensions = vec3i::zero();

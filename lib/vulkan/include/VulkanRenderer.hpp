@@ -35,7 +35,7 @@ class VulkanRenderer
 		return commandBuffers[currentFrameIndex];
 	}
 
-	int	getCurrentFrameIndex() const noexcept
+	int32_t	getCurrentFrameIndex() const noexcept
 	{
 		assert(isFrameStarted && "Cannot get frame index when frame not in progress");
 		return currentFrameIndex;
@@ -62,4 +62,4 @@ class VulkanRenderer
 	bool		isFrameStarted;
 };
 
-}
+} // namespace ve

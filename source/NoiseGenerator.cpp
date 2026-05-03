@@ -115,7 +115,7 @@ float NoiseGenerator::octavePerlin3D(float x, float y, float z, ui32 octaves) co
     return (octavePerlin + 1.0f) * 0.5f;
 }
 
-void NoiseGenerator::setSeed( uint32_t baseSeed ) noexcept
+void NoiseGenerator::setSeed( ui32 baseSeed ) noexcept
 {
 	this->terrainSeed = baseSeed ^ (1 * NoiseGenerator::GOLDEN_RATIO_HASH);
 	this->cavesSeed = baseSeed ^ (2 * NoiseGenerator::GOLDEN_RATIO_HASH);

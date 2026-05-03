@@ -179,7 +179,7 @@ VkDescriptorBufferInfo	VulkanBuffer::descriptorInfo(VkDeviceSize size, VkDeviceS
  * @param index Used in offset calculation
  *
  */
-void	VulkanBuffer::writeToIndex(const void *data, int index) noexcept
+void	VulkanBuffer::writeToIndex(const void *data, int32_t index) noexcept
 {
 	writeToBuffer(data, instanceSize, index * alignmentSize);
 }
@@ -190,7 +190,7 @@ void	VulkanBuffer::writeToIndex(const void *data, int index) noexcept
  * @param index Used in offset calculation
  *
  */
-VkResult	VulkanBuffer::flushIndex(int index) noexcept
+VkResult	VulkanBuffer::flushIndex(int32_t index) noexcept
 {
 	return flush(alignmentSize, index * alignmentSize);
 }
@@ -202,7 +202,7 @@ VkResult	VulkanBuffer::flushIndex(int index) noexcept
  *
  * @return VkDescriptorBufferInfo for instance at index
  */
-VkDescriptorBufferInfo	VulkanBuffer::descriptorInfoForIndex(int index) noexcept
+VkDescriptorBufferInfo	VulkanBuffer::descriptorInfoForIndex(int32_t index) noexcept
 {
 	return descriptorInfo(alignmentSize, index * alignmentSize);
 }
@@ -216,7 +216,7 @@ VkDescriptorBufferInfo	VulkanBuffer::descriptorInfoForIndex(int index) noexcept
  *
  * @return VkResult of the invalidate call
  */
-VkResult	VulkanBuffer::invalidateIndex(int index) noexcept
+VkResult	VulkanBuffer::invalidateIndex(int32_t index) noexcept
 {
 	return invalidate(alignmentSize, index * alignmentSize);
 }

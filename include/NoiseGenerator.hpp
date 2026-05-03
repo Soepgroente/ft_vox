@@ -5,13 +5,10 @@
 #include <random>
 
 #include "Vectors.hpp"
+#include "TypeAliases.hpp"
 
 
 namespace vox {
-
-using ui8 = uint8_t;
-using i32 = int32_t;
-using ui32 = uint32_t;
 
 class NoiseGenerator
 {
@@ -27,7 +24,7 @@ class NoiseGenerator
 		float	octavePerlinSimple3D( float x, float y, float z, ui32 octaves = NoiseGenerator::N_OCTAVES) const noexcept;
 		float	octavePerlin3D( float x, float y, float z, ui32 octaves = NoiseGenerator::N_OCTAVES) const noexcept;
 
-		void	setSeed( uint32_t baseSeed ) noexcept;
+		void	setSeed( ui32 baseSeed ) noexcept;
 
 	private:
 		float	_perlinValue2D( float x, float y ) const noexcept;
