@@ -13,7 +13,8 @@ struct Config
 	static constexpr ui32	defaultWindowHeight = 1300;
 	static constexpr ui32	minimumViewingDistance = 160;
 
-	static constexpr float	noiseScalar = 0.01f;
+	static constexpr float		noiseScalar = 0.01f;
+	static constexpr uint32_t	worldSeed = 0U;
 
 	static constexpr vec3ui	mapLimits{
 		16384U,
@@ -29,7 +30,6 @@ struct Config
 
 	static constexpr i32	chunkLength = 16U;
 	static constexpr i32	chunkHeight = 256U;
-	static constexpr i32	seaLevel = 64U;
 
 	static constexpr float	movementSpeed = 100.0f;
 	static constexpr float	lookSpeed = 75.0f;
@@ -39,8 +39,9 @@ struct Config
 	static constexpr char skyboxVertShaderPath[] = "build/skybox.vert.spv";
 	static constexpr char skyboxFragShaderPath[] = "build/skybox.frag.spv";
 
-	static constexpr char texture1VoxelPath[] = "textures/texture_stone_mono.jpeg";
-	static constexpr char texture2VoxelPath[] = "textures/texture_dirt_atlas.jpeg";
+	static constexpr char textureStonePath[] = "textures/texture_stone_mono.jpeg";
+	static constexpr char textureWaterPath[] = "textures/texture_water_mono.jpeg";
+	static constexpr char textureDirtPath[] = "textures/texture_dirt_atlas.jpeg";
 	static constexpr char textureSkyboxPath[] = "textures/skybox1.png";
 };
 

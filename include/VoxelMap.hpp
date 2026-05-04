@@ -7,10 +7,6 @@
 
 namespace vox {
 
-using ui8 = uint8_t;
-using i32 = int32_t;
-using ui32 = uint32_t;
-
 enum class Direction : ui8
 {
 	North,
@@ -32,25 +28,26 @@ class VoxelMap
 
 		bool	update(const vec3& newPosition);
 		void	init();
-		vec3	getMapMiddle() const noexcept;
-		std::unique_ptr<ve::VulkanModel> createNewModel( ve::VulkanDevice& device );
 
-		private:
+		std::unique_ptr<ve::VulkanModel> createNewModelTerrain( ve::VulkanDevice& device );
+		std::unique_ptr<ve::VulkanModel> createNewModelUnderground( ve::VulkanDevice& device );
 
+	private:
 		std::vector<VoxelChunk>	map;
 
-		ui32	worldSeed;
+		ui32			worldSeed;
 
 		i32 	squareSize;
 		vec2i	minPositions;
 		vec2i	maxPositions;
 		vec2i	playerOnChunk;
 		vec3	rawPosition;
-		
+
 		VertexVector	modelVector;
 		IndexVector		modelIndexes;
-		
+
 		ThreadManager&	threadManager;
+
 		void	north();
 		void	south();
 		void	west();

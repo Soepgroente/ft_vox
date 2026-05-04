@@ -1,6 +1,5 @@
 #include "Vox.hpp"
 #include "Stopwatch.hpp"
-#include "Stopwatch.hpp"
 #include "Utils.hpp"
 #include "World.hpp"
 
@@ -23,11 +22,9 @@ Vox::Vox( void ) :
 	inputHandler{
 		[this](vec2 const& cursorPos) { this->rotateCameraFromCursorPos(cursorPos); },
 		[this](i32 width, i32 height) { this->resizeWindow(width, height); }
-
 	},
 	updateMatrixUbo{false}
 {
-
 	this->camera.setViewMatrix();
 	this->camera.setPerspectiveProjection(
 		radians(CameraSettings::projectionFov),
@@ -41,9 +38,9 @@ Vox::Vox( void ) :
 
 void Vox::setupVulkan( void )
 {
-	uint32_t	maxSetsToCreate = 2;
+	uint32_t	maxSetsToCreate = 5;
 	uint32_t	nUniformDescriptors = 1;
-	uint32_t	nSamplerDescriptors = 2;
+	uint32_t	nSamplerDescriptors = 3;
 
 	this->vulkanSetFactory
 		.setMaxSets(maxSetsToCreate)
@@ -52,25 +49,38 @@ void Vox::setupVulkan( void )
 		.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nSamplerDescriptors)
 		.createPool();
 
-	ve::VulkanBindingSet terrainSetBindings;
-	terrainSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+	ve::VulkanBindingSet matrixSetBindings;
+	matrixSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
 
-	ve::VulkanBindingSet skyboxSetBindings;
-	skyboxSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	skyboxSetBindings.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet(terrainSetBindings);
+	this->matrixDescriptorSet = this->vulkanSetFactory.createDescriptorSet(matrixSetBindings);
 	MatrixUBO ubo(this->camera);
 	this->matrixDescriptorSet->addBufferToDescriptor(0, sizeof(ubo), static_cast<void*>(&ubo));
 
-	this->samplersDescriptorSet = this->vulkanSetFactory.createDescriptorSet(skyboxSetBindings);
-	this->samplersDescriptorSet->addSamplerToDescriptor(0, Config::texture2VoxelPath, ve::TextureType::TEXTURE_PLAIN);
-	this->samplersDescriptorSet->addSamplerToDescriptor(1, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
+	ve::VulkanBindingSet textureTerrainSetBindings;
+	textureTerrainSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	this->textTerrainDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureTerrainSetBindings);
+	this->textTerrainDescriptorSet->addSamplerToDescriptor(0, Config::textureDirtPath, ve::TextureType::TEXTURE_PLAIN);
 
-	this->terrainModel = this->voxelMap.createNewModel(vulkanDevice);
+	ve::VulkanBindingSet textureUndergroundSetBindings;
+	textureUndergroundSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	this->textUndergroundDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureUndergroundSetBindings);
+	this->textUndergroundDescriptorSet->addSamplerToDescriptor(0, Config::textureStonePath, ve::TextureType::TEXTURE_PLAIN);
+
+	ve::VulkanBindingSet textureSkyboxSetBindings;
+	textureSkyboxSetBindings.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	this->textSkyboxDescriptorSet = this->vulkanSetFactory.createDescriptorSet(textureSkyboxSetBindings);
+	this->textSkyboxDescriptorSet->addSamplerToDescriptor(0, Config::textureSkyboxPath, ve::TextureType::TEXTURE_CUBEMAP);
+
+	this->terrainModel = this->voxelMap.createNewModelTerrain(vulkanDevice);
+	this->undergroundModel = this->voxelMap.createNewModelUnderground(vulkanDevice);
 	this->skyBoxModel = this->createSkyboxModel();
 
-	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{this->matrixDescriptorSet->getDescriptorSetLayout(), this->samplersDescriptorSet->getDescriptorSetLayout()};
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts{
+		this->matrixDescriptorSet->getDescriptorSetLayout(),
+		this->textTerrainDescriptorSet->getDescriptorSetLayout(),
+		this->textUndergroundDescriptorSet->getDescriptorSetLayout(),
+		this->textSkyboxDescriptorSet->getDescriptorSetLayout()
+	};
 	this->terrainPipeline = ve::VulkanPipeline::createPipeline(
 		this->vulkanDevice,
 		descriptorSetLayouts,
@@ -100,7 +110,7 @@ void Vox::run( void )
 	Stopwatch timer;
 
 	std::cout << "\n\n\n\n";
-	this->terrainModel = this->voxelMap.createNewModel(vulkanDevice);
+	this->terrainModel = this->voxelMap.createNewModelTerrain(vulkanDevice);
 	while (vulkanWindow.shouldClose() == false)
 	{
 		glfwPollEvents();
@@ -108,11 +118,11 @@ void Vox::run( void )
 
 		this->moveCamera(timer.elapsed(Unit::Seconds));
 
-		vec3 playerPos = this->camera.getCameraPos();
-		if (voxelMap.update(playerPos) == true)
-		{
-			this->terrainModel = voxelMap.createNewModel(vulkanDevice);
-		}
+		// vec3 playerPos = this->camera.getCameraPos();
+		// if (voxelMap.update(playerPos) == true)
+		// {
+		// 	this->terrainModel = voxelMap.createNewModelTerrain(vulkanDevice);
+		// }
 
 		VkCommandBuffer commandBuffer = this->vulkanRenderer.beginFrame();
 		if (commandBuffer != nullptr)
@@ -121,7 +131,9 @@ void Vox::run( void )
 
 			ui32 currentFrame = this->vulkanRenderer.getCurrentFrameIndex();
 			this->matrixDescriptorSet->setCurrentFrame(currentFrame);
-			this->samplersDescriptorSet->setCurrentFrame(currentFrame);
+			this->textTerrainDescriptorSet->setCurrentFrame(currentFrame);
+			this->textUndergroundDescriptorSet->setCurrentFrame(currentFrame);
+			this->textSkyboxDescriptorSet->setCurrentFrame(currentFrame);
 
 			if (this->updateMatrixUbo == true)
 			{
@@ -131,15 +143,20 @@ void Vox::run( void )
 			}
 
 			this->matrixDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 0U);
-			this->samplersDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
-
 			this->terrainPipeline->bind(commandBuffer);
-			terrainModel->bind(commandBuffer);
-			terrainModel->draw(commandBuffer);
 
+			this->textTerrainDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+			this->terrainModel->bind(commandBuffer);
+			this->terrainModel->draw(commandBuffer);
+
+			this->textUndergroundDescriptorSet->bind(commandBuffer, *this->terrainPipeline, 1U);
+			this->undergroundModel->bind(commandBuffer);
+			this->undergroundModel->draw(commandBuffer);
+
+			this->textSkyboxDescriptorSet->bind(commandBuffer, *this->skyboxPipeline, 1U);
 			this->skyboxPipeline->bind(commandBuffer);
-			skyBoxModel->bind(commandBuffer);
-			skyBoxModel->draw(commandBuffer);
+			this->skyBoxModel->bind(commandBuffer);
+			this->skyBoxModel->draw(commandBuffer);
 
 			this->vulkanRenderer.endSwapChainRenderPass(commandBuffer);
 			this->vulkanRenderer.endFrame();

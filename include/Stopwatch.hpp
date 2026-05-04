@@ -17,7 +17,7 @@ enum class Unit
 class Stopwatch
 {
 	public:
-		Stopwatch() noexcept : startTime(now()) {};
+		Stopwatch() noexcept : startTime(Clock::now()) {};
 		~Stopwatch() noexcept = default;
 		Stopwatch(const Stopwatch& other) = delete;
 		Stopwatch(Stopwatch&& other) = delete;

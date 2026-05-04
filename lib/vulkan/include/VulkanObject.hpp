@@ -66,9 +66,6 @@ class VulkanObject
 {
 	public:
 
-	using id_t = uint32_t;
-	using Map = std::unordered_map<id_t, VulkanObject>;
-
 	VulkanObject() = delete;
 	~VulkanObject();
 	VulkanObject(const VulkanObject& other) = delete;
@@ -77,19 +74,19 @@ class VulkanObject
 	VulkanObject& operator=(VulkanObject&& other) = default;
 
 	static VulkanObject	createVulkanObject() { return VulkanObject(++currentID); }
-	static id_t		currentID;
+	static uint32_t		currentID;
 
 	std::shared_ptr<VulkanModel>	model;
 	// vec3							color;
 	TransformComponent				transform{};
 
-	id_t	getID() const noexcept { return id; }
+	uint32_t	getID() const noexcept { return id; }
 
 	private:
 
-	VulkanObject(id_t objID);
+	VulkanObject(uint32_t objID);
 
-	id_t		id;
+	uint32_t		id;
 };
 
 std::ostream&	operator<<(std::ostream& os, const ObjInfo& obj);
