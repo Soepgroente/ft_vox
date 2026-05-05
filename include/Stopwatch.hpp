@@ -34,9 +34,9 @@ class Stopwatch
 		double		elapsed(Unit type) const noexcept;
 		
 	private:
-		Time	startTime;
-		Time	endTime;
-		Duration	elapsedTime;
+		Time		startTime{};
+		Time		endTime{};
+		Duration	elapsedTime{};
 		
 		Time	now() const noexcept { return Clock::now(); }
 		double	ns() const noexcept { return std::chrono::duration<double, std::nano>(elapsedTime).count(); }
