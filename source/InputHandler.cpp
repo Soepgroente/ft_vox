@@ -3,7 +3,6 @@
 
 namespace vox {
 
-
 /**
  * Set up callbacks for input, currently used: 1. callback for key T (toggle fps mode)
  * and ESC (window closing), 2. mouse capture for camera rotation (only when fps mode is
@@ -15,7 +14,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 {
 	glfwSetWindowUserPointer(window, this);
 	// keyboard key pression callback
-	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+	glfwSetKeyCallback(window, [](GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods)
 	{
 		(void)scancode;
 		(void)mods;
@@ -39,7 +38,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 			handler->closeWindow(window);
 	});
 	// mouse key pression callback
-	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods)
+	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, i32 button, i32 action, i32 mods)
 	{
 		(void)mods;
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
@@ -71,7 +70,7 @@ void	InputHandler::setCallbacks(GLFWwindow* window)
 		handler->setCursorPos(cursorPos);
 	});
 	// window resize callback
-	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int32_t w, int32_t h) {
+	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, i32 w, i32 h) {
 		InputHandler* handler = static_cast<InputHandler*>(glfwGetWindowUserPointer(window));
 		handler->resizeCallback(w, h);
 	});
