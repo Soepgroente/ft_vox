@@ -13,7 +13,7 @@ class VulkanWindow
 	public:
 
 	VulkanWindow() = delete;
-	VulkanWindow(int width, int height, const char* title);
+	VulkanWindow(const char* title, bool fullScreen, int width = 0, int height = 0);
 	VulkanWindow(const VulkanWindow&) = delete;
 	VulkanWindow& operator=(const VulkanWindow&) = delete;
 	~VulkanWindow();
@@ -32,11 +32,12 @@ class VulkanWindow
 
 	void	initWindow();
 
-	int		width;
-	int		height;
-	bool	resized = false;
-
 	std::string	title;
+	bool		fullScreen;
+	int			width;
+	int			height;
+	bool		resized = false;
+
 	GLFWwindow*	window;
 };
 

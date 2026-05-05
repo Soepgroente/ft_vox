@@ -42,7 +42,7 @@ void LightUBO::updateLightDir( vec3 const& lightDir, mat4 const& viewMatrix ) no
  * Create the engine of the game
  */
 Vox::Vox( void ) :
-	vulkanWindow{Config::defaultWindowHeight, Config::defaultWindowWidth, "Vox"},
+	vulkanWindow{"ft_vox", Config::fullScreenMode, Config::defaultWindowWidth, Config::defaultWindowHeight},
 	vulkanDevice{vulkanWindow},
 	vulkanRenderer{vulkanWindow, vulkanDevice},
 	vulkanSetFactory{vulkanDevice},
