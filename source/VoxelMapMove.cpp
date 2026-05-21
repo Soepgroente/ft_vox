@@ -68,51 +68,99 @@ VoxelType	VoxelMap::getVoxelAt(const vec3i& worldVoxel) const noexcept
 
 vec3	VoxelMap::nearestAirVoxel(const vec3i& origin)
 {
-	const i32 x = origin.x;
-	const i32 y = origin.y;
-	const i32 z = origin.z;
-	const i32 maxRadius = 255;
+	return vec3{origin.x, 255, origin.z};
+	// const i32 x = origin.x;
+	// const i32 y = origin.y;
+	// const i32 z = origin.z;
+	// const i32 maxRadius = 255;
 
-	for (i32 r = 1; r <= maxRadius; ++r)
-	{
-		for (i32 dz = -r; dz <= r; ++dz)
-		for (i32 dy = -r; dy <= r; ++dy)
-		for (i32 dx = -r; dx <= r; ++dx)
-		{
-			const bool onSurface =
-				(dx == -r || dx == r) ||
-				(dy == -r || dy == r) ||
-				(dz == -r || dz == r);
+	// for (i32 r = 1; r <= maxRadius; ++r)
+	// {
+	// 	for (i32 dz = -r; dz <= r; ++dz)
+	// 	for (i32 dy = -r; dy <= r; ++dy)
+	// 	for (i32 dx = -r; dx <= r; ++dx)
+	// 	{
+	// 		const bool onSurface =
+	// 			(dx == -r || dx == r) ||
+	// 			(dy == -r || dy == r) ||
+	// 			(dz == -r || dz == r);
 
-			if (!onSurface)
-				continue;
+	// 		if (!onSurface)
+	// 			continue;
 
-			vec3i v{ x + dx, y + dy, z + dz };
-			if (getVoxelAt(v) == VoxelType::Air)
-			{
-				return vec3{ v.x , v.y , v.z  };
-			}
-		}
-	}
-	return vec3{origin.x , origin.y , origin.z };
+	// 		vec3i v{ x + dx, y + dy, z + dz };
+	// 		if (getVoxelAt(v) == VoxelType::Air)
+	// 		{
+	// 			return vec3{ v.x , v.y , v.z  };
+	// 		}
+	// 	}
+	// }
+	// return vec3{origin.x , origin.y , origin.z };
 }
 
 void	VoxelMap::insideVoxels(const vec3& position, std::vector<vec3i>& locations) const noexcept
 {
-	constexpr float playerRadius = 0.5f - epsilon();
+	static constexpr float playerRadius = 0.5f * VOXEL_SIZE - epsilon();
+	// static const std::array<vec3, 26>	directions {
+	// 	vec3{playerRadius, 0.0f, 0.0f},		// right
+	// 	vec3{-playerRadius, 0.0f, 0.0f},	// left
+	// 	vec3{0.0f, playerRadius, 0.0f},		// up
+	// 	vec3{0.0f, -playerRadius, 0.0f},	// down
+	// 	vec3{0.0f, 0.0f, playerRadius},		// forward
+	// 	vec3{0.0f, 0.0f, -playerRadius},	// backward
+
+	// 	vec3{twoDirections, twoDirections, 0.0f},	// right-up
+	// 	vec3{twoDirections, -twoDirections, 0.0f},	// right-down
+	// 	vec3{twoDirections, 0.0f, twoDirections},	// right-forward
+	// 	vec3{twoDirections, 0.0f, -twoDirections},	// right-back
+
+	// 	vec3{-twoDirections, twoDirections, 0.0f},	// left-up
+	// 	vec3{-twoDirections, -twoDirections, 0.0f},	// left-down
+	// 	vec3{-twoDirections, 0.0f, twoDirections},	// left-forward
+	// 	vec3{-twoDirections, 0.0f, -twoDirections},	// left-back
+
+	// 	vec3{0.0f, twoDirections, twoDirections},	// up-forward
+	// 	vec3{0.0f, twoDirections, -twoDirections},	// up-back
+	// 	vec3{0.0f, -twoDirections, twoDirections},	// down-forward
+	// 	vec3{0.0f, -twoDirections, -twoDirections},	// down-back
+
+	// 	vec3{threeDirections, threeDirections, threeDirections},	// right-up-forward
+	// 	vec3{threeDirections, threeDirections, -threeDirections},	// right-up-back
+	// 	vec3{threeDirections, -threeDirections, threeDirections},	// right-down-forward
+	// 	vec3{threeDirections, -threeDirections, -threeDirections},	// right-down-back
+	// 	vec3{-threeDirections, threeDirections, threeDirections},	// left-up-forward
+	// 	vec3{-threeDirections, threeDirections, -threeDirections},	// left-up-back
+	// 	vec3{-threeDirections, -threeDirections, threeDirections},	// left-down-forward
+	// 	vec3{-threeDirections, -threeDirections, -threeDirections},	// left-down-backward
+	// };
 	
+	// for (size_t i = 0; i < locations.size(); i++)
+	// {
+	// 	locations[i] = roundyRound(position + directions[i]);
+	// }
 	locations.clear();
-	locations.push_back(roundyRound(position));
-	locations.push_back(roundyRound(position + vec3(playerRadius, 0.0f, 0.0f)));
-	locations.push_back(roundyRound(position + vec3(-playerRadius, 0.0f, 0.0f)));
-	locations.push_back(roundyRound(position + vec3(0.0f, playerRadius, 0.0f)));
-	locations.push_back(roundyRound(position + vec3(0.0f, -playerRadius, 0.0f)));
-	locations.push_back(roundyRound(position + vec3(0.0f, 0.0f, playerRadius)));
-	locations.push_back(roundyRound(position + vec3(0.0f, 0.0f, -playerRadius)));
+
+	float theta = 0;					// ranges from 0 to PI
+	float steptheta = pi() / 10.0f;
+	float phi = 0;						// ranges from 0 to 2PI
+	float stepPhi = two_pi() / 10.0f;
+
+	for (; theta < pi(); theta += steptheta)
+	{
+		for (; phi < two_pi(); phi += stepPhi)
+		{
+			locations.push_back(roundyRound(position + vec3{
+				playerRadius * std::sin(theta) * std::cos(phi), 
+				playerRadius * std::sin(theta) * std::sin(phi),
+				playerRadius * std::cos(theta)}
+			));
+		}
+	}
 }
 
 bool	VoxelMap::testVoxels(const vec3& location)
 {
+	// static std::vector<vec3i> voxelsToTest(26);
 	static std::vector<vec3i> voxelsToTest{};
 
 	if (location.y <= 0 || location.y >= VoxelChunk::chunkDimensions.y)
@@ -164,12 +212,13 @@ vec3	VoxelMap::detectCollision(const vec3& origin, const vec3& movement)
 	std::cout << "we are at: " << origin << std::endl;
 	std::cout << "move to: " << moveTo << std::endl;
 
-	if (getVoxelAt(roundyRound(origin)) != VoxelType::Air)
+	const bool collided = testVoxels(origin);
+	if (collided == true)
 	{
 		std::cout << "starting inside a block, searching for nearest air voxel..." << std::endl;
 		vec3 nearestAir = nearestAirVoxel(roundyRound(origin));
 		std::cout << "nearest air voxel found at: " << nearestAir << std::endl;
-		vec3 escapeVector = nearestAir - origin;
+		vec3 escapeVector = origin;
 
 		escapeVector.x = std::floor(escapeVector.x) + 0.5f;
 		escapeVector.y = std::floor(escapeVector.y) + 0.5f;
@@ -194,6 +243,7 @@ vec3	VoxelMap::detectCollision(const vec3& origin, const vec3& movement)
 		return movement;
 	}
 	nonBlockedMovement = position - origin;
+	
 	std::cout << "attempted movement: " << movement << std::endl;
 	std::cout << "non blocked movement: " << nonBlockedMovement << std::endl;
 	return nonBlockedMovement;
