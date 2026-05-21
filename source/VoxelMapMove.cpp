@@ -160,93 +160,113 @@ void	VoxelMap::insideVoxels(const vec3& position, std::vector<vec3i>& locations)
 
 bool	VoxelMap::testVoxels(const vec3& location)
 {
-	// static std::vector<vec3i> voxelsToTest(26);
-	static std::vector<vec3i> voxelsToTest{};
-
-	if (location.y <= 0 || location.y >= VoxelChunk::chunkDimensions.y)
-	{
-		return false;
-	}
-	vec2i	chunk = voxelToChunk(roundyRound(location));
-	i32		index = (chunk.x - minPositions.x) * squareSize + (chunk.y - minPositions.y);
-
-	if (index < 0 || static_cast<size_t>(index) >= map.size())
-	{
-		return false;
-	}
+	vec2i	chunkPos = voxelToChunk(roundyRound(location));
+	i32		index = (chunkPos.x - minPositions.x) * squareSize + (chunkPos.y - minPositions.y);
 	vec3i	chunkWorld = map[index].getWorldPos();
 	vec3	chunkWorldF = vec3(chunkWorld.x, chunkWorld.y, chunkWorld.z);
 	vec3	locationOnChunk = location - chunkWorldF;
+	vec3i	locationOnVoxel = roundyRound(locationOnChunk);
 
-	insideVoxels(locationOnChunk, voxelsToTest);
-	const bool result = map[index].testForCollision(voxelsToTest);
+	vec3 innerVoxelPos{
+		location.x - std::floor(location.x),
+		location.y - std::floor(location.y),
+		location.z - std::floor(location.z)
+	};
 
-	if (result == true)
+	float theta = 0;					// ranges from 0 to PI
+	float phi = 0;						// ranges from 0 to 2PI
+	float const steptheta = pi() / 10;
+	float const stepPhi = two_pi() / 10;
+	float const playerRadius = 0.5f * VOXEL_SIZE;
+
+	// std::cout << "\tchecking sphere... " << std::endl;
+	// std::cout << "\tchunkPos start: " << chunkPos << std::endl;
+	// std::cout << "\tindex start: " << index << std::endl;
+	// std::cout << "\tchunkWorld start: " << chunkWorld << std::endl;
+	// std::cout << "\tlocationOnVoxel start: " << locationOnVoxel << std::endl;
+
+	for (; theta < pi(); theta += steptheta)
 	{
-		std::cout << "collision at: " << location << std::endl;
-		std::cout << "chunk world pos: " << chunkWorldF << std::endl;
-		std::cout << "location on chunk: " << locationOnChunk << std::endl;
-		std::cout << "voxels tested: ";
-		for (const vec3i& v : voxelsToTest)
+		for (; phi < two_pi(); phi += stepPhi)
 		{
-			std::cout << v << " ";
+			// std::cout << "\t  -----  " << std::endl;
+			vec3 checkPos = vec3{
+				locationOnChunk.x + playerRadius * std::sin(theta) * std::cos(phi), 
+				locationOnChunk.y + playerRadius * std::sin(theta) * std::sin(phi),
+				locationOnChunk.z + playerRadius * std::cos(theta)
+			};
+			vec3i voxelCheckPos = roundyRound(checkPos);
+			// NB why this guard is necessary for not breaking everything? 
+			if (voxelCheckPos.x < 0 || voxelCheckPos.x >= 16 ||
+				voxelCheckPos.y < 0 || voxelCheckPos.y >= 256 ||
+				voxelCheckPos.z < 0 || voxelCheckPos.z >= 16)
+			{
+				continue;
+			}
+			VoxelType currentVoxelType = map[index].at(voxelCheckPos.x + 1, voxelCheckPos.y + 1, voxelCheckPos.z + 1);
+			// std::cout << "\tcheckPos: " << checkPos << std::endl;
+
+			// chunkPos = voxelToChunk(roundyRound(checkPos));
+			// std::cout << "\tchunkPos: " << chunkPos << std::endl;
+			// index = (chunkPos.x - minPositions.x) * squareSize + (chunkPos.y - minPositions.y);
+			// std::cout << "\tindex: " << index << std::endl;
+			// chunkWorld = map[index].getWorldPos();
+			// std::cout << "\tchunkWorld: " << chunkWorld << std::endl;
+			// vec3i checkOnChunk = roundyRound(checkPos - vec3(chunkWorld.x, chunkWorld.y, chunkWorld.z));
+			// std::cout << "\tcheckOnChunk: " << checkOnChunk << std::endl;
+			// VoxelType currentVoxelType = map[index].at(checkOnChunk.x + 1, checkOnChunk.y + 1, checkOnChunk.z + 1);
+
+			if ((currentVoxelType != VoxelType::Air) and (currentVoxelType != VoxelType::Padding))
+			{
+				// switch (currentVoxelType)
+				// {
+				// 	case Dirt:
+				// 		std::cout << "\t\ttype: Dirt\n";
+				// 		break;
+				// 	case Stone:
+				// 		std::cout << "\t\ttype: Stone\n";
+				// 		break;
+				// 	case Water:
+				// 		std::cout << "\t\ttype: Water\n";
+				// 		break;
+				// 	default:
+				// 		std::cout << "\t\ttype: orco il dio\n";
+				// 		break;
+				// }
+				std::cout << "\t\tCOLLISION" << std::endl;
+				return false;
+			}
+			// else
+			// {
+			// 	std::cout << "\t\ttype: Air\n";
+			// }
+			// std::cout << "\t  -----  "<< std::endl;
 		}
-		std::cout << std::endl;
 	}
-	return result;
+	return true;
 }
 
 vec3	VoxelMap::detectCollision(const vec3& origin, const vec3& movement)
 {
-	constexpr float stepSize = 0.01f;
-
-	const vec3	moveTo = origin + movement;
-	const vec3	movementStep = movement.normalized() * stepSize;
-	const float	steps = movement.length();
-
-	vec3	nonBlockedMovement;
+	i32		nSteps = 10;
+	float	stepSize = movement.length() / nSteps;
+	vec3	movementStep = movement.normalized() * stepSize;
 	vec3	position = origin;
-	float	moved;
 
-	std::cout << "\nmovement length: " << steps << std::endl;
-	std::cout << "we are at: " << origin << std::endl;
-	std::cout << "move to: " << moveTo << std::endl;
-
-	const bool collided = testVoxels(origin);
-	if (collided == true)
+	std::cout << "new mov, start: " << origin << std::endl;
+	std::cout << "new mov, dest: " << origin + movement << std::endl << std::endl;
+	for (i32 i = 0; i < nSteps; i++)
 	{
-		std::cout << "starting inside a block, searching for nearest air voxel..." << std::endl;
-		vec3 nearestAir = nearestAirVoxel(roundyRound(origin));
-		std::cout << "nearest air voxel found at: " << nearestAir << std::endl;
-		vec3 escapeVector = origin;
-
-		escapeVector.x = std::floor(escapeVector.x) + 0.5f;
-		escapeVector.y = std::floor(escapeVector.y) + 0.5f;
-		escapeVector.z = std::floor(escapeVector.z) + 0.5f;
-		return escapeVector;
-	}
-	for (moved = 0.0f; moved < steps; moved += stepSize)
-	{
-		const vec3 nextPosition = position + movementStep;
-		const bool isColliding = testVoxels(nextPosition);
-		if (isColliding == true)
+		vec3 nextPosition = position + movementStep;
+		std::cout << " - new step, start: " << nextPosition << std::endl;
+		if (testVoxels(nextPosition) == false)
 		{
-			position.x = std::floor(position.x) + 0.5f;
-			position.y = std::floor(position.y) + 0.5f;
-			position.z = std::floor(position.z) + 0.5f;
-			break;
+			return nextPosition - origin;
 		}
 		position = nextPosition;
+		std::cout << " - new step, end: " << position << std::endl;
 	}
-	if (moved >= steps)
-	{
-		return movement;
-	}
-	nonBlockedMovement = position - origin;
-	
-	std::cout << "attempted movement: " << movement << std::endl;
-	std::cout << "non blocked movement: " << nonBlockedMovement << std::endl;
-	return nonBlockedMovement;
+	return movement;
 }
 
 bool	VoxelMap::update(const vec3& newPosition)

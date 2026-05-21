@@ -134,6 +134,14 @@ vec3	Camera::getRelativeMoveDirection(const vec3& rawDirection)
 	return relativeMoveDirection;
 }
 
+void Camera::moveRelative( const vec3& direction ) noexcept
+{
+	vec3 right = this->cameraRight * direction.x;
+	vec3 up = this->cameraUp * direction.y;
+	vec3 forward = this->cameraForward * direction.z;
+
+	this->position += up + right + forward;
+}
 void	Camera::move(const vec3& direction) noexcept
 {
 	this->position += direction;

@@ -36,6 +36,7 @@ class Camera
 		void	moveUp( float ) noexcept;
 		void	moveDown( float ) noexcept;
 		void	move(const vec3& direction) noexcept;
+		void	moveRelative(const vec3& direction) noexcept;
 		void	rotate( float, float, float ) noexcept;
 
 		vec3	getRelativeMoveDirection(const vec3& rawDirection);

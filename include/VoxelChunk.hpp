@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <iostream>
 
 #include "VulkanModel.hpp"
 #include "Vectors.hpp"
@@ -11,7 +12,7 @@
 
 namespace vox {
 
-enum class VoxelType : ui8
+enum VoxelType : ui8
 {
 	Air = 0,
 	Dirt = 1,
@@ -50,6 +51,8 @@ class VoxelChunk
 
 		size_t	getVertexTerrainSize() const noexcept { return terrainVertexes.size(); }
 		size_t	getVertexUndergroundSize() const noexcept { return undergroundVertexes.size(); }
+		// i32		index(i32 x, i32 y, i32 z) const noexcept { return (x + z * paddedDimensions.x) + (paddedDimensions.x * paddedDimensions.z) * y; }
+		// std::cout << "index: " << vec3{x, y, z} << " - " << map.size() << std::endl;
 		i32		index(i32 x, i32 y, i32 z) const noexcept { return ((z * paddedDimensions.x) + x) * paddedDimensions.y + y; }
 		VoxelType	at(i32 x, i32 y, i32 z) const noexcept { return map[index(x, y, z)]; }
 		VoxelType	at(i32 index) const noexcept { return map[index]; }
