@@ -39,6 +39,8 @@ struct Config
 	static constexpr char terrainFragShaderPath[] = "build/terrain.frag.spv";
 	static constexpr char terrainNoLightVertShaderPath[] = "build/terrainNoLight.vert.spv";
 	static constexpr char terrainNoLightFragShaderPath[] = "build/terrainNoLight.frag.spv";
+	static constexpr char voxelHighlighterVertShaderPath[] = "build/voxelHighlighter.vert.spv";
+	static constexpr char voxelHighlighterFragShaderPath[] = "build/voxelHighlighter.frag.spv";
 
 	static constexpr char textureStone1[] = "textures/texture_stone_mono_1.jpeg";
 	static constexpr char textureStone2[] = "textures/texture_stone_mono_2.jpeg";

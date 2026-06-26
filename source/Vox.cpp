@@ -48,6 +48,7 @@ void Vox::setupVulkanBuffers( void )
 	this->terrainObject->setModel(this->voxelMap.createNewTerrainModel(vulkanDevice));
 	this->undergroundObject->setModel(this->voxelMap.createNewUndergroundModel(vulkanDevice));
 	this->skyboxObject->setModel(createVoxelModel(this->vulkanDevice));
+	this->highlightedVoxelObject->setModel(createHighlightedVoxelModel(this->vulkanDevice));
 
 	// uniform buffer for view and projection matrixes
 	this->matrixUbo = std::make_unique<ve::ViewProjectUniform>(this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
@@ -166,8 +167,7 @@ void Vox::run( void )
 		glfwPollEvents();
 
 		deltaTime = timer.elapsed(Unit::Seconds);
-		this->moveCamera(deltaTime);
-
+		this->updateInput(deltaTime);
 		playerPos = this->camera.getCameraPos();
 		this->inputHandler.reset();
 
@@ -262,12 +262,13 @@ void Vox::run( void )
  * 
  * @note camera rotation using a key will be removed in the final version
  */
-void Vox::moveCamera( float deltaTime )
+void Vox::updateInput( float deltaTime )
 {
 	vec3	moveDirection = vec3::zero();
 	vec3	rotation = vec3::zero();
 	float	moveScalar = std::min(deltaTime * Config::movementSpeed, static_cast<float>(Config::chunkLength));
 	float	rotationScalar = deltaTime * Config::lookSpeed;
+	bool	moved = false;
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W)) { moveDirection.z -= moveScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_S)) { moveDirection.z += moveScalar; }
@@ -279,11 +280,13 @@ void Vox::moveCamera( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN)) { rotation.x -= rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; }
 
 	if (rotation != vec3::zero())
 	{
 		this->camera.rotate(rotation.x, rotation.y, 0.0f);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
+		moved = true;
 	}
 	if (moveDirection != vec3::zero())
 	{
@@ -294,6 +297,15 @@ void Vox::moveCamera( float deltaTime )
 		vec3 movement = this->voxelMap.detectCollision(location, relativeMoveDirection);
 		this->camera.move(movement);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
+		moved = true;
+	}
+	if (moved == false && this->highlightEnabled == true)
+	{
+		this->highlightBlock();
+		if (this->highlightedBlock.x != INT_MAX && this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
+		{
+			this->voxelMap.destroy(this->highlightedBlock);
+		}
 	}
 }
 
@@ -315,6 +327,15 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 	this->camera.rotate(pitch, yaw, 0.0f);
 
 	this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
+}
+
+void	Vox::highlightBlock()
+{
+	vec2 mouseCoordinates = this->inputHandler.getCursorPos();
+	vec3 rayDirection = this->camera.getRelativeMoveDirection(vec3(mouseCoordinates.x, mouseCoordinates.y, 1.0f).normalized()).normalized();
+
+	vec3i location = this->voxelMap.findFirstBlock(this->camera.getCameraPos(), rayDirection, static_cast<float>(Config::minimumViewingDistance));
+
 }
 
 /**
