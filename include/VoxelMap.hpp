@@ -36,8 +36,8 @@ class VoxelMap
 		std::unique_ptr<ve::VulkanModel> createNewUndergroundModel(ve::VulkanDevice& device, ui32 binding = 0U);
 		vec3	getMapMiddle() const noexcept;
 		vec3	detectCollision(const vec3& origin, const vec3& movement);
-		
-		// VoxelType	getVoxelAt(const vec3i& location) const noexcept;
+		vec3i	findFirstBlock(const vec3& origin, const vec3& direction, float maxDistance);
+		void	destroy(const vec3i& blockLocation);
 
 		static inline	std::mutex	lock;
 		

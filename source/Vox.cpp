@@ -60,7 +60,7 @@ void Vox::run( void )
 		fpsTimer.start();
 		glfwPollEvents();
 
-		this->moveCamera(fpsTimer.elapsed(Unit::Seconds));
+		this->updateInput(fpsTimer.elapsed(Unit::Seconds));
 		this->updateMap(mapUpdateResult);
 
 		commandBuffer = this->vulkanRenderer.beginFrame();
@@ -263,12 +263,13 @@ void Vox::setupVulkanPipelines( void )
 	);
 }
 
-void Vox::moveCamera( float deltaTime )
+void Vox::updateInput( float deltaTime )
 {
 	vec3	moveDirection = vec3::zero();
 	vec3	rotation = vec3::zero();
 	float	moveScalar = std::min(deltaTime * Config::movementSpeed, static_cast<float>(Config::chunkLength));
 	float	rotationScalar = deltaTime * Config::lookSpeed;
+	bool	moved = false;
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W)) { moveDirection.z -= moveScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_S)) { moveDirection.z += moveScalar; }
@@ -280,11 +281,13 @@ void Vox::moveCamera( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN)) { rotation.x -= rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
+	if (this->inputHandler.isKeyPressed(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; }
 
 	if (rotation != vec3::zero())
 	{
 		this->camera.rotate(rotation.x, rotation.y, 0.0f);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
+		moved = true;
 	}
 	if (moveDirection != vec3::zero())
 	{
@@ -294,6 +297,15 @@ void Vox::moveCamera( float deltaTime )
 
 		this->camera.move(movement);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
+		moved = true;
+	}
+	if (moved == false && this->highlightEnabled == true)
+	{
+		this->highlightBlock();
+		if (this->highlightedBlock.x != INT_MAX && this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
+		{
+			this->voxelMap.destroy(this->highlightedBlock);
+		}
 	}
 }
 
@@ -325,6 +337,15 @@ void Vox::updateMap( std::future<bool>& mapUpdateResult )
 			});
 		}
 	}
+}
+
+void Vox::highlightBlock()
+{
+	vec2 mouseCoordinates = this->inputHandler.getCursorPos();
+	vec3 rayDirection = this->camera.getRelativeMoveDirection(vec3(mouseCoordinates.x, mouseCoordinates.y, 1.0f).normalized()).normalized();
+
+	vec3i location = this->voxelMap.findFirstBlock(this->camera.getCameraPos(), rayDirection, static_cast<float>(Config::minimumViewingDistance));
+	(void) location;
 }
 
 void Vox::updateUniforms(ui32 currentFrame)

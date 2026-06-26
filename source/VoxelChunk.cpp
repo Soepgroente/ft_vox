@@ -35,6 +35,41 @@ void	VoxelChunk::setLocation(vec2i loc)
 	worldPosition.z = chunkDimensions.z * loc.depth;
 }
 
+void	VoxelChunk::destroyBlock(const vec3i& blockLocation)
+{
+	assert(blockLocation.x >= 0 && blockLocation.x < chunkDimensions.x);
+	assert(blockLocation.y >= 0 && blockLocation.y < chunkDimensions.y);
+	assert(blockLocation.z >= 0 && blockLocation.z < chunkDimensions.z);
+
+	/*	block worker threads */
+	VoxelMap::lock.lock();
+	map[index(blockLocation.x + 1, blockLocation.y + 1, blockLocation.z + 1)] = VoxelType::Air;
+	
+	/*	regenerate west/east blocks if removed block is on the edge of X-axis	*/
+	
+	if (blockLocation.x == 0 && adjacentChunks[static_cast<size_t>(Direction::West)] != nullptr)
+	{
+		adjacentChunks[static_cast<size_t>(Direction::West)]->generateVertexes();
+	}
+	else if (blockLocation.x == chunkDimensions.x - 1 && adjacentChunks[static_cast<size_t>(Direction::East)] != nullptr)
+	{
+		adjacentChunks[static_cast<size_t>(Direction::East)]->generateVertexes();
+	}
+	
+	/*	regenerate north/south blocks if removed block is on the edge of Z-axis	*/
+	
+	if (blockLocation.z == 0 && adjacentChunks[static_cast<size_t>(Direction::South)] != nullptr)
+	{
+		adjacentChunks[static_cast<size_t>(Direction::South)]->generateVertexes();
+	}
+	else if (blockLocation.z == chunkDimensions.z - 1 && adjacentChunks[static_cast<size_t>(Direction::North)] != nullptr)
+	{
+		adjacentChunks[static_cast<size_t>(Direction::North)]->generateVertexes();
+	}
+	this->generateVertexes();
+	VoxelMap::lock.unlock();
+}
+
 void	VoxelChunk::generateMap(void)
 {
 	i32 y;

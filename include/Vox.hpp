@@ -31,12 +31,13 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( ui32, ui32 );
 		void toggleFullscreen( void );
+		void highlightBlock();
 
 		void setupVulkanBuffers( void );
 		void setupVulkanDescSets( void );
 		void setupVulkanPipelines( void );
 
-		void moveCamera( float );
+		void updateInput( float );
 		void updateMap( std::future<bool>& mapUpdateResult );
 
 		void updateUniforms(ui32 currentFrame);
@@ -59,6 +60,7 @@ class Vox
 		std::unique_ptr<ve::VulkanObject> skyboxObject;
 		std::unique_ptr<ve::VulkanObject> textBackgroundObject;
 		std::unique_ptr<ve::VulkanObject> fpsCounterObject;
+		std::unique_ptr<ve::VulkanObject> highlightedVoxelObject;
 
 		std::unique_ptr<ve::ViewProjectUniform> matrixUbo;
 		std::unique_ptr<ve::MeshUniform>		materialsUbo;
@@ -72,6 +74,8 @@ class Vox
 		std::unique_ptr<ve::VulkanPipeline> fpsCounterPipeline;
 	
 		i32	countFramesToUpdate{0};
+		bool highlightEnabled{false};
+		vec3i highlightedBlock{INT_MAX, INT_MAX, INT_MAX};
 };
 
 }	// namespace vox
