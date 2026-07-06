@@ -116,7 +116,7 @@ bool	VoxelMap::testVoxels(const vec3& location)
 
 	insertLocations(locationOnChunk, voxelsToTest);
 	VoxelMap::lock.lock();
-	const bool result = map[index].testForCollision(voxelsToTest);
+	const bool result = map[index].testForCollision2(roundyRound(locationOnChunk));
 	VoxelMap::lock.unlock();
 	return result;
 }

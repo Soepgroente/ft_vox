@@ -11,6 +11,7 @@
 #include <array>
 #include <memory>
 #include <vector>
+#include <climits>
 
 
 namespace vox {
@@ -31,7 +32,7 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( ui32, ui32 );
 		void toggleFullscreen( void );
-		void highlightBlock();
+		void highlightBlock( void );
 
 		void setupVulkanBuffers( void );
 		void setupVulkanDescSets( void );
@@ -42,6 +43,7 @@ class Vox
 
 		void updateUniforms(ui32 currentFrame);
 		void drawTerrain(VkCommandBuffer commandBuffer, ui32 currentFrame);
+		void drawHighligthedBox(VkCommandBuffer commandBuffer);
 		void drawSkybox(VkCommandBuffer commandBuffer, ui32 currentFrame);
 		void drawText(VkCommandBuffer commandBuffer, ui32 currentFrame, std::string const& text);
 

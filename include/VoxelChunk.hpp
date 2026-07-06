@@ -51,6 +51,7 @@ class VoxelChunk
 		const VoxelType*	dataAt(i32 index) const noexcept { return map.data() + index; }
 
 		bool	testForCollision(const std::vector<vec3i>& locations) const noexcept;
+		bool	testForCollision2(const vec3i& locations) const noexcept;
 		void	destroyBlock(const vec3i& blockLocation);
 
 	private:

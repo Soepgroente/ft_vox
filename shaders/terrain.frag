@@ -52,7 +52,15 @@ void main()
 {
 	// only index thay changes between primitives, use nonuniformEXT to avoid
 	// the compiler setting statically the index value for the whole subgroup
-	vec4 diffuseColor = texture(samplers[nonuniformEXT(index.texture + fragTextureIndex)], fragTextureUV);
+	vec4 diffuseColor;
+	if (index.texture >= 0)
+	{
+		diffuseColor = texture(samplers[nonuniformEXT(index.texture + fragTextureIndex)], fragTextureUV);
+	}
+	else
+	{
+		diffuseColor = vec4(0.4, 0.8, 0.4, 1.0);
+	}
 
 	MaterialData material = meshData.material[index.material];
 	LightData light = meshData.light[index.light];
