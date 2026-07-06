@@ -41,8 +41,6 @@ void	VoxelChunk::destroyBlock(const vec3i& blockLocation)
 	assert(blockLocation.y >= 0 && blockLocation.y < chunkDimensions.y);
 	assert(blockLocation.z >= 0 && blockLocation.z < chunkDimensions.z);
 
-	/*	block worker threads */
-	VoxelMap::lock.lock();
 	map[index(blockLocation.x + 1, blockLocation.y + 1, blockLocation.z + 1)] = VoxelType::Air;
 	
 	/*	regenerate west/east blocks if removed block is on the edge of X-axis	*/
@@ -67,7 +65,6 @@ void	VoxelChunk::destroyBlock(const vec3i& blockLocation)
 		adjacentChunks[static_cast<size_t>(Direction::North)]->generateVertexes();
 	}
 	this->generateVertexes();
-	VoxelMap::lock.unlock();
 }
 
 void	VoxelChunk::generateMap(void)

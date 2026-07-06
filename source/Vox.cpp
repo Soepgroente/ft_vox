@@ -302,7 +302,7 @@ void Vox::updateInput( float deltaTime )
 	if (moved == false && this->highlightEnabled == true)
 	{
 		this->highlightBlock();
-		if (this->highlightedBlock.x != INT_MAX && this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
+		if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX} && this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
 		{
 			this->voxelMap.destroy(this->highlightedBlock);
 		}
@@ -344,8 +344,7 @@ void Vox::highlightBlock()
 	vec2 mouseCoordinates = this->inputHandler.getCursorPos();
 	vec3 rayDirection = this->camera.getRelativeMoveDirection(vec3(mouseCoordinates.x, mouseCoordinates.y, 1.0f).normalized()).normalized();
 
-	vec3i location = this->voxelMap.findFirstBlock(this->camera.getCameraPos(), rayDirection, static_cast<float>(Config::minimumViewingDistance));
-	(void) location;
+	this->highlightedBlock = this->voxelMap.findFirstBlock(this->camera.getCameraPos(), rayDirection, static_cast<float>(Config::minimumViewingDistance));
 }
 
 void Vox::updateUniforms(ui32 currentFrame)
