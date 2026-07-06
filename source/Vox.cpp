@@ -31,6 +31,7 @@ Vox::Vox( void ) :
 	this->terrainObject = std::make_unique<ve::VulkanObject>();
 	this->undergroundObject = std::make_unique<ve::VulkanObject>();
 	this->skyboxObject = std::make_unique<ve::VulkanObject>();
+	this->highlightedVoxelObject = std::make_unique<ve::VulkanObject>();
 }
 
 void Vox::setupVulkan( void )
@@ -48,7 +49,6 @@ void Vox::setupVulkanBuffers( void )
 	this->terrainObject->setModel(this->voxelMap.createNewTerrainModel(vulkanDevice));
 	this->undergroundObject->setModel(this->voxelMap.createNewUndergroundModel(vulkanDevice));
 	this->skyboxObject->setModel(createVoxelModel(this->vulkanDevice));
-	this->highlightedVoxelObject->setModel(createHighlightedVoxelModel(this->vulkanDevice));
 
 	// uniform buffer for view and projection matrixes
 	this->matrixUbo = std::make_unique<ve::ViewProjectUniform>(this->camera.getViewMatrix(), this->camera.getProjectionMatrix());
@@ -57,11 +57,12 @@ void Vox::setupVulkanBuffers( void )
 	this->materialsUbo = std::make_unique<ve::MeshUniform>();
 	this->materialsUbo->updateModelMatrix(0, this->terrainObject->getModelMatrix());
 	this->materialsUbo->updateModelMatrix(1, this->undergroundObject->getModelMatrix());
-	this->materialsUbo->updateModelMatrix(2, mat4::idMat());
+	this->materialsUbo->updateModelMatrix(2, this->highlightedVoxelObject->getModelMatrix());
+	this->materialsUbo->updateModelMatrix(3, this->skyboxObject->getModelMatrix());
 
 	this->materialsUbo->updateNormalMatrix(0, this->terrainObject->getNormalViewMatrix(this->camera.getViewMatrixNoTranslation()));
 	this->materialsUbo->updateNormalMatrix(1, this->undergroundObject->getNormalViewMatrix(this->camera.getViewMatrixNoTranslation()));
-	this->materialsUbo->updateNormalMatrix(2, mat4::idMat());
+	this->materialsUbo->updateNormalMatrix(2, this->highlightedVoxelObject->getNormalViewMatrix(this->camera.getViewMatrixNoTranslation()));
 
 	this->materialsUbo->updateMaterial(0U, Config::dirtMaterial);
 	this->materialsUbo->updateMaterial(1U, Config::stoneMaterial);
@@ -223,7 +224,7 @@ void Vox::run( void )
 
 			indexes.models = 0U;
 			indexes.materials = 0U;
-			indexes.textures = 0U;
+			indexes.textures = 0;
 			this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
 
 			this->terrainObject->bindBuffer(commandBuffer);
@@ -231,16 +232,26 @@ void Vox::run( void )
 
 			indexes.models = 1U;
 			indexes.materials = 1U;
-			indexes.textures = 2U;
+			indexes.textures = 2;
 			this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
 
 			this->undergroundObject->bindBuffer(commandBuffer);
 			this->undergroundObject->draw(commandBuffer);
 
+			if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
+			{
+				indexes.models = 2U;
+				indexes.materials = 0U;
+				indexes.textures = -1;
+				this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
+				this->highlightedVoxelObject->bindBuffer(commandBuffer);
+				this->highlightedVoxelObject->draw(commandBuffer);
+			}
+
 			this->skyboxPipeline->bindPipeline(commandBuffer);
 
-			indexes.models = 2U;
-			this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
+			indexes.models = 3U;
+			this->skyboxPipeline->updatePushConstants(commandBuffer, &indexes);
 
 			this->skyboxObject->bindBuffer(commandBuffer);
 			this->skyboxObject->draw(commandBuffer);
@@ -302,9 +313,13 @@ void Vox::updateInput( float deltaTime )
 	if (moved == false && this->highlightEnabled == true)
 	{
 		this->highlightBlock();
-		if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX} && this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
+		if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
 		{
-			this->voxelMap.destroy(this->highlightedBlock);
+			this->highlightedVoxelObject->setModel(createVoxelFullModel(this->vulkanDevice, vec3{static_cast<float>(this->highlightedBlock.x), static_cast<float>(this->highlightedBlock.y), static_cast<float>(this->highlightedBlock.z)}));
+			if (this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
+			{
+				this->voxelMap.destroy(this->highlightedBlock);
+			}
 		}
 	}
 }
@@ -329,12 +344,14 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 	this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
-void	Vox::highlightBlock()
+void	Vox::highlightBlock( void )
 {
 	vec2 mouseCoordinates = this->inputHandler.getCursorPos();
 	vec3 rayDirection = this->camera.getRelativeMoveDirection(vec3(mouseCoordinates.x, mouseCoordinates.y, 1.0f).normalized()).normalized();
 
 	this->highlightedBlock = this->voxelMap.findFirstBlock(this->camera.getCameraPos(), rayDirection, static_cast<float>(Config::minimumViewingDistance));
+	// vec3 cameraPos = this->camera.getCameraPos();
+	// this->highlightedBlock = vec3i{static_cast<i32>(cameraPos.x), static_cast<i32>(cameraPos.y), static_cast<i32>(cameraPos.z) + 1};
 }
 
 /**

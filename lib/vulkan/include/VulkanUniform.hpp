@@ -66,7 +66,7 @@ struct VkConstants
 	uint32_t	models{0U};
 	uint32_t	materials{0U};
 	uint32_t	lights{0U};
-	uint32_t	textures{0U};
+	int32_t		textures{0U};
 };
 
 inline constexpr VkConstants drawingDataLimits{8U, 8U, 1U, 4U};

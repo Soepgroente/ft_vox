@@ -117,10 +117,11 @@ inline constexpr std::array<ui32, INDEX_PER_VOXEL> VOXEL_VERTEX_INDEXES{
 };
 
 std::vector<vec3>						getVertexRelative( vec3 const& relativeOrigin );
-// std::vector<ve::VulkanModel::Vertex>	getVertexRelative( vec3 const& = vec3(0.0f) );
+std::vector<ve::VulkanModel::Vertex>	getVertexFullRelative( vec3 const& = vec3(0.0f) );
 std::vector<ve::VulkanModel::Vertex>	getVertexAtlasRelative( vec3 const& = vec3(0.0f) );
 IndexVector								getIndexRelative( ui32 = 0U );
 
 std::unique_ptr<ve::VulkanModel> 		createVoxelModel( ve::VulkanDevice& vulkanDevice, vec3 const& = vec3{-0.5f, -0.5f, -0.5f} );
+std::unique_ptr<ve::VulkanModel> 		createVoxelFullModel( ve::VulkanDevice& vulkanDevice, vec3 const& = vec3{-0.5f, -0.5f, -0.5f} );
 
 }	// namespace vox
