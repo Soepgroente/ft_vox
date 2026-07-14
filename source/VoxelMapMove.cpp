@@ -154,25 +154,102 @@ vec3	VoxelMap::detectCollision(const vec3& origin, const vec3& movement)
 
 vec3i	VoxelMap::findFirstBlock(const vec3& origin, const vec3& direction, float maxDistance)
 {
-	constexpr float stepSize = 0.05f;
-	const vec3	movementStep = direction.normalized() * stepSize;
-	vec3	position = origin;
-	float	moved;
+	// constexpr float stepSize = 0.05f;
+	// const vec3	movementStep = direction.normalized() * stepSize;
+	// vec3	position = origin;
+	// float	moved;
 
-	for (moved = 0.0f; moved < maxDistance; moved += stepSize)
-	{
-		position += movementStep;
-		const bool isColliding = testVoxels(position);
-		if (isColliding == true)
-		{
-			return vec3i{
-				static_cast<i32>(std::floor(position.x)),
-				static_cast<i32>(std::floor(position.y)),
-				static_cast<i32>(std::floor(position.z))
-			};
-		}
-	}
-	return vec3i{INT32_MAX, INT32_MAX, INT32_MAX};
+	// for (moved = 0.0f; moved < maxDistance; moved += stepSize)
+	// {
+	// 	position += movementStep;
+	// 	const bool isColliding = testVoxels(position);
+	// 	if (isColliding == true)
+	// 	{
+	// 		return vec3i{
+	// 			static_cast<i32>(std::floor(position.x)),
+	// 			static_cast<i32>(std::floor(position.y)),
+	// 			static_cast<i32>(std::floor(position.z))
+	// 		};
+	// 	}
+	// }
+	// return vec3i{INT32_MAX, INT32_MAX, INT32_MAX};
+    vec3 dir = direction.normalized();
+    if (dir.lengthSquared() == 0.0f)
+        return {INT32_MAX, INT32_MAX, INT32_MAX};
+
+    // Current voxel
+    i32 x = static_cast<i32>(std::floor(origin.x));
+    i32 y = static_cast<i32>(std::floor(origin.y));
+    i32 z = static_cast<i32>(std::floor(origin.z));
+
+    // Step direction per axis
+    i32 stepX = (dir.x > 0.0f) ? 1 : (dir.x < 0.0f ? -1 : 0);
+    i32 stepY = (dir.y > 0.0f) ? 1 : (dir.y < 0.0f ? -1 : 0);
+    i32 stepZ = (dir.z > 0.0f) ? 1 : (dir.z < 0.0f ? -1 : 0);
+
+    auto inf = std::numeric_limits<float>::infinity();
+
+    auto intBound = [](float s, float ds) {
+        // distance t to next integer boundary
+        if (ds > 0.0f) return (std::ceil(s) - s) / ds;
+        if (ds < 0.0f) return (s - std::floor(s)) / (-ds);
+        return std::numeric_limits<float>::infinity();
+    };
+
+    float tMaxX = intBound(origin.x, dir.x);
+    float tMaxY = intBound(origin.y, dir.y);
+    float tMaxZ = intBound(origin.z, dir.z);
+
+    float tDeltaX = (stepX != 0) ? (1.0f / std::abs(dir.x)) : inf;
+    float tDeltaY = (stepY != 0) ? (1.0f / std::abs(dir.y)) : inf;
+    float tDeltaZ = (stepZ != 0) ? (1.0f / std::abs(dir.z)) : inf;
+
+    float t = 0.0f;
+
+    // Optionally test starting voxel
+    if (testVoxels(vec3(x + 0.5f, y + 0.5f, z + 0.5f)))
+        return {x, y, z};
+
+    while (t <= maxDistance)
+    {
+        if (tMaxX < tMaxY)
+        {
+            if (tMaxX < tMaxZ)
+            {
+                x += stepX;
+                t = tMaxX;
+                tMaxX += tDeltaX;
+            }
+            else
+            {
+                z += stepZ;
+                t = tMaxZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+        else
+        {
+            if (tMaxY < tMaxZ)
+            {
+                y += stepY;
+                t = tMaxY;
+                tMaxY += tDeltaY;
+            }
+            else
+            {
+                z += stepZ;
+                t = tMaxZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+
+        if (t > maxDistance) break;
+
+        if (testVoxels(vec3(x + 0.5f, y + 0.5f, z + 0.5f)))
+            return {x, y, z};
+    }
+
+    return {INT32_MAX, INT32_MAX, INT32_MAX};
 }
 
 void	VoxelMap::destroy(const vec3i& blockLocation)

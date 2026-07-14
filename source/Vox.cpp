@@ -287,7 +287,7 @@ void Vox::updateInput( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_DOWN)) { rotation.x -= rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
-	if (this->inputHandler.isKeyPressed(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; }
+	if (this->inputHandler.isKeyReleased(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; std::cout << "Highlighting toggled" << std::endl; }
 
 	if (rotation != vec3::zero())
 	{
@@ -349,12 +349,63 @@ void Vox::updateMap( std::future<bool>& mapUpdateResult )
 	}
 }
 
-void Vox::highlightBlock()
+vec3 Vox::screenPointToWorldRay(float mouseX, float mouseY) const
 {
-	vec2 mouseCoordinates = this->inputHandler.getCursorPos();
-	vec3 rayDirection = this->camera.getRelativeMoveDirection(vec3(mouseCoordinates.x, mouseCoordinates.y, 1.0f).normalized()).normalized();
+    int w, h;
+    glfwGetWindowSize(this->vulkanWindow.getGLFWwindow(), &w, &h);
 
-	this->highlightedBlock = this->voxelMap.findFirstBlock(this->camera.getCameraPos(), rayDirection, static_cast<float>(Config::minimumViewingDistance));
+    // NDC
+    float x = (2.0f * mouseX) / float(w) - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / float(h);
+
+    // Clip -> View
+    vec4 rayClip(x, y, 1.0f, 1.0f); // use -1 depending on your projection convention
+    mat4 invProj = inverse(this->camera.getProjectionMatrix(true));
+    vec4 rayView = invProj * rayClip;
+    rayView = vec4(rayView.x, rayView.y, -1.0f, 0.0f); // direction, not point
+
+    // View -> World
+    mat4 invView = inverse(this->camera.getViewMatrix(true));
+    vec3 rayWorld = normalize((invView * rayView).xyz());
+
+    return rayWorld;
+}
+
+void	Vox::highlightBlock( void )
+{
+	int width, height;
+	glfwGetWindowSize(this->vulkanWindow.getGLFWwindow(), &width, &height);
+
+	vec2 mouse = this->inputHandler.getCursorPos();
+
+	// 1) Pixel -> [-1 to +1]
+	float x = 2.0f * (mouse.x / static_cast<float>(width)) - 1.0f;
+	float y = 2.0f * (mouse.y / static_cast<float>(height)) - 1.0f;
+
+	float aspect = static_cast<float>(width) / static_cast<float>(height);
+	float tanHalfFov = std::tan(radians(70.0f) * 0.5f);
+
+	// 2) Camera-space ray
+	vec3 rayCamera;
+	rayCamera.x = x * aspect * tanHalfFov;
+	rayCamera.y = y * tanHalfFov;
+	rayCamera.z = 1.0f;
+	rayCamera.normalize();
+
+	// 3) Camera-space -> world-space
+	vec3 rayWorld = this->camera.getRelativeMoveDirection(rayCamera);
+	rayWorld.normalize();
+
+	std::cout << "Aiming at: " << rayCamera << std::endl;
+	std::cout << "Ray: " << rayWorld << std::endl;
+
+	this->highlightedBlock = this->voxelMap.findFirstBlock(
+		this->camera.getCameraPos(),
+		rayWorld,
+		static_cast<float>(Config::minimumViewingDistance)
+	);
+
+	std::cout << "Highlighting: " << this->highlightedBlock << std::endl;
 	// vec3 cameraPos = this->camera.getCameraPos();
 	// this->highlightedBlock = vec3i{static_cast<i32>(cameraPos.x), static_cast<i32>(cameraPos.y), static_cast<i32>(cameraPos.z) + 1};
 }

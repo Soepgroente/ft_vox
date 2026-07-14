@@ -32,7 +32,6 @@ class Vox
 		void rotateCameraFromCursorPos( vec2 const& );
 		void resizeWindow( ui32, ui32 );
 		void toggleFullscreen( void );
-		void highlightBlock( void );
 
 		void setupVulkanBuffers( void );
 		void setupVulkanDescSets( void );
@@ -46,6 +45,9 @@ class Vox
 		void drawHighligthedBox(VkCommandBuffer commandBuffer);
 		void drawSkybox(VkCommandBuffer commandBuffer, ui32 currentFrame);
 		void drawText(VkCommandBuffer commandBuffer, ui32 currentFrame, std::string const& text);
+
+		void highlightBlock( void );
+		vec3 screenPointToWorldRay(float mouseX, float mouseY) const;
 
 		ve::VulkanWindow				vulkanWindow;
 		ve::VulkanDevice				vulkanDevice;
@@ -78,6 +80,7 @@ class Vox
 		i32	countFramesToUpdate{0};
 		bool highlightEnabled{false};
 		vec3i highlightedBlock{INT_MAX, INT_MAX, INT_MAX};
+
 };
 
 }	// namespace vox
