@@ -59,7 +59,7 @@ void main()
 	}
 	else
 	{
-		diffuseColor = vec4(0.4, 0.8, 0.4, 1.0);
+		diffuseColor = vec4(0.9, 0.9, 0.9, 1.0);
 	}
 
 	MaterialData material = meshData.material[index.material];
