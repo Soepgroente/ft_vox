@@ -80,7 +80,6 @@ class Vox
 		i32	countFramesToUpdate{0};
 		bool highlightEnabled{false};
 		vec3i highlightedBlock{INT_MAX, INT_MAX, INT_MAX};
-
 };
 
 }	// namespace vox
