@@ -67,8 +67,6 @@ class Vox
 		i32	countFramesToUpdate{0};
 		bool highlightEnabled{false};
 		vec3i highlightedBlock{INT_MAX, INT_MAX, INT_MAX};
-
-		vec3	Vox::screenPointToWorldRay(float mouseX, float mouseY) const;
 };
 
 }	// namespace vox

@@ -344,28 +344,6 @@ void	Vox::rotateCameraFromCursorPos( vec2 const& currPos )
 	this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
-vec3 Vox::screenPointToWorldRay(float mouseX, float mouseY) const
-{
-    int w, h;
-    glfwGetWindowSize(this->vulkanWindow.getGLFWwindow(), &w, &h);
-
-    // NDC
-    float x = (2.0f * mouseX) / float(w) - 1.0f;
-    float y = 1.0f - (2.0f * mouseY) / float(h);
-
-    // Clip -> View
-    vec4 rayClip(x, y, 1.0f, 1.0f); // use -1 depending on your projection convention
-    mat4 invProj = inverse(this->camera.getProjectionMatrix(true));
-    vec4 rayView = invProj * rayClip;
-    rayView = vec4(rayView.x, rayView.y, -1.0f, 0.0f); // direction, not point
-
-    // View -> World
-    mat4 invView = inverse(this->camera.getViewMatrix(true));
-    vec3 rayWorld = normalize((invView * rayView).xyz());
-
-    return rayWorld;
-}
-
 void	Vox::highlightBlock( void )
 {
 	int width, height;
@@ -375,16 +353,16 @@ void	Vox::highlightBlock( void )
 
 	// 1) Pixel -> [-1 to +1]
 	float x = 2.0f * (mouse.x / static_cast<float>(width)) - 1.0f;
-	float y = 2.0f * (mouse.y / static_cast<float>(height)) - 1.0f;
+	float y = 1.0f - 2.0f * (mouse.y / static_cast<float>(height));
 
 	float aspect = static_cast<float>(width) / static_cast<float>(height);
-	float tanHalfFov = std::tan(radians(70.0f) * 0.5f);
+	float tanHalfFov = std::tan(radians(CameraSettings::projectionFov) * 0.5f);
 
 	// 2) Camera-space ray
 	vec3 rayCamera;
 	rayCamera.x = x * aspect * tanHalfFov;
 	rayCamera.y = y * tanHalfFov;
-	rayCamera.z = 1.0f;
+	rayCamera.z = -1.0f;
 	rayCamera.normalize();
 
 	// 3) Camera-space -> world-space

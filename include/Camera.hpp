@@ -5,7 +5,7 @@
 namespace vox {
 
 struct CameraSettings {
-	static constexpr float	projectionFov = 50.0f;
+	static constexpr float	projectionFov = 70.0f;
 	static constexpr float	projectionNear = .1f;
 	static constexpr float	projectionFar = 1000.0f;
 	static constexpr float	cameraDistance = 50.0f;
