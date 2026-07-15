@@ -4,8 +4,8 @@
 namespace vox {
 
 std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& relativeOrigin ) {
-	std::vector<ve::VulkanModel::Vertex> voxelVertexes(VERTEX_PER_VOXEL);
-	for (ui32 i=0; i<VERTEX_PER_VOXEL; i++) {
+	std::vector<ve::VulkanModel::Vertex> voxelVertexes(ve::VERTEX_PER_VOXEL);
+	for (ui32 i=0; i<ve::VERTEX_PER_VOXEL; i++) {
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
 		voxelVertexes[i].pos.x = VOXEL_VERTEXES[i].pos.x + VOXEL_SIZE * 0.5f + relativeOrigin.x;
 		voxelVertexes[i].pos.y = VOXEL_VERTEXES[i].pos.y + VOXEL_SIZE * 0.5f + relativeOrigin.y;
@@ -17,8 +17,8 @@ std::vector<ve::VulkanModel::Vertex> getVertexRelative( vec3 const& relativeOrig
 }
 
 std::vector<ve::VulkanModel::Vertex> getVertexAtlasRelative( vec3 const& relativeOrigin ) {
-	std::vector<ve::VulkanModel::Vertex> voxelVertexes(VERTEX_PER_VOXEL);
-	for (ui32 i=0; i<VERTEX_PER_VOXEL; i++) {
+	std::vector<ve::VulkanModel::Vertex> voxelVertexes(ve::VERTEX_PER_VOXEL);
+	for (ui32 i=0; i<ve::VERTEX_PER_VOXEL; i++) {
 		// add 0.5 (half size of a voxel) of every coor so that the position is in the exact center
 		voxelVertexes[i].pos.x = VOXEL_VERTEXES_ATLAS[i].pos.x + relativeOrigin.x;
 		voxelVertexes[i].pos.y = VOXEL_VERTEXES_ATLAS[i].pos.y + relativeOrigin.y;
@@ -30,11 +30,11 @@ std::vector<ve::VulkanModel::Vertex> getVertexAtlasRelative( vec3 const& relativ
 }
 
 IndexVector getIndexRelative( ui32 start ) {
-	IndexVector indexes(INDEX_PER_VOXEL);
+	IndexVector indexes(ve::INDEX_PER_VOXEL);
 
-	for (ui32 i=0; i<INDEX_PER_VOXEL; i++)
+	for (ui32 i=0; i<ve::INDEX_PER_VOXEL; i++)
 	{
-		indexes[i] = start + VOXEL_VERTEX_INDEXES[i];
+		indexes[i] = start + VOXEL_INDEXES[i];
 	}
 	return indexes;
 }

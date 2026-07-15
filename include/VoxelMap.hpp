@@ -42,8 +42,10 @@ class VoxelMap
 		static inline	std::mutex	lock;
 		
 	private:
-		std::vector<VoxelChunk>	map;
-		
+		std::vector<VoxelChunk>		map;
+		std::vector<VertexVector>	_terrainVertexes;
+		std::vector<VertexVector>	_undergroundVertexes;
+	
 		i32 	squareSize;
 		vec2i	minPositions;
 		vec2i	maxPositions;
@@ -59,8 +61,8 @@ class VoxelMap
 		
 		std::vector<bool> scheduledChanges;
 		
-		void	regenerateTerrainBuffer();
-		void	regenerateUndergroundBuffer();
+		// void	regenerateTerrainBuffer();
+		// void	regenerateUndergroundBuffer();
 
 		vec2i	voxelToChunkPosition(const vec3& position) const noexcept;
 

@@ -12,6 +12,8 @@ namespace ve {
 
 inline constexpr uint32_t	VERTEX_PER_VOXEL = 24U;	// number of vertexes per voxel
 inline constexpr uint32_t	INDEX_PER_VOXEL = 36U;	// number of vertex indexes per voxel
+inline constexpr uint32_t	VERTEX_PER_FACE = 4U;	// number of vertexes per face (of a voxel)
+inline constexpr uint32_t	INDEX_PER_FACE = 6U;	// number of vertex indexes per voxel
 
 struct	BoundingBox
 {
@@ -94,6 +96,7 @@ class VulkanModel
 	VulkanModel(VulkanDevice& device, const Builder& builder, uint32_t binding = 0U, MeshLayout type = DEFAULT_MODEL_LAYOUT);
 	VulkanModel(VulkanDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, uint32_t binding = 0U, MeshLayout type = DEFAULT_MODEL_LAYOUT);
 	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel, uint32_t binding = 0U, MeshLayout type = DEFAULT_MODEL_LAYOUT);
+	VulkanModel(VulkanDevice& device, const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_FACE>& indexesVoxel, uint32_t binding = 0U, MeshLayout type = DEFAULT_MODEL_LAYOUT);
 	~VulkanModel(void) noexcept = default;
 
 	VulkanModel(const VulkanModel&) = delete;
@@ -133,6 +136,7 @@ class VulkanModel
 	void	createVertexBuffers(const std::vector<Vertex>& vertices);
 	void	createIndexBuffers(const std::vector<uint32_t>& indices);
 	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex>>& vertexes, const std::array<uint32_t, INDEX_PER_VOXEL>& indexesVoxel);
+	void	createVertexIndexBuffers(const std::vector<std::vector<Vertex>>& vertexes, const std::array<uint32_t, INDEX_PER_FACE>& indexesVoxel);
 
 	void	setObjectCenter() noexcept;
 	

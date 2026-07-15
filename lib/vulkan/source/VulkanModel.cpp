@@ -57,6 +57,26 @@ VulkanModel::VulkanModel(
 	this->createVertexIndexBuffers(vertices, indexesVoxel);
 }
 
+VulkanModel::VulkanModel(
+	VulkanDevice& device,
+	const std::vector<std::vector<Vertex>>& vertices,
+	const std::array<uint32_t,INDEX_PER_FACE>& indexesVoxel,
+	uint32_t binding,
+	MeshLayout type
+) :
+	vulkanDevice{device}, binding{binding}, type{type}
+{
+	for (std::vector<Vertex> const& worldVertexes : vertices)
+	{
+		this->vertexCount += worldVertexes.size();
+		// a face has always 4 vertexes and 6 indexes, with this proportion, given
+		// an amount of faces, the total number of indexes is: nFaces * nIndexPerFace / nVertexPerFace
+		this->indexCount += (worldVertexes.size() * INDEX_PER_FACE) / VERTEX_PER_FACE;
+	}
+	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
+	this->createVertexIndexBuffers(vertices, indexesVoxel);
+}
+
 void	VulkanModel::bindBuffer(VkCommandBuffer commandBuffer) const noexcept
 {
 	VkBuffer		buffers[] = {this->vertexBuffer->getBuffer()};
@@ -241,6 +261,79 @@ void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>
 				stagingIndexPtr++;
 			}
 			offsetIndex += VERTEX_PER_VOXEL;
+		}
+		offsetVertex += sizeData;
+	}
+
+	this->vertexBuffer = std::make_unique<VulkanBuffer>(
+		this->vulkanDevice,
+		vertexSize,
+		this->vertexCount,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		BUFFER_VERTEX
+	);
+	this->vulkanDevice.copyBuffer(stagingBufferVertex.getBuffer(), this->vertexBuffer->getBuffer(), this->vertexCount * vertexSize);
+
+	this->indexBuffer = std::make_unique<VulkanBuffer>(
+		this->vulkanDevice,
+		indexSize,
+		this->indexCount,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		BUFFER_INDEX
+	);
+	this->vulkanDevice.copyBuffer(stagingBufferIndex.getBuffer(), this->indexBuffer->getBuffer(), this->indexCount * indexSize);
+	this->isIndexed = true;
+}
+
+void	VulkanModel::createVertexIndexBuffers(const std::vector<std::vector<Vertex>>& vertices, const std::array<uint32_t, INDEX_PER_FACE>& indexesVoxel)
+{
+	assert(this->vertexCount >= 3 && "Vertex count must be at least 3");
+	assert(this->indexCount >= 3 && "Index count must be at least 3");
+
+	uint32_t		vertexSize = sizeof(Vertex);
+	VulkanBuffer	stagingBufferVertex(
+		this->vulkanDevice,
+		vertexSize,
+		this->vertexCount,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		BUFFER_RAW
+	);
+	stagingBufferVertex.map();
+
+	uint32_t		indexSize = sizeof(uint32_t);
+	VulkanBuffer	stagingBufferIndex(
+		this->vulkanDevice,
+		indexSize,
+		this->indexCount,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		BUFFER_RAW
+	);
+	stagingBufferIndex.map();
+	// the face index data doesn't 'exist' yet because the indexes depend
+	// on the vertexes already inserted, each one is manually written inside the staging buffer
+	uint32_t* stagingIndexPtr = static_cast<uint32_t*>(stagingBufferIndex.getMappedMemory());
+
+	uint32_t offsetVertex = 0U;		// careful: this is a bytes offset
+	uint32_t offsetIndex = 0U;		// careful: this is an element (uints) offset
+	for (std::vector<Vertex> const& worldVertexes : vertices) {
+		// some chunks might be empty, skip them
+		if ( worldVertexes.data() == nullptr )
+		{
+			continue;
+		}
+		uint32_t sizeData = worldVertexes.size() * vertexSize;
+		// insert vertexes of this chunk in staging buffer
+		stagingBufferVertex.writeToBuffer(static_cast<const void*>(worldVertexes.data()), sizeData, offsetVertex);
+		uint32_t nFaces = worldVertexes.size() / VERTEX_PER_FACE;
+		// for every voxel load its face indexes, offsetIndex represents all the vertexes already inserted
+		for (uint32_t i = 0; i < nFaces; i++)
+		{
+			for (uint32_t index : indexesVoxel)
+			{
+				*stagingIndexPtr = index + offsetIndex;
+				stagingIndexPtr++;
+			}
+			offsetIndex += VERTEX_PER_FACE;
 		}
 		offsetVertex += sizeData;
 	}
