@@ -74,6 +74,7 @@ class VoxelMap
 
 		vec3	nearestAirVoxel(const vec3i& origin);
 		bool	testVoxels(const vec3& location);
+		bool	hitSomething(const vec3& location);
 };
 
 }	// namespace vox
