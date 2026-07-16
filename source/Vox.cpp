@@ -275,9 +275,11 @@ void Vox::run( void )
  */
 void Vox::updateInput( float deltaTime )
 {
+	static float movementSpeed = Config::movementSpeed;
+
 	vec3	moveDirection = vec3::zero();
 	vec3	rotation = vec3::zero();
-	float	moveScalar = std::min(deltaTime * Config::movementSpeed, static_cast<float>(Config::chunkLength));
+	float	moveScalar = std::min(deltaTime * movementSpeed, static_cast<float>(Config::chunkLength));
 	float	rotationScalar = deltaTime * Config::lookSpeed;
 	bool	moved = false;
 
@@ -292,6 +294,17 @@ void Vox::updateInput( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
 	if (this->inputHandler.isKeyReleased(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; std::cout << "Highlighting toggled" << std::endl; }
+	if (this->inputHandler.isKeyReleased(GLFW_KEY_V))
+	{
+		if (movementSpeed == 20.0f)
+		{
+			movementSpeed = 1.0f;
+		}
+		else
+		{
+			movementSpeed = 20.0f;
+		}
+	}
 
 	if (rotation != vec3::zero())
 	{
