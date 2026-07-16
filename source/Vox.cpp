@@ -271,9 +271,10 @@ void Vox::setupVulkanPipelines( void )
 
 void Vox::updateInput( float deltaTime )
 {
+	float	movementSpeed = (this->walkFast) ? Config::fastSpeed : Config::normalSpeed;
 	vec3	moveDirection = vec3::zero();
 	vec3	rotation = vec3::zero();
-	float	moveScalar = std::min(deltaTime * Config::movementSpeed, static_cast<float>(Config::chunkLength));
+	float	moveScalar = std::min(deltaTime * movementSpeed, static_cast<float>(Config::chunkLength));
 	float	rotationScalar = deltaTime * Config::lookSpeed;
 	bool	moved = false;
 
@@ -288,6 +289,7 @@ void Vox::updateInput( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
 	if (this->inputHandler.isKeyReleased(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; std::cout << "Highlighting toggled" << std::endl; }
+	if (this->inputHandler.isKeyReleased(GLFW_KEY_V)) { this->walkFast = !this->walkFast; }
 
 	if (rotation != vec3::zero())
 	{
