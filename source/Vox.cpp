@@ -305,9 +305,16 @@ void Vox::updateInput( float deltaTime )
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 		moved = true;
 	}
-	if (moved == false && this->highlightEnabled == true)
+	if (this->highlightEnabled == true)
 	{
-		this->highlightBlock();
+		if (moved == true)
+		{
+			this->highlightedBlock = vec3i{INT_MAX, INT_MAX, INT_MAX};
+		}
+		else
+		{
+			this->highlightBlock();
+		}
 		if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
 		{
 			this->highlightedVoxelObject->setModel(createVoxelModel(this->vulkanDevice, vec3{static_cast<float>(this->highlightedBlock.x), static_cast<float>(this->highlightedBlock.y), static_cast<float>(this->highlightedBlock.z)}));
@@ -374,16 +381,12 @@ void	Vox::highlightBlock( void )
 	vec3 rayWorld = this->camera.getRelativeMoveDirection(rayCamera);
 	rayWorld.normalize();
 
-	std::cout << "Aiming at: " << rayCamera << std::endl;
-	std::cout << "Ray: " << rayWorld << std::endl;
-
 	this->highlightedBlock = this->voxelMap.findFirstBlock(
 		this->camera.getCameraPos(),
 		rayWorld,
 		static_cast<float>(Config::minimumViewingDistance)
 	);
 
-	std::cout << "Highlighting: " << this->highlightedBlock << std::endl;
 	// vec3 cameraPos = this->camera.getCameraPos();
 	// this->highlightedBlock = vec3i{static_cast<i32>(cameraPos.x), static_cast<i32>(cameraPos.y), static_cast<i32>(cameraPos.z) + 1};
 }

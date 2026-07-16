@@ -335,10 +335,9 @@ bool	VoxelChunk::testForCollision(const std::vector<vec3i>& locations) const noe
 	return false;
 }
 
-bool	VoxelChunk::testForCollision2(const vec3i& location) const noexcept
+VoxelType	VoxelChunk::getVoxelType(const vec3i& location) const noexcept
 {
-	const VoxelType voxel = this->at(location.x + 1, location.y + 1, location.z + 1);
-	return (voxel != VoxelType::Air && voxel != VoxelType::Padding);
+	return this->at(location.x + 1, location.y + 1, location.z + 1);
 }
 
 }	// namespace vox

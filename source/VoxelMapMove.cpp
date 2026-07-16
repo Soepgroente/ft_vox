@@ -116,7 +116,7 @@ bool	VoxelMap::testVoxels(const vec3& location)
 
 	insertLocations(locationOnChunk, voxelsToTest);
 	VoxelMap::lock.lock();
-	const bool result = map[index].testForCollision2(roundyRound(locationOnChunk));
+	const bool result = map[index].testForCollision(voxelsToTest);
 	VoxelMap::lock.unlock();
 	return result;
 }
@@ -152,25 +152,47 @@ vec3	VoxelMap::detectCollision(const vec3& origin, const vec3& movement)
 	return position - origin;
 }
 
+bool	VoxelMap::hitSomething(const vec3& location)
+{
+	if (location.y < 0 || location.y >= VoxelChunk::chunkDimensions.y)
+	{
+		return false;
+	}
+	vec2i	chunk = voxelToChunk(roundyRound(location));
+	i32		index = (chunk.x - minPositions.x) * squareSize + (chunk.y - minPositions.y);
+
+	if (index < 0 || static_cast<size_t>(index) >= map.size())
+	{
+		return false;
+	}
+	vec3	locationOnChunk = vec3{
+		std::fmod(location.x, static_cast<float>(VoxelChunk::chunkDimensions.x)),
+		location.y,
+		std::fmod(location.z, static_cast<float>(VoxelChunk::chunkDimensions.z))
+	};
+	if (locationOnChunk.x < 0.0f) { locationOnChunk.x += static_cast<float>(VoxelChunk::chunkDimensions.x); }
+	if (locationOnChunk.z < 0.0f) { locationOnChunk.z += static_cast<float>(VoxelChunk::chunkDimensions.z); }
+
+	VoxelMap::lock.lock();
+	const VoxelType voxel = map[index].getVoxelType(roundyRound(locationOnChunk));
+	VoxelMap::lock.unlock();
+	return voxel != VoxelType::Air && voxel != VoxelType::Padding;
+}
+
 vec3i	VoxelMap::findFirstBlock(const vec3& origin, const vec3& direction, float maxDistance)
 {
-	constexpr float stepSize = 0.05f;
+	constexpr float stepSize = 0.01f;
 	const vec3	movementStep = direction.normalized() * stepSize;
 	vec3	position = origin;
 	float	moved;
 
 	for (moved = 0.0f; moved < maxDistance; moved += stepSize)
 	{
-		position += movementStep;
-		const bool isColliding = testVoxels(position);
-		if (isColliding == true)
+		if (hitSomething(position) == true)
 		{
-			return vec3i{
-				static_cast<i32>(std::floor(position.x)),
-				static_cast<i32>(std::floor(position.y)),
-				static_cast<i32>(std::floor(position.z))
-			};
+			return roundyRound(position + (movementStep * 10.0f));
 		}
+		position += movementStep;
 	}
 	return vec3i{INT32_MAX, INT32_MAX, INT32_MAX};
 }
@@ -189,10 +211,16 @@ void	VoxelMap::destroy(const vec3i& blockLocation)
 		blockLocation.y % VoxelChunk::chunkDimensions.y,
 		blockLocation.z % VoxelChunk::chunkDimensions.z
 	};
-	while (blockLocation.x < 0) { locationOnChunk.x += VoxelChunk::chunkDimensions.x; }
-	while (blockLocation.y < 0) { locationOnChunk.y += VoxelChunk::chunkDimensions.y; }
-	while (blockLocation.z < 0) { locationOnChunk.z += VoxelChunk::chunkDimensions.z; }
 
+	std::cout << "original: " << blockLocation << std::endl;
+	
+	std::cout << "after: " << locationOnChunk << std::endl;
+
+	if (locationOnChunk.x < 0) { locationOnChunk.x += VoxelChunk::chunkDimensions.x; }
+	if (locationOnChunk.y < 0) { locationOnChunk.y += VoxelChunk::chunkDimensions.y; }
+	if (locationOnChunk.z < 0) { locationOnChunk.z += VoxelChunk::chunkDimensions.z; }
+	
+	std::cout << "after if: " << locationOnChunk << std::endl;
 	VoxelMap::lock.lock();
 	map[index].destroyBlock(locationOnChunk);
 	VoxelMap::lock.unlock();
