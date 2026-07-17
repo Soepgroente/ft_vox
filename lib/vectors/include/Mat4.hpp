@@ -34,6 +34,8 @@ class mat4
 
 	mat4&	transpose() noexcept;
 	mat4	transposed() const noexcept;
+	mat4&	invert();
+	mat4	inverted() const;
 	mat4&	translate(const vec3& translation) noexcept;
 	mat4	translated(const vec3& translation) const noexcept;
 	mat4&	rotate(float angleRadians, const vec3& axis) noexcept;

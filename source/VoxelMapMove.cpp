@@ -1,6 +1,8 @@
 #include "VoxelMap.hpp"
 
 #include <iostream>
+#include <set>
+#include <vector>
 
 
 namespace vox {
@@ -181,20 +183,39 @@ bool	VoxelMap::hitSomething(const vec3& location)
 
 vec3i	VoxelMap::findFirstBlock(const vec3& origin, const vec3& direction, float maxDistance)
 {
-	constexpr float stepSize = 0.01f;
-	const vec3	movementStep = direction.normalized() * stepSize;
+	float	stepSize = 0.01f;
+	vec3	movementStep = direction * stepSize;
 	vec3	position = origin;
-	float	moved;
 
-	for (moved = 0.0f; moved < maxDistance; moved += stepSize)
+	for (float moved = 0.0f; moved < maxDistance; moved += stepSize)
 	{
 		if (hitSomething(position) == true)
 		{
-			return roundyRound(position + (movementStep * 10.0f));
+			return roundyRound(position);		// + (movementStep * 10.0f)
 		}
 		position += movementStep;
 	}
 	return vec3i{INT32_MAX, INT32_MAX, INT32_MAX};
+}
+
+std::vector<vec3i>	VoxelMap::lineSequence(const vec3& origin, const vec3& direction, float maxDistance)
+{
+	float	stepSize = 0.01f;
+	vec3	movementStep = direction * stepSize;
+	vec3	position = origin;
+
+	std::set<vec3i> uniqueCubesLine;
+
+	for (float moved = 0.0f; moved < maxDistance; moved += stepSize)
+	{
+		if (hitSomething(position) == true)
+		{
+			break;		// + (movementStep * 10.0f)
+		}
+		uniqueCubesLine.insert(roundyRound(position));
+		position += movementStep;
+	}
+	return std::vector<vec3i>(uniqueCubesLine.begin(), uniqueCubesLine.end());
 }
 
 void	VoxelMap::destroy(const vec3i& blockLocation)

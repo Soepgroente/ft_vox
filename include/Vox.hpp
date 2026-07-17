@@ -65,6 +65,8 @@ class Vox
 		std::unique_ptr<ve::VulkanPipeline> skyboxPipeline;
 	
 		i32	countFramesToUpdate{0};
+
+		bool walkFast{false};
 		bool highlightEnabled{false};
 		vec3i highlightedBlock{INT_MAX, INT_MAX, INT_MAX};
 };

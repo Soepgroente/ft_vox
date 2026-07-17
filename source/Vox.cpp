@@ -275,8 +275,7 @@ void Vox::run( void )
  */
 void Vox::updateInput( float deltaTime )
 {
-	static float movementSpeed = Config::movementSpeed;
-
+	float	movementSpeed = (this->walkFast) ? Config::movementSpeedFast : Config::movementSpeed;
 	vec3	moveDirection = vec3::zero();
 	vec3	rotation = vec3::zero();
 	float	moveScalar = std::min(deltaTime * movementSpeed, static_cast<float>(Config::chunkLength));
@@ -294,17 +293,7 @@ void Vox::updateInput( float deltaTime )
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_RIGHT)) { rotation.y += rotationScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_LEFT))	{ rotation.y -= rotationScalar;	}
 	if (this->inputHandler.isKeyReleased(GLFW_KEY_H)) { this->highlightEnabled = !this->highlightEnabled; std::cout << "Highlighting toggled" << std::endl; }
-	if (this->inputHandler.isKeyReleased(GLFW_KEY_V))
-	{
-		if (movementSpeed == 20.0f)
-		{
-			movementSpeed = 1.0f;
-		}
-		else
-		{
-			movementSpeed = 20.0f;
-		}
-	}
+	if (this->inputHandler.isKeyReleased(GLFW_KEY_V)) { this->walkFast = !this->walkFast; }
 
 	if (rotation != vec3::zero())
 	{
@@ -316,31 +305,31 @@ void Vox::updateInput( float deltaTime )
 	{
 		// test for movement
 		vec3 relativeMoveDirection = this->camera.getRelativeMoveDirection(moveDirection);
-		vec3 location = this->camera.getCameraPos();
+		// vec3 location = this->camera.getCameraPos();
 
-		vec3 movement = this->voxelMap.detectCollision(location, relativeMoveDirection);
-		this->camera.move(movement);
+		// vec3 movement = this->voxelMap.detectCollision(location, relativeMoveDirection);
+		this->camera.move(relativeMoveDirection);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 		moved = true;
 	}
 	if (this->highlightEnabled == true)
 	{
-		if (moved == true)
-		{
-			this->highlightedBlock = vec3i{INT_MAX, INT_MAX, INT_MAX};
-		}
-		else
-		{
+		// if (moved == true)
+		// {
+		// 	this->highlightedBlock = vec3i{INT_MAX, INT_MAX, INT_MAX};
+		// }
+		// else
+		// {
 			this->highlightBlock();
-		}
-		if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
-		{
-			this->highlightedVoxelObject->setModel(createVoxelFullModel(this->vulkanDevice, vec3{static_cast<float>(this->highlightedBlock.x), static_cast<float>(this->highlightedBlock.y), static_cast<float>(this->highlightedBlock.z)}));
+		// }
+		// if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
+		// {
+			// this->highlightedVoxelObject->setModel(createVoxelFullModel(this->vulkanDevice, vec3{static_cast<float>(this->highlightedBlock.x), static_cast<float>(this->highlightedBlock.y), static_cast<float>(this->highlightedBlock.z)}));
 			if (this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
 			{
 				this->voxelMap.destroy(this->highlightedBlock);
 			}
-		}
+		// }
 	}
 }
 
@@ -371,32 +360,48 @@ void	Vox::highlightBlock( void )
 
 	vec2 mouse = this->inputHandler.getCursorPos();
 
-	// 1) Pixel -> [-1 to +1]
-	float x = 2.0f * (mouse.x / static_cast<float>(width)) - 1.0f;
-	float y = 1.0f - 2.0f * (mouse.y / static_cast<float>(height));
+	vec4 rayClip{
+		2.0f * (mouse.x / static_cast<float>(width)) - 1.0f,
+		2.0f * (mouse.y / static_cast<float>(height)) - 1.0f,
+		// 1.0f - 2.0f * (mouse.y / static_cast<float>(height)),
+		1.0f,
+		1.0f
+	};
 
-	float aspect = static_cast<float>(width) / static_cast<float>(height);
-	float tanHalfFov = std::tan(radians(CameraSettings::projectionFov) * 0.5f);
+	vec4 rayEye = this->camera.getProjectionMatrix(false).inverted() * rayClip;
+	rayEye.z = -1.0f;
+	rayEye.w = 0.0f;
 
-	// 2) Camera-space ray
-	vec3 rayCamera;
-	rayCamera.x = x * aspect * tanHalfFov;
-	rayCamera.y = y * tanHalfFov;
-	rayCamera.z = -1.0f;
-	rayCamera.normalize();
+	vec4 rayWorld4D = this->camera.getViewMatrix(false).inverted() * rayEye;
+	vec3 rayWorldDirection{rayWorld4D};
 
-	// 3) Camera-space -> world-space
-	vec3 rayWorld = this->camera.getRelativeMoveDirection(rayCamera);
-	rayWorld.normalize();
+	std::cout << "cameraPos: " << this->camera.getCameraPos() << std::endl;
+	std::cout << "cameraForward: " << this->camera.getForward() << std::endl;
+	std::cout << "rayWorldDirection: " << rayWorldDirection << std::endl << std::endl;
+	rayWorldDirection.normalize();
 
-	this->highlightedBlock = this->voxelMap.findFirstBlock(
+	// this->highlightedBlock = this->voxelMap.findFirstBlock(
+	// 	this->camera.getCameraPos(),
+	// 	rayWorldDirection,
+	// 	static_cast<float>(60)
+	// );
+
+	std::vector<vec3i> lineCubes = this->voxelMap.lineSequence(
 		this->camera.getCameraPos(),
-		rayWorld,
-		static_cast<float>(Config::minimumViewingDistance)
+		rayWorldDirection,
+		static_cast<float>(60)
 	);
 
-	// vec3 cameraPos = this->camera.getCameraPos();
-	// this->highlightedBlock = vec3i{static_cast<i32>(cameraPos.x), static_cast<i32>(cameraPos.y), static_cast<i32>(cameraPos.z) + 1};
+	std::vector<VertexVector> line;
+	for (auto const& cube : lineCubes)
+	{
+		line.push_back(getVertexFullRelative(vec3{
+			static_cast<float>(cube.x),
+			static_cast<float>(cube.y),
+			static_cast<float>(cube.z)
+		}));
+	}
+	this->highlightedVoxelObject->setModel(std::make_unique<ve::VulkanModel>(this->vulkanDevice, ));
 }
 
 /**

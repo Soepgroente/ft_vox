@@ -204,6 +204,75 @@ mat4	mat4::transposed() const noexcept {
 	return transposed.transpose();
 }
 
+mat4 mat4::inverted() const
+{
+    float adj[4][4];   // will hold the adjugate matrix (transpose of the cofactor matrix)
+    float det = 0.0f;
+
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            // Build the 3x3 minor by removing row i and column j
+            float m[3][3];
+            int mi = 0;
+            for (int r = 0; r < 4; ++r)
+            {
+                if (r == i) continue;
+                int mj = 0;
+                for (int c = 0; c < 4; ++c)
+                {
+                    if (c == j) continue;
+                    m[mi][mj] = data[r][c];
+                    ++mj;
+                }
+                ++mi;
+            }
+
+            float minorDet =
+                m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+                m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+                m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+
+            float sign = ((i + j) % 2 == 0) ? 1.0f : -1.0f;
+
+            // adj[j][i] = cofactor(i,j)  ->  adjugate = transpose of the cofactor matrix
+            adj[j][i] = sign * minorDet;
+        }
+    }
+
+    // Determinant via expansion along row 0, reusing the cofactors computed above
+    det = data[0][0] * adj[0][0]
+        + data[0][1] * adj[1][0]
+        + data[0][2] * adj[2][0]
+        + data[0][3] * adj[3][0];
+
+    if (std::fabs(det) < 1e-8f)
+    {
+        // Singular matrix: not invertible.
+        // Choose how to handle this: return identity, assert, throw...
+        return mat4::idMat();
+    }
+
+    float invDet = 1.0f / det;
+    mat4 result;
+    for (int i = 0; i < 4; ++i)
+	{
+        for (int j = 0; j < 4; ++j)
+		{
+            result.data[i][j] = adj[i][j] * invDet;
+		}
+	}
+
+    return result;
+}
+
+mat4& mat4::invert()
+{
+    *this = inverted();
+    return *this;
+}
+
 mat4&	mat4::translate(const vec3& translation) noexcept
 {
 	*this *= mat4::transMat(translation);
@@ -214,7 +283,6 @@ mat4	mat4::translated(const vec3& translation) const noexcept
 {
 	return (*this) * mat4::transMat(translation);
 }
-
 
 mat4&	mat4::rotate(float angleRadians, const vec3& axis) noexcept
 {
