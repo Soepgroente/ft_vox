@@ -98,28 +98,6 @@ inline constexpr std::array<ve::VulkanModel::Vertex,ve::VERTEX_PER_VOXEL> VOXEL_
 	ve::VulkanModel::Vertex{vec3{ 0.0f, 0.0f, 1.0f }, vec3::down(), vec2{ 4 * W - padding, H + padding }, 0U}
 };
 
-// hard-coded indexes of a voxel
-inline constexpr std::array<ui32, ve::INDEX_PER_VOXEL> VOXEL_INDEXES{
-	0U, 1U, 2U, 		// front face
-	0U, 2U, 3U, 		// front face
-	4U, 5U, 6U, 		// back face
-	4U, 6U, 7U, 		// back face
-	8U, 9U, 10U, 		// left face
-	8U, 10U, 11U, 		// left face
-	12U, 13U, 14U, 		// right face
-	12U, 14U, 15U, 		// right face
-	16U, 17U, 18U, 		// top face
-	16U, 18U, 19U, 		// top face
-	20U, 21U, 22U, 		// bottom face
-	20U, 22U, 23U		// bottom face
-};
-
-// hard-coded indexes of a face
-inline constexpr std::array<ui32, ve::INDEX_PER_FACE> FACE_INDEXES{
-	0U, 1U, 2U, 		// front face
-	0U, 2U, 3U	 		// front face
-};
-
 std::vector<ve::VulkanModel::Vertex>		getVertexRelative( vec3 const& relativeOrigin = vec3(0.0f) );
 std::vector<ve::VulkanModel::Vertex>		getVertexAtlasRelative( vec3 const& relativeOrigin = vec3(0.0f) );
 IndexVector									getIndexRelative( ui32 = 0U );

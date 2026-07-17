@@ -105,13 +105,13 @@ VoxelMap::VoxelMap(ThreadManager& threadManager) :
 
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewTerrainModel(ve::VulkanDevice& device, ui32 binding)
 {
-	return std::make_unique<ve::VulkanModel>(device, _terrainVertexes, FACE_INDEXES, binding);
+	return std::make_unique<ve::VulkanModel>(device, _terrainVertexes, ve::MeshType::FACE, binding);
 }
 
 //	what happens if no underground by chance?
 std::unique_ptr<ve::VulkanModel> VoxelMap::createNewUndergroundModel(ve::VulkanDevice& device, ui32 binding)
 {
-	return std::make_unique<ve::VulkanModel>(device, _undergroundVertexes, FACE_INDEXES, binding);
+	return std::make_unique<ve::VulkanModel>(device, _undergroundVertexes, ve::MeshType::FACE, binding);
 }
 
 void	VoxelMap::setAdjacentPointers()

@@ -78,7 +78,6 @@ void Vox::run( void )
 			this->drawSkybox(commandBuffer, currentFrame);
 
 			printTimer.stop();
-			std::cout << "time: " << fpsTimer.elapsed(Unit::Seconds) << std::endl;
 			if (printTimer.elapsed(Unit::Seconds) > 0.5)
 			{
 				fps = static_cast<int> (1.0f / fpsTimer.elapsed(Unit::Seconds));

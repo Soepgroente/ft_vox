@@ -34,7 +34,7 @@ IndexVector getIndexRelative( ui32 start ) {
 
 	for (ui32 i=0; i<ve::INDEX_PER_VOXEL; i++)
 	{
-		indexes[i] = start + VOXEL_INDEXES[i];
+		indexes[i] = start + ve::VOXEL_INDEXES[i];
 	}
 	return indexes;
 }
