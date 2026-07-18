@@ -52,9 +52,6 @@ void Vox::run( void )
 	this->undergroundObject->setModel(this->voxelMap.createNewUndergroundModel(this->vulkanDevice));
 	this->skyboxObject->setModel(createVoxelAtlasModel(this->vulkanDevice));
 	
-	this->fontDescriptorSet->updateDescriptor(0U, static_cast<const void*>(&Config::backgroundColor), 0U);
-	this->fontDescriptorSet->updateDescriptor(0U, static_cast<const void*>(&Config::fontColor), 1U);
-
 	printTimer.start();
 	while (vulkanWindow.shouldClose() == false)
 	{
@@ -157,6 +154,12 @@ void Vox::setupVulkanBuffers( void )
 	this->materialsUbo->updateMaterial(0U, Config::dirtMaterial);
 	this->materialsUbo->updateMaterial(1U, Config::stoneMaterial);
 	this->materialsUbo->updateLight(0U, Config::lightMaterial, this->camera.getViewMatrix(false));
+
+	this->textDataUbo = std::make_unique<ve::TextUniform>();
+	// color of the UI
+	this->textDataUbo->updateColor(0U, vec4{0.0f, 0.0f, 0.0f, 1.0f});
+	// text color
+	this->textDataUbo->updateColor(1U, Config::fontColor);
 }
 
 void Vox::setupVulkanDescSets( void )
@@ -203,10 +206,11 @@ void Vox::setupVulkanDescSets( void )
 
 	ve::VulkanBindingSet fontSetBindings;
 	// array of uniforms containing colors for the font (text, background, ...)
-	fontSetBindings.addBufferArrayBinding(0U, VK_SHADER_STAGE_FRAGMENT_BIT, std::vector<ui32>{sizeof(vec4), sizeof(vec4)});
+	fontSetBindings.addBufferBinding(0U, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(ve::TextUniform));
 	// texture/sampler of the font used
-	fontSetBindings.addSamplerBinding(1, VK_SHADER_STAGE_FRAGMENT_BIT, Config::fontPath, ve::TextureType::TEXTURE_FONT);
+	fontSetBindings.addSamplerBinding(1U, VK_SHADER_STAGE_FRAGMENT_BIT, Config::fontPath, ve::TextureType::TEXTURE_FONT);
 	this->fontDescriptorSet = this->vulkanSetFactory.createDescriptorSet(fontSetBindings);
+	this->fontDescriptorSet->updateDescriptor(0U, this->textDataUbo->getData());
 }
 
 void Vox::setupVulkanPipelines( void )
@@ -276,7 +280,7 @@ void Vox::updateInput( float deltaTime )
 	vec3	rotation = vec3::zero();
 	float	moveScalar = std::min(deltaTime * movementSpeed, static_cast<float>(Config::chunkLength));
 	float	rotationScalar = deltaTime * Config::lookSpeed;
-	bool	moved = false;
+	// bool	moved = false;
 
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_W)) { moveDirection.z -= moveScalar; }
 	if (this->inputHandler.isKeyPressed(GLFW_KEY_S)) { moveDirection.z += moveScalar; }
@@ -295,7 +299,7 @@ void Vox::updateInput( float deltaTime )
 	{
 		this->camera.rotate(rotation.x, rotation.y, 0.0f);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
-		moved = true;
+		// moved = true;
 	}
 	if (moveDirection != vec3::zero())
 	{
@@ -305,7 +309,7 @@ void Vox::updateInput( float deltaTime )
 
 		this->camera.move(relativeMoveDirection);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
-		moved = true;
+		// moved = true;
 	}
 	if (this->highlightEnabled == true)
 	{
@@ -360,7 +364,7 @@ void Vox::updateMap( std::future<bool>& mapUpdateResult )
 	}
 }
 
-void	Vox::highlightBlock( void )
+void Vox::highlightBlock( void )
 {
 	int width, height;
 	glfwGetWindowSize(this->vulkanWindow.getGLFWwindow(), &width, &height);
@@ -428,8 +432,6 @@ void	Vox::highlightBlock( void )
 		rayWorldDirection,
 		static_cast<float>(Config::minimumViewingDistance)
 	);
-	std::cout << "length line: " << lineCubes.size() << std::endl;
-
 	std::vector<VertexVector> line;
 	for (auto& cube : lineCubes)
 	{
@@ -539,9 +541,9 @@ void Vox::drawText(VkCommandBuffer commandBuffer, ui32 currentFrame, std::string
 	DrawDataIndex	indexes{};
 
 	ve::VulkanSamplerDescriptor const* fontTexture = this->fontDescriptorSet->getSamplerDescriptor(1U);
-	vec2i originText2D{static_cast<i32>(this->vulkanWindow.getWindowSize().width), 0};
+	vec2i textPosition{static_cast<i32>(this->vulkanWindow.getWindowSize().width), 0};
 
-	ve::FontModel fontData = fontTexture->getModelFromText(text, originText2D, 0U, true);
+	ve::FontModel fontData = fontTexture->getModelFromText(text, textPosition, 0U, true);
 	this->textBackgroundObject->setModel(fontData.background);
 	this->fpsCounterObject->setModel(fontData.text);
 
