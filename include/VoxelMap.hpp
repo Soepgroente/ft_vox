@@ -37,6 +37,7 @@ class VoxelMap
 		vec3	getMapMiddle() const noexcept;
 		vec3	detectCollision(const vec3& origin, const vec3& movement);
 		vec3i	findFirstBlock(const vec3& origin, const vec3& direction, float maxDistance);
+		std::vector<vec3i>	lineOfCubes(const vec3& origin, const vec3& direction, float maxDistance);
 		void	destroy(const vec3i& blockLocation);
 
 		static inline	std::mutex	lock;

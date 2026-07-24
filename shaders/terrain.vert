@@ -37,11 +37,11 @@ layout(set = 0, binding = 1) uniform MeshData {
 } meshData;
 
 layout(push_constant) uniform DescriptorIndexes {
-	uint	mesh;
-	uint	material;
-	uint	light;
-	uint	fontColor;
-	uint	texture;
+	int	mesh;
+	int	material;
+	int	light;
+	int	fontColor;
+	int	texture;
 } index;
 
 layout(location = 0) in vec3 position;

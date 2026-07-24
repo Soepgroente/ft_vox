@@ -8,11 +8,11 @@ layout(constant_id = 2) const uint MAX_LIGHTS = 8;
 layout(constant_id = 3) const uint MAX_TEXTURES = 8;
 
 layout(push_constant) uniform DescriptorIndexes {
-	uint	mesh;
-	uint	material;
-	uint	light;
-	uint	fontColor;
-	uint	texture;
+	int	mesh;
+	int	material;
+	int	light;
+	int	fontColor;
+	int	texture;
 } index;
 
 struct MaterialData {
@@ -59,7 +59,7 @@ void main()
 	}
 	else
 	{
-		diffuseColor = vec4(0.9, 0.9, 0.9, 1.0);
+		diffuseColor = vec4(0.9, 0.1, 0.1, 1.0);
 	}
 
 	MaterialData material = meshData.material[index.material];

@@ -66,14 +66,14 @@ struct LightData
 
 struct VkConstants
 {
-	uint32_t	models{0U};
-	uint32_t	materials{0U};
-	uint32_t	lights{0U};
-	uint32_t	fontColor{0U};
-	uint32_t	textures{0U};
+	int32_t	models{0};
+	int32_t	materials{0};
+	int32_t	lights{0};
+	int32_t	fontColor{0};
+	int32_t	textures{0};
 };
 
-inline constexpr VkConstants drawingDataLimits{8U, 8U, 1U, 2U, 4U};
+inline constexpr VkConstants drawingDataLimits{8, 8, 1, 2, 4};
 
 // [has to comply with std140]
 class MeshUniform

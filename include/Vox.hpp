@@ -81,6 +81,7 @@ class Vox
 
 		bool walkFast{false};
 		bool highlightEnabled{false};
+		bool _tmp{false};
 		vec3i highlightedBlock{INT_MAX, INT_MAX, INT_MAX};
 };
 

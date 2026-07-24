@@ -4,11 +4,11 @@
 layout(constant_id = 0) const uint MAX_FONT_COLORS = 2;
 
 layout(push_constant) uniform DescriptorIndexes {
-	uint	mesh;
-	uint	material;
-	uint	light;
-	uint	fontColor;
-	uint	texture;
+	int	mesh;
+	int	material;
+	int	light;
+	int	fontColor;
+	int	texture;
 } index;
 
 layout(set = 1, binding = 0) uniform FontUBO {

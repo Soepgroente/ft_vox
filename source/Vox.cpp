@@ -76,7 +76,7 @@ void Vox::run( void )
 			}
 
 			this->drawTerrain(commandBuffer, currentFrame);
-			if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
+			if (this->_tmp)
 			{
 				this->drawHighligthedBox(commandBuffer);
 			}
@@ -300,31 +300,33 @@ void Vox::updateInput( float deltaTime )
 	if (moveDirection != vec3::zero())
 	{
 		vec3 relativeMoveDirection = this->camera.getRelativeMoveDirection(moveDirection);
-		vec3 location = this->camera.getCameraPos();
-		vec3 movement = this->voxelMap.detectCollision(location, relativeMoveDirection);
+		// vec3 location = this->camera.getCameraPos();
+		// vec3 movement = this->voxelMap.detectCollision(location, relativeMoveDirection);
 
-		this->camera.move(movement);
+		this->camera.move(relativeMoveDirection);
 		this->countFramesToUpdate = ve::VulkanSwapChain::MAX_FRAMES_IN_FLIGHT;
 		moved = true;
 	}
 	if (this->highlightEnabled == true)
 	{
-		if (moved == true)
-		{
-			this->highlightedBlock = vec3i{INT_MAX, INT_MAX, INT_MAX};
-		}
-		else
-		{
-			this->highlightBlock();
-		}
-		if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
-		{
-			this->highlightedVoxelObject->setModel(createVoxelModel(this->vulkanDevice, vec3{static_cast<float>(this->highlightedBlock.x), static_cast<float>(this->highlightedBlock.y), static_cast<float>(this->highlightedBlock.z)}));
-			if (this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
-			{
-				this->voxelMap.destroy(this->highlightedBlock);
-			}
-		}
+		// if (moved == true)
+		// {
+		// 	this->highlightedBlock = vec3i{INT_MAX, INT_MAX, INT_MAX};
+		// }
+		// else
+		// {
+		this->_tmp = true;
+		this->highlightBlock();
+		this->highlightEnabled = false;
+		// }
+		// if (this->highlightedBlock != vec3i{INT_MAX, INT_MAX, INT_MAX})
+		// {
+		// 	this->highlightedVoxelObject->setModel(createVoxelModel(this->vulkanDevice, vec3{static_cast<float>(this->highlightedBlock.x), static_cast<float>(this->highlightedBlock.y), static_cast<float>(this->highlightedBlock.z)}));
+		// 	if (this->inputHandler.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) == true)
+		// 	{
+		// 		this->voxelMap.destroy(this->highlightedBlock);
+		// 	}
+		// }
 	}
 }
 
@@ -348,8 +350,8 @@ void Vox::updateMap( std::future<bool>& mapUpdateResult )
 
 			if (changed == true)
 			{
-				this->terrainObject->setModel(this->voxelMap.createNewTerrainModel(vulkanDevice));
-				this->undergroundObject->setModel(this->voxelMap.createNewUndergroundModel(vulkanDevice));
+				// this->terrainObject->setModel(this->voxelMap.createNewTerrainModel(vulkanDevice));
+				// this->undergroundObject->setModel(this->voxelMap.createNewUndergroundModel(vulkanDevice));
 			}
 			mapUpdateResult = std::async(std::launch::async, [this, playerPos] {
 				return voxelMap.update(playerPos);
@@ -365,6 +367,44 @@ void	Vox::highlightBlock( void )
 
 	vec2 mouse = this->inputHandler.getCursorPos();
 
+	// #1
+	// vec4 rayClip{
+	// 	2.0f * (mouse.x / static_cast<float>(width)) - 1.0f,
+	// 	2.0f * (mouse.y / static_cast<float>(height)) - 1.0f,
+	// 	// 1.0f - 2.0f * (mouse.y / static_cast<float>(height)),
+	// 	1.0f,
+	// 	1.0f
+	// };
+	//
+	// vec4 rayEye = this->camera.getProjectionMatrix(false).inverted() * rayClip;
+	// rayEye.z = -1.0f;
+	// rayEye.w = 0.0f;
+	//
+	// vec4 rayWorld4D = this->camera.getViewMatrix(false).inverted() * rayEye;
+	// vec3 rayWorldDirection{rayWorld4D * -1};
+	//
+	// std::cout << "cameraPos: " << this->camera.getCameraPos() << std::endl;
+	// std::cout << "rayWorldDirection: " << rayWorldDirection << std::endl;
+	// rayWorldDirection.normalize();
+
+	// #2
+	// float x = 2.0f * (mouse.x / static_cast<float>(width)) - 1.0f;
+	// float y = 2.0f * (mouse.y / static_cast<float>(height)) - 1.0f;
+	//
+	// vec4 rayStartNDC{x, y, 0.0f, 1.0f}; // near plane, z=0 in Vulkan
+	// vec4 rayEndNDC{x, y, 1.0f, 1.0f};   // far plane, z=1
+	//
+	// mat4 invVP = (this->camera.getProjectionMatrix(false) * this->camera.getViewMatrix(false)).inverted();
+	// vec4 rayStartWorld = invVP * rayStartNDC;
+	// rayStartWorld /= rayStartWorld.w;
+	//
+	// vec4 rayEndWorld = invVP * rayEndNDC;
+	// rayEndWorld /= rayEndWorld.w;
+	//
+	// vec3 rayOrigin = vec3(rayStartWorld);
+	// vec3 rayWorldDirection = (vec3(rayEndWorld) - rayOrigin).normalize();
+
+	// #3
 	// 1) Pixel -> [-1 to +1]
 	float x = 2.0f * (mouse.x / static_cast<float>(width)) - 1.0f;
 	float y = 1.0f - 2.0f * (mouse.y / static_cast<float>(height));
@@ -380,17 +420,51 @@ void	Vox::highlightBlock( void )
 	rayCamera.normalize();
 
 	// 3) Camera-space -> world-space
-	vec3 rayWorld = this->camera.getRelativeMoveDirection(rayCamera);
-	rayWorld.normalize();
+	vec3 rayWorldDirection = this->camera.getRelativeMoveDirection(rayCamera);
+	rayWorldDirection.normalize();
 
-	this->highlightedBlock = this->voxelMap.findFirstBlock(
+	std::vector<vec3i> lineCubes = this->voxelMap.lineOfCubes(
 		this->camera.getCameraPos(),
-		rayWorld,
+		rayWorldDirection,
 		static_cast<float>(Config::minimumViewingDistance)
 	);
+	std::cout << "length line: " << lineCubes.size() << std::endl;
 
-	// vec3 cameraPos = this->camera.getCameraPos();
-	// this->highlightedBlock = vec3i{static_cast<i32>(cameraPos.x), static_cast<i32>(cameraPos.y), static_cast<i32>(cameraPos.z) + 1};
+	std::vector<VertexVector> line;
+	for (auto& cube : lineCubes)
+	{
+		// std::cout << "cube in: " << cube << std::endl;
+		line.push_back(getVertexRelative(vec3{
+			static_cast<float>(cube.x),
+			static_cast<float>(cube.y),
+			static_cast<float>(cube.z)
+		}));
+		// for (ve::VulkanModel::Vertex& v : line.back())
+		// {
+		// 	v.textureIndex = -1;
+		// 	std::cout << "vertex (pos): " << v.pos << std::endl;
+		// 	std::cout << "vertex (norm): " << v.normal << std::endl;
+		// 	std::cout << "vertex (textUV): " << v.textureUv << std::endl;
+		// 	std::cout << "vertex (TextIn): " << v.textureIndex << std::endl << std::endl;
+		// }
+	}
+	std::cout << "n cubes: " << lineCubes.size() << std::endl;
+
+	// this->highlightedBlock = this->voxelMap.findFirstBlock(
+	// 	this->camera.getCameraPos(),
+	// 	rayWorldDirection,
+	// 	static_cast<float>(60)
+	// );
+	// VertexVector vertexHighlightedCube = getVertexRelative(vec3{
+	// 	static_cast<float>(this->highlightedBlock.x),
+	// 	static_cast<float>(this->highlightedBlock.y),
+	// 	static_cast<float>(this->highlightedBlock.z)
+	// });
+	// IndexVector indexHighlightedCube = getIndexRelative();
+	std::cout << "creating model..." << std::endl;
+	this->highlightedVoxelObject->setModel(std::make_unique<ve::VulkanModel>(this->vulkanDevice, line, ve::MeshType::VOXEL));
+	// this->highlightedVoxelObject->setModel(std::make_unique<ve::VulkanModel>(this->vulkanDevice, vertexHighlightedCube, indexHighlightedCube));
+	std::cout << "line cube model created" << std::endl;
 }
 
 void Vox::updateUniforms(ui32 currentFrame)
@@ -416,17 +490,17 @@ void Vox::drawTerrain(VkCommandBuffer commandBuffer, ui32 currentFrame)
 	this->uboDescriptorSet[currentFrame]->bindSet(commandBuffer, *this->terrainPipeline, 0U);
 	this->textureDescriptorSet->bindSet(commandBuffer, *this->terrainPipeline, 1U);
 
-	indexes.models = 0U;
-	indexes.materials = 0U;
-	indexes.textures = 0U;
+	indexes.models = 0;
+	indexes.materials = 0;
+	indexes.textures = 0;
 	this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
 
 	this->terrainObject->bindBuffer(commandBuffer);
 	this->terrainObject->draw(commandBuffer);
 
-	indexes.models = 1U;
-	indexes.materials = 1U;
-	indexes.textures = 2U;
+	indexes.models = 1;
+	indexes.materials = 1;
+	indexes.textures = 2;
 	this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
 
 	this->undergroundObject->bindBuffer(commandBuffer);
@@ -437,7 +511,6 @@ void Vox::drawHighligthedBox(VkCommandBuffer commandBuffer)
 {
 	DrawDataIndex	indexes{};
 
-	indexes.models = 2U;
 	indexes.textures = -1;
 	this->terrainPipeline->updatePushConstants(commandBuffer, &indexes);
 
@@ -454,7 +527,7 @@ void Vox::drawSkybox(VkCommandBuffer commandBuffer, ui32 currentFrame)
 	this->uboDescriptorSet[currentFrame]->bindSet(commandBuffer, *this->skyboxPipeline, 0U);
 	this->textureDescriptorSet->bindSet(commandBuffer, *this->skyboxPipeline, 1U);
 
-	indexes.models = 2U;
+	indexes.models = 2;
 	this->skyboxPipeline->updatePushConstants(commandBuffer, &indexes);
 
 	this->skyboxObject->bindBuffer(commandBuffer);
